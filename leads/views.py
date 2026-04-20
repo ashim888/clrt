@@ -1,6 +1,8 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.db.models import Q, Count, Max, Prefetch
 from .models import Lead, Activity
 from .forms import LeadForm, ActivityForm
@@ -100,6 +102,21 @@ def activity_add(request, lead_pk):
         messages.success(request, "Activity logged.")
         return redirect("leads:lead_detail", pk=lead_pk)
     return render(request, "leads/activity_form.html", {"form": form, "lead": lead})
+
+
+@login_required
+@require_POST
+def lead_update_status(request, pk):
+    if not _can_edit_leads(request.user):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    lead = get_object_or_404(Lead, pk=pk)
+    new_status = request.POST.get("status")
+    valid = [s for s, _ in Lead.STATUS_CHOICES]
+    if new_status not in valid:
+        return JsonResponse({"error": "Invalid status"}, status=400)
+    lead.status = new_status
+    lead.save(update_fields=["status", "updated_at"])
+    return JsonResponse({"status": new_status, "label": lead.get_status_display()})
 
 
 @login_required
