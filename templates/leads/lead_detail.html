@@ -35,9 +35,8 @@
 <!-- Header -->
 <div class="flex items-start justify-between mb-6">
   <div>
-    <div class="flex items-center gap-3 mb-1">
-      <h1 class="text-2xl font-bold text-gray-900">{{ lead.organization_name }}</h1>
-
+    <h1 class="text-2xl font-bold text-gray-900 mb-2">{{ lead.organization_name }}</h1>
+    <div class="flex items-center gap-2 mb-1">
       {% if user.role in "admin,sales" or user.is_superuser %}
       <select class="status-select-detail"
         data-url="{% url 'leads:lead_update_status' lead.pk %}"

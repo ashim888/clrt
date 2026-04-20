@@ -63,6 +63,7 @@
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap w-10">#</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Organization</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Contact</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Status</th>
@@ -76,6 +77,9 @@
       {% for lead in leads %}
       {% with latest=lead.all_activities.0 %}
       <tr class="hover:bg-blue-50 cursor-pointer transition-colors" onclick="location.href='{% url "leads:lead_detail" lead.pk %}'">
+
+        <!-- Serial number -->
+        <td class="px-4 py-3 text-gray-400 text-xs font-medium">{{ forloop.counter }}</td>
 
         <!-- Organization + added date -->
         <td class="px-4 py-3">
@@ -156,7 +160,7 @@
       </tr>
       {% endwith %}
       {% empty %}
-      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No leads found. <a href="{% url "leads:lead_create" %}" class="text-blue-600 hover:underline">Add your first lead.</a></td></tr>
+      <tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">No leads found. <a href="{% url "leads:lead_create" %}" class="text-blue-600 hover:underline">Add your first lead.</a></td></tr>
       {% endfor %}
     </tbody>
   </table>
