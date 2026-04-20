@@ -47,7 +47,11 @@ def lead_list(request):
 def lead_detail(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     activities = lead.activities.select_related("created_by")
-    return render(request, "leads/lead_detail.html", {"lead": lead, "activities": activities})
+    return render(request, "leads/lead_detail.html", {
+        "lead": lead,
+        "activities": activities,
+        "status_choices": Lead.STATUS_CHOICES,
+    })
 
 
 @login_required

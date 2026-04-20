@@ -2,19 +2,54 @@
 {% block title %}{{ lead.organization_name }}{% endblock %}
 {% block nav_leads %}bg-gray-800 text-white{% endblock %}
 {% block content %}
+
+<style>
+/* Status select pill — detail page */
+.status-select-detail {
+  appearance: none; -webkit-appearance: none;
+  border: none; outline: none; cursor: pointer;
+  font-size: 0.8rem; font-weight: 600;
+  padding: 4px 28px 4px 12px; border-radius: 999px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%236b7280'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 9px center;
+  transition: opacity .15s, box-shadow .15s;
+  box-shadow: 0 0 0 1.5px rgba(0,0,0,0.06);
+}
+.status-select-detail:hover { opacity:.85; }
+.status-select-detail[data-current="new"]         { background-color:#f3f4f6; color:#374151; }
+.status-select-detail[data-current="contacted"]   { background-color:#dbeafe; color:#1d4ed8; }
+.status-select-detail[data-current="demo"]        { background-color:#ede9fe; color:#6d28d9; }
+.status-select-detail[data-current="negotiation"] { background-color:#fef3c7; color:#92400e; }
+.status-select-detail[data-current="won"]         { background-color:#d1fae5; color:#065f46; }
+.status-select-detail[data-current="lost"]        { background-color:#fee2e2; color:#b91c1c; }
+
+/* Read-only badge colors */
+.status-badge-new         { background:#f3f4f6; color:#374151; }
+.status-badge-contacted   { background:#dbeafe; color:#1d4ed8; }
+.status-badge-demo        { background:#ede9fe; color:#6d28d9; }
+.status-badge-negotiation { background:#fef3c7; color:#92400e; }
+.status-badge-won         { background:#d1fae5; color:#065f46; }
+.status-badge-lost        { background:#fee2e2; color:#b91c1c; }
+</style>
+
 <!-- Header -->
 <div class="flex items-start justify-between mb-6">
   <div>
     <div class="flex items-center gap-3 mb-1">
       <h1 class="text-2xl font-bold text-gray-900">{{ lead.organization_name }}</h1>
-      <span class="badge
-        {% if lead.status == "new" %}bg-gray-100 text-gray-700
-        {% elif lead.status == "contacted" %}bg-blue-100 text-blue-700
-        {% elif lead.status == "demo" %}bg-purple-100 text-purple-700
-        {% elif lead.status == "negotiation" %}bg-yellow-100 text-yellow-800
-        {% elif lead.status == "won" %}bg-green-100 text-green-700
-        {% elif lead.status == "lost" %}bg-red-100 text-red-700
-        {% endif %}">{{ lead.get_status_display }}</span>
+
+      {% if user.role in "admin,sales" or user.is_superuser %}
+      <select class="status-select-detail"
+        data-url="{% url 'leads:lead_update_status' lead.pk %}"
+        data-current="{{ lead.status }}"
+        title="Change status">
+        {% for val, label in status_choices %}
+        <option value="{{ val }}" {% if lead.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      <span class="badge status-badge-{{ lead.status }}">{{ lead.get_status_display }}</span>
+      {% endif %}
     </div>
     <p class="text-gray-500">{{ lead.contact_person }} · {{ lead.phone }} {% if lead.email %}· {{ lead.email }}{% endif %}</p>
   </div>
@@ -93,4 +128,35 @@
     </div>
   </div>
 </div>
+
+<script>
+const STATUS_BG_DETAIL = {
+  new:         ['#f3f4f6','#374151'],
+  contacted:   ['#dbeafe','#1d4ed8'],
+  demo:        ['#ede9fe','#6d28d9'],
+  negotiation: ['#fef3c7','#92400e'],
+  won:         ['#d1fae5','#065f46'],
+  lost:        ['#fee2e2','#b91c1c'],
+};
+
+document.querySelectorAll('.status-select-detail').forEach(sel => {
+  sel.addEventListener('change', async function() {
+    const newStatus = this.value;
+    this.dataset.current = newStatus;
+    if (STATUS_BG_DETAIL[newStatus]) {
+      this.style.backgroundColor = STATUS_BG_DETAIL[newStatus][0];
+      this.style.color = STATUS_BG_DETAIL[newStatus][1];
+    }
+    try {
+      const resp = await fetch(this.dataset.url, {
+        method: 'POST',
+        headers: {'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/x-www-form-urlencoded'},
+        body: 'status=' + encodeURIComponent(newStatus),
+      });
+      if (!resp.ok) { const d = await resp.json(); alert(d.error || 'Update failed'); }
+    } catch { alert('Network error — please refresh.'); }
+  });
+});
+</script>
+
 {% endblock %}
