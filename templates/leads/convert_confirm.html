@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Convert to Client{% endblock %}
+{% block content %}
+<div class="max-w-md">
+  <div class="card p-6 text-center">
+    <div class="text-green-500 text-5xl mb-4">&#x1F389;</div>
+    <h2 class="text-xl font-bold text-gray-900 mb-2">Convert to Client</h2>
+    <p class="text-gray-500 mb-6">Convert <strong>{{ lead.organization_name }}</strong> from a Won Lead into a Client record.</p>
+    <div class="flex gap-3 justify-center">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-primary">Convert</button>
+      </form>
+      <a href="{% url "leads:lead_detail" lead.pk %}" class="btn-secondary">Cancel</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

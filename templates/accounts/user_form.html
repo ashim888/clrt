@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_users %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-8">
+  <a href="{% url "accounts:user_list" %}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Users
+  </a>
+  <span class="text-gray-300">/</span>
+  <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-8 items-start">
+  <div class="lg:col-span-1">
+    <div class="card p-6 sticky top-6">
+      <div class="w-12 h-12 rounded-xl bg-orange-100 flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"/></svg>
+      </div>
+      <h2 class="text-base font-semibold text-gray-900 mb-1">Add User</h2>
+      <p class="text-sm text-gray-500 leading-relaxed">Create a team member account. Assign roles to control what each person can access.</p>
+      <div class="mt-5 pt-4 border-t border-gray-100 space-y-2 text-xs text-gray-500">
+        <p><span class="font-medium text-gray-700">Admin</span> — full access to all modules</p>
+        <p><span class="font-medium text-gray-700">Sales</span> — leads & follow-ups only</p>
+        <p><span class="font-medium text-gray-700">Accounts</span> — clients, contracts & billing</p>
+      </div>
+    </div>
+  </div>
+  <div class="lg:col-span-2">
+    <div class="card p-6">
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+        {% for field in form %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="text-xs text-gray-400 mt-1">{{ field.help_text }}</p>{% endif %}
+          {% if field.errors %}<p class="text-red-500 text-xs mt-1">{{ field.errors.0 }}</p>{% endif %}
+        </div>
+        {% endfor %}
+        <div class="flex items-center gap-3 pt-2">
+          <button type="submit" class="btn-primary px-6 py-2.5">Create User</button>
+          <a href="{% url "accounts:user_list" %}" class="btn-secondary px-6 py-2.5">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}{{ invoice.invoice_number }}{% endblock %}
+{% block nav_billing %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <div class="flex items-center gap-3 mb-1">
+      <h1 class="text-2xl font-bold text-gray-900">{{ invoice.invoice_number }}</h1>
+      <span class="badge
+        {% if invoice.status == "paid" %}bg-green-100 text-green-700
+        {% elif invoice.status == "overdue" %}bg-red-100 text-red-700
+        {% elif invoice.status == "pending" %}bg-yellow-100 text-yellow-800
+        {% else %}bg-gray-100 text-gray-600{% endif %}">{{ invoice.get_status_display }}</span>
+    </div>
+    <a href="{% url "clients:client_detail" invoice.client.pk %}" class="text-blue-600 hover:underline text-sm">{{ invoice.client }}</a>
+    {% if invoice.contract %} · <a href="{% url "clients:contract_detail" invoice.contract.pk %}" class="text-blue-600 hover:underline text-sm">{{ invoice.contract.contract_title }}</a>{% endif %}
+  </div>
+  <div class="flex gap-2">
+    {% if invoice.status != "paid" %}
+    <a href="{% url "billing:payment_add" invoice.pk %}" class="btn-primary">+ Record Payment</a>
+    {% endif %}
+    <a href="{% url "billing:invoice_edit" invoice.pk %}" class="btn-secondary">Edit</a>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <div class="card p-5">
+    <h3 class="font-semibold text-gray-900 mb-4">Invoice Details</h3>
+    <div class="space-y-3 text-sm">
+      <div class="flex justify-between"><span class="text-gray-400">Invoice Total</span><span class="font-bold text-lg">Rs. {{ invoice.amount|floatformat:0 }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-400">Due Date</span><span class="{% if invoice.is_overdue %}text-red-600 font-medium{% endif %}">{{ invoice.due_date }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-400">Generated</span><span>{{ invoice.generated_date }}</span></div>
+      {% if invoice.description %}<div><p class="text-gray-400 text-xs mb-1">Description</p><p>{{ invoice.description }}</p></div>{% endif %}
+      <div class="border-t pt-3">
+        <div class="flex justify-between"><span class="text-gray-400">Paid</span><span class="text-green-600 font-medium">Rs. {{ paid_total|floatformat:0 }}</span></div>
+        <div class="flex justify-between mt-1"><span class="text-gray-700 font-medium">Balance Due</span><span class="font-bold {% if balance > 0 %}text-red-600{% else %}text-green-600{% endif %}">Rs. {{ balance|floatformat:0 }}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <h3 class="font-semibold text-gray-900 mb-3">Payment History</h3>
+    <div class="space-y-2">
+      {% for p in payments %}
+      <div class="card p-4 flex items-center justify-between">
+        <div>
+          <p class="text-sm font-medium">Rs. {{ p.amount_paid|floatformat:0 }}</p>
+          <p class="text-xs text-gray-400">{{ p.payment_date }} · {{ p.get_payment_mode_display }}{% if p.reference %} · {{ p.reference }}{% endif %}</p>
+        </div>
+        <span class="badge bg-green-100 text-green-700">Received</span>
+      </div>
+      {% empty %}
+      <div class="card p-6 text-center text-gray-400 text-sm">No payments recorded yet.</div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

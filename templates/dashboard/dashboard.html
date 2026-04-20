@@ -1,0 +1,119 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+  <p class="text-gray-500 text-sm">{{ today|date:"l, F j, Y" }}</p>
+</div>
+
+<!-- Stats Row -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">Total Leads</p>
+    <p class="text-3xl font-bold text-gray-900">{{ lead_stats.total }}</p>
+    <p class="text-xs text-green-600 mt-1">{{ lead_stats.won }} won · {{ lead_stats.new }} new</p>
+  </div>
+  <div class="card p-4 {% if todays_followups %}border-blue-300{% endif %}">
+    <p class="text-xs text-gray-500 mb-1">Follow-ups Today</p>
+    <p class="text-3xl font-bold {% if todays_followups %}text-blue-600{% else %}text-gray-900{% endif %}">{{ todays_followups|length }}</p>
+    <p class="text-xs text-gray-400 mt-1">Scheduled for today</p>
+  </div>
+  <div class="card p-4 {% if overdue_followups %}border-orange-300{% endif %}">
+    <p class="text-xs text-gray-500 mb-1">Overdue Follow-ups</p>
+    <p class="text-3xl font-bold {% if overdue_followups %}text-orange-600{% else %}text-gray-900{% endif %}">{{ overdue_followups|length }}</p>
+    <p class="text-xs text-gray-400 mt-1">Missed follow-ups</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-500 mb-1">Revenue This Month</p>
+    <p class="text-2xl font-bold text-green-600">Rs. {{ revenue_month|floatformat:0 }}</p>
+    <p class="text-xs text-gray-400 mt-1">Paid invoices</p>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <!-- Today's Follow-ups -->
+  <div class="card">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-semibold text-gray-900">&#x1F4C5; Today's Follow-ups</h2>
+      <a href="/leads/?followup=today" class="text-xs text-blue-600 hover:underline">View all</a>
+    </div>
+    <ul class="divide-y divide-gray-50">
+      {% for a in todays_followups %}
+      <li class="px-5 py-3 flex items-center justify-between">
+        <div>
+          <a href="{% url "leads:lead_detail" a.lead.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ a.lead.organization_name }}</a>
+          <p class="text-xs text-gray-400">{{ a.get_type_display }}</p>
+        </div>
+        <span class="badge bg-blue-100 text-blue-700">Today</span>
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-gray-400">No follow-ups scheduled today &#x2705;</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Overdue Follow-ups -->
+  <div class="card">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-semibold text-gray-900">&#x26A0;&#xFE0F; Overdue Follow-ups</h2>
+    </div>
+    <ul class="divide-y divide-gray-50">
+      {% for a in overdue_followups|slice:":8" %}
+      <li class="px-5 py-3 flex items-center justify-between">
+        <div>
+          <a href="{% url "leads:lead_detail" a.lead.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ a.lead.organization_name }}</a>
+          <p class="text-xs text-gray-400">Due: {{ a.next_follow_up_date }}</p>
+        </div>
+        <span class="badge bg-red-100 text-red-700">Overdue</span>
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-gray-400">No overdue follow-ups &#x2705;</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Expiring Contracts -->
+  <div class="card">
+    <div class="px-5 py-4 border-b border-gray-100">
+      <h2 class="font-semibold text-gray-900">&#x1F4C3; Contracts Expiring Soon (30 days)</h2>
+    </div>
+    <ul class="divide-y divide-gray-50">
+      {% for c in expiring_contracts %}
+      <li class="px-5 py-3 flex items-center justify-between">
+        <div>
+          <a href="{% url "clients:contract_detail" c.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ c.contract_title }}</a>
+          <p class="text-xs text-gray-400">{{ c.client }} · expires {{ c.end_date }}</p>
+        </div>
+        <span class="badge bg-yellow-100 text-yellow-800">{{ c.days_until_expiry }}d left</span>
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-gray-400">No contracts expiring soon &#x2705;</li>
+      {% endfor %}
+    </ul>
+  </div>
+
+  <!-- Pending Invoices -->
+  <div class="card">
+    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+      <h2 class="font-semibold text-gray-900">&#x1F4B3; Pending Invoices</h2>
+      <a href="/billing/?status=overdue" class="text-xs text-red-600 hover:underline">View overdue</a>
+    </div>
+    <ul class="divide-y divide-gray-50">
+      {% for inv in pending_invoices|slice:":8" %}
+      <li class="px-5 py-3 flex items-center justify-between">
+        <div>
+          <a href="{% url "billing:invoice_detail" inv.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ inv.invoice_number }}</a>
+          <p class="text-xs text-gray-400">{{ inv.client }} · Rs. {{ inv.amount|floatformat:0 }} · due {{ inv.due_date }}</p>
+        </div>
+        <span class="badge {% if inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">
+          {{ inv.get_status_display }}
+        </span>
+      </li>
+      {% empty %}
+      <li class="px-5 py-8 text-center text-sm text-gray-400">No pending invoices &#x2705;</li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endblock %}

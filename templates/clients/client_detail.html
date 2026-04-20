@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}{{ client.organization_name }}{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">{{ client.organization_name }}</h1>
+    {% if client.email %}<p class="text-gray-500 text-sm">{{ client.email }}{% if client.phone %} · {{ client.phone }}{% endif %}</p>{% endif %}
+    {% if client.linked_lead %}<p class="text-xs text-blue-600 mt-1">&#x1F517; From lead: <a href="{% url "leads:lead_detail" client.linked_lead.pk %}" class="hover:underline">{{ client.linked_lead.organization_name }}</a></p>{% endif %}
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url "clients:contract_create" client.pk %}" class="btn-primary">+ Add Contract</a>
+    <a href="{% url "clients:client_edit" client.pk %}" class="btn-secondary">Edit</a>
+  </div>
+</div>
+
+<h2 class="font-semibold text-gray-900 mb-3">Contracts</h2>
+<div class="space-y-3">
+  {% for contract in contracts %}
+  <div class="card p-5 flex items-center justify-between">
+    <div>
+      <a href="{% url "clients:contract_detail" contract.pk %}" class="font-medium text-gray-900 hover:text-blue-600">{{ contract.contract_title }}</a>
+      <p class="text-xs text-gray-400 mt-0.5">{{ contract.start_date }} → {{ contract.end_date }} · {{ contract.get_billing_cycle_display }} · Rs. {{ contract.contract_value|floatformat:0 }}</p>
+    </div>
+    <div class="flex items-center gap-3">
+      {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">Expiring in {{ contract.days_until_expiry }}d</span>{% endif %}
+      <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card p-8 text-center text-gray-400">No contracts yet. <a href="{% url "clients:contract_create" client.pk %}" class="text-blue-600 hover:underline">Add first contract.</a></div>
+  {% endfor %}
+</div>
+
+<!-- Invoices -->
+<h2 class="font-semibold text-gray-900 mt-8 mb-3">Recent Invoices</h2>
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Invoice #</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Amount</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Due Date</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for inv in client.invoices.all|slice:":10" %}
+      <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "billing:invoice_detail" inv.pk %}'">
+        <td class="px-4 py-3 font-medium">{{ inv.invoice_number }}</td>
+        <td class="px-4 py-3">Rs. {{ inv.amount|floatformat:0 }}</td>
+        <td class="px-4 py-3 text-gray-500">{{ inv.due_date }}</td>
+        <td class="px-4 py-3"><span class="badge {% if inv.status == "paid" %}bg-green-100 text-green-700{% elif inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ inv.get_status_display }}</span></td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No invoices.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

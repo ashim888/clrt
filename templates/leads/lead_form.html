@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_leads %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<!-- Page header -->
+<div class="flex items-center gap-3 mb-8">
+  <a href="/leads/" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Leads
+  </a>
+  <span class="text-gray-300">/</span>
+  <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-8 items-start">
+  <!-- Left: context panel -->
+  <div class="lg:col-span-1">
+    <div class="card p-6 sticky top-6">
+      <div class="w-12 h-12 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+        <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <h2 class="text-base font-semibold text-gray-900 mb-1">{% if lead %}Edit Lead{% else %}New Lead{% endif %}</h2>
+      <p class="text-sm text-gray-500 leading-relaxed">Add all the details about a prospect. You can log activities and track the pipeline after saving.</p>
+      <div class="mt-5 space-y-2">
+        <div class="flex items-start gap-2 text-xs text-gray-400">
+          <svg class="w-3.5 h-3.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          Organization name is required
+        </div>
+        <div class="flex items-start gap-2 text-xs text-gray-400">
+          <svg class="w-3.5 h-3.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          Set a follow-up from the activity log
+        </div>
+        <div class="flex items-start gap-2 text-xs text-gray-400">
+          <svg class="w-3.5 h-3.5 mt-0.5 text-green-500 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+          Mark as "Won" to convert to client
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right: form -->
+  <div class="lg:col-span-2">
+    <form method="post" class="space-y-6">
+      {% csrf_token %}
+
+      <!-- Section: Basic Info -->
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Basic Information</h3>
+        <div class="grid grid-cols-1 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Organization Name <span class="text-red-500">*</span></label>
+            <input type="text" name="organization_name" value="{{ form.organization_name.value|default:"" }}" class="input" required autofocus placeholder="e.g. Acme Corp" />
+            {% if form.organization_name.errors %}<p class="text-red-500 text-xs mt-1">{{ form.organization_name.errors.0 }}</p>{% endif %}
+          </div>
+          <div class="grid grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Contact Person <span class="text-red-500">*</span></label>
+              <input type="text" name="contact_person" value="{{ form.contact_person.value|default:"" }}" class="input" required placeholder="Full name" />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Phone <span class="text-red-500">*</span></label>
+              <input type="text" name="phone" value="{{ form.phone.value|default:"" }}" class="input" required placeholder="+977-98XXXXXXXX" />
+            </div>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Email</label>
+            <input type="email" name="email" value="{{ form.email.value|default:"" }}" class="input" placeholder="contact@example.com" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Section: Pipeline -->
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Pipeline & Assignment</h3>
+        <div class="grid grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+            <select name="status" class="input">
+              {% for val, label in form.fields.status.choices %}
+              <option value="{{ val }}" {% if form.status.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Assigned To</label>
+            <select name="assigned_to" class="input">
+              <option value="">— Unassigned —</option>
+              {% for u in form.fields.assigned_to.queryset %}
+              <option value="{{ u.pk }}" {% if form.assigned_to.value|stringformat:"s" == u.pk|stringformat:"s" %}selected{% endif %}>{{ u }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+            <textarea name="notes" rows="4" class="input" placeholder="Any relevant details, context, or initial observations…">{{ form.notes.value|default:"" }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex items-center gap-3">
+        <button type="submit" class="btn-primary px-6 py-2.5">Save Lead</button>
+        <a href="/leads/" class="btn-secondary px-6 py-2.5">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-8">
+  <a href="{% url "clients:client_detail" client.pk %}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    {{ client.organization_name }}
+  </a>
+  <span class="text-gray-300">/</span>
+  <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-8 items-start">
+  <!-- Context panel -->
+  <div class="lg:col-span-1">
+    <div class="card p-6 sticky top-6 space-y-5">
+      <div>
+        <div class="w-12 h-12 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+        </div>
+        <h2 class="text-base font-semibold text-gray-900 mb-1">Contract Details</h2>
+        <p class="text-sm text-gray-500 leading-relaxed">Define the contract terms, billing cycle, and upload the signed document.</p>
+      </div>
+      <div class="pt-4 border-t border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Client</p>
+        <p class="text-sm font-semibold text-gray-800">{{ client.organization_name }}</p>
+      </div>
+      {% if contract and contract.document %}
+      <div>
+        <p class="text-xs text-gray-400 mb-2">Current Document</p>
+        <a href="{{ contract.document.url }}" target="_blank" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/></svg>
+          View existing file
+        </a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Form -->
+  <div class="lg:col-span-2">
+    <form method="post" enctype="multipart/form-data" class="space-y-6">
+      {% csrf_token %}
+
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Contract Info</h3>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Contract Title <span class="text-red-500">*</span></label>
+            <input type="text" name="contract_title" value="{{ form.contract_title.value|default:"" }}" class="input" required placeholder="e.g. Annual Maintenance Contract 2026" />
+          </div>
+          <div class="grid grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">Start Date <span class="text-red-500">*</span></label>
+              <input type="date" name="start_date" value="{{ form.start_date.value|default:"" }}" class="input" required />
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1.5">End Date <span class="text-red-500">*</span></label>
+              <input type="date" name="end_date" value="{{ form.end_date.value|default:"" }}" class="input" required />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Billing & Status</h3>
+        <div class="grid grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Billing Cycle</label>
+            <select name="billing_cycle" class="input">
+              {% for val, label in form.fields.billing_cycle.choices %}
+              <option value="{{ val }}" {% if form.billing_cycle.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+            <select name="status" class="input">
+              {% for val, label in form.fields.status.choices %}
+              <option value="{{ val }}" {% if form.status.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Contract Value (Rs.) <span class="text-red-500">*</span></label>
+            <div class="relative">
+              <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm font-medium">Rs.</span>
+              <input type="number" step="0.01" name="contract_value" value="{{ form.contract_value.value|default:"" }}" class="input" style="padding-left:2.75rem" required placeholder="0.00" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Document & Notes</h3>
+        <div class="space-y-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Upload Contract (PDF / Image)</label>
+            <input type="file" name="document" accept=".pdf,.png,.jpg,.jpeg" />
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
+            <textarea name="notes" rows="3" class="input" placeholder="Special terms, remarks…">{{ form.notes.value|default:"" }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <button type="submit" class="btn-primary px-6 py-2.5">Save Contract</button>
+        <a href="{% url "clients:client_detail" client.pk %}" class="btn-secondary px-6 py-2.5">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+{% block title %}Leads{% endblock %}
+{% block nav_leads %}bg-gray-800 text-white{% endblock %}
+
+{% block content %}
+<style>
+  .followup-overdue { color: #dc2626; font-weight: 600; }
+  .followup-today   { color: #d97706; font-weight: 600; }
+  .followup-soon    { color: #2563eb; }
+  .activity-pill {
+    display: inline-flex; align-items: center; gap: 4px;
+    font-size: 0.7rem; padding: 1px 7px; border-radius: 999px; font-weight: 500;
+  }
+  .act-call       { background: #dbeafe; color: #1e40af; }
+  .act-meeting    { background: #ede9fe; color: #6d28d9; }
+  .act-follow_up  { background: #fef3c7; color: #92400e; }
+  .act-email      { background: #d1fae5; color: #065f46; }
+</style>
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Leads</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Pipeline overview with latest activity &amp; follow-up status</p>
+  </div>
+  {% if user.role in "admin,sales" or user.is_superuser %}
+  <a href="{% url "leads:lead_create" %}" class="btn-primary">+ Add Lead</a>
+  {% endif %}
+</div>
+
+<!-- Filters -->
+<form method="get" class="flex flex-wrap gap-3 mb-5">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search organization, contact, phone…" class="input max-w-xs" />
+  <select name="status" class="input max-w-[180px]">
+    <option value="">All Status</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn-secondary">Filter</button>
+  {% if q or status %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
+</form>
+
+<div class="card overflow-x-auto">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Organization</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Contact</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Latest Activity</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Next Follow-up</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Assigned To</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Activities</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for lead in leads %}
+      {% with latest=lead.all_activities.0 %}
+      <tr class="hover:bg-blue-50 cursor-pointer transition-colors" onclick="location.href='{% url "leads:lead_detail" lead.pk %}'">
+
+        <!-- Organization + added date -->
+        <td class="px-4 py-3">
+          <div class="font-semibold text-gray-900">{{ lead.organization_name }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">Added {{ lead.created_at|date:"M d, Y" }}</div>
+        </td>
+
+        <!-- Contact + phone -->
+        <td class="px-4 py-3">
+          <div class="text-gray-700">{{ lead.contact_person }}</div>
+          <div class="text-xs text-gray-400">{{ lead.phone }}</div>
+        </td>
+
+        <!-- Status badge -->
+        <td class="px-4 py-3">
+          <span class="badge
+            {% if lead.status == "new" %}bg-gray-100 text-gray-700
+            {% elif lead.status == "contacted" %}bg-blue-100 text-blue-700
+            {% elif lead.status == "demo" %}bg-purple-100 text-purple-700
+            {% elif lead.status == "negotiation" %}bg-yellow-100 text-yellow-800
+            {% elif lead.status == "won" %}bg-green-100 text-green-700
+            {% elif lead.status == "lost" %}bg-red-100 text-red-700
+            {% endif %}">{{ lead.get_status_display }}</span>
+        </td>
+
+        <!-- Latest activity -->
+        <td class="px-4 py-3 max-w-xs">
+          {% if latest %}
+            <div class="flex items-center gap-2 mb-1">
+              <span class="activity-pill act-{{ latest.type }}">{{ latest.get_type_display }}</span>
+              <span class="text-xs text-gray-400">{{ latest.created_at|date:"M d" }}</span>
+              {% if latest.created_by %}<span class="text-xs text-gray-400">· {{ latest.created_by.get_full_name|default:latest.created_by.username }}</span>{% endif %}
+            </div>
+            <div class="text-xs text-gray-500 truncate max-w-[220px]" title="{{ latest.notes }}">{{ latest.notes|truncatechars:70 }}</div>
+          {% else %}
+            <span class="text-xs text-gray-300 italic">No activity yet</span>
+          {% endif %}
+        </td>
+
+        <!-- Next follow-up -->
+        <td class="px-4 py-3 whitespace-nowrap">
+          {% if lead.next_followup_max %}
+            {% now "Y-m-d" as today_str %}
+            {% with fu=lead.next_followup_max|date:"Y-m-d" %}
+              {% if fu < today_str %}
+                <span class="followup-overdue text-xs">⚠ Overdue<br><span class="font-normal">{{ lead.next_followup_max|date:"M d, Y" }}</span></span>
+              {% elif fu == today_str %}
+                <span class="followup-today text-xs">📅 Today<br><span class="font-normal">{{ lead.next_followup_max|date:"M d, Y" }}</span></span>
+              {% else %}
+                <span class="followup-soon text-xs">{{ lead.next_followup_max|date:"M d, Y" }}</span>
+              {% endif %}
+            {% endwith %}
+          {% else %}
+            <span class="text-xs text-gray-300">—</span>
+          {% endif %}
+        </td>
+
+        <!-- Assigned to -->
+        <td class="px-4 py-3 text-gray-500 text-sm">{{ lead.assigned_to|default:"—" }}</td>
+
+        <!-- Activity count -->
+        <td class="px-4 py-3 text-center">
+          {% if lead.activity_count %}
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">{{ lead.activity_count }}</span>
+          {% else %}
+            <span class="text-gray-300 text-xs">0</span>
+          {% endif %}
+        </td>
+
+      </tr>
+      {% endwith %}
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No leads found. <a href="{% url "leads:lead_create" %}" class="text-blue-600 hover:underline">Add your first lead.</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}

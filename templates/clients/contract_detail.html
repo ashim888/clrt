@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}{{ contract.contract_title }}{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <div class="flex items-center gap-3 mb-1">
+      <h1 class="text-2xl font-bold text-gray-900">{{ contract.contract_title }}</h1>
+      <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
+      {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">&#x26A0; Expiring in {{ contract.days_until_expiry }} days</span>{% endif %}
+    </div>
+    <a href="{% url "clients:client_detail" contract.client.pk %}" class="text-blue-600 hover:underline text-sm">{{ contract.client.organization_name }}</a>
+  </div>
+  <a href="{% url "clients:contract_edit" contract.pk %}" class="btn-secondary">Edit</a>
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6">
+  <div class="card p-5 space-y-4">
+    <h3 class="font-semibold text-gray-900">Contract Details</h3>
+    <div class="grid grid-cols-2 gap-4 text-sm">
+      <div><p class="text-gray-400 text-xs">Start Date</p><p class="font-medium">{{ contract.start_date }}</p></div>
+      <div><p class="text-gray-400 text-xs">End Date</p><p class="font-medium">{{ contract.end_date }}</p></div>
+      <div><p class="text-gray-400 text-xs">Billing Cycle</p><p class="font-medium">{{ contract.get_billing_cycle_display }}</p></div>
+      <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">Rs. {{ contract.contract_value|floatformat:0 }}</p></div>
+    </div>
+    {% if contract.notes %}<div><p class="text-gray-400 text-xs">Notes</p><p class="text-sm">{{ contract.notes }}</p></div>{% endif %}
+    {% if contract.document %}
+    <a href="{{ contract.document.url }}" target="_blank" class="btn-secondary inline-flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      View Document
+    </a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

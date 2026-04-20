@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+{% block nav_dashboard %}{% endblock %}
+{% block content %}
+<div class="max-w-lg">
+  <h1 class="text-2xl font-bold text-gray-900 mb-6">My Profile</h1>
+  <div class="card p-6 space-y-4">
+    <div class="flex items-center gap-4">
+      <div class="w-14 h-14 rounded-full bg-blue-600 flex items-center justify-center text-white text-xl font-bold">
+        {{ user.username|slice:":2"|upper }}
+      </div>
+      <div>
+        <p class="text-lg font-semibold">{{ user.get_full_name|default:user.username }}</p>
+        <p class="text-gray-500 text-sm">{{ user.get_role_display }}</p>
+      </div>
+    </div>
+    <div class="border-t pt-4 grid grid-cols-2 gap-4 text-sm">
+      <div><span class="text-gray-500">Username</span><p class="font-medium">{{ user.username }}</p></div>
+      <div><span class="text-gray-500">Email</span><p class="font-medium">{{ user.email|default:"—" }}</p></div>
+      <div><span class="text-gray-500">Role</span><p class="font-medium">{{ user.get_role_display }}</p></div>
+      <div><span class="text-gray-500">Joined</span><p class="font-medium">{{ user.date_joined|date:"M d, Y" }}</p></div>
+    </div>
+  </div>
+</div>
+{% endblock %}

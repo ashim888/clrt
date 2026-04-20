@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Delete Lead{% endblock %}
+{% block content %}
+<div class="max-w-md">
+  <div class="card p-6 text-center">
+    <div class="text-red-500 text-5xl mb-4">&#x26A0;&#xFE0F;</div>
+    <h2 class="text-xl font-bold text-gray-900 mb-2">Delete Lead?</h2>
+    <p class="text-gray-500 mb-6">This will permanently delete <strong>{{ lead.organization_name }}</strong> and all associated activities.</p>
+    <div class="flex gap-3 justify-center">
+      <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn-danger">Yes, Delete</button>
+      </form>
+      <a href="{% url "leads:lead_detail" lead.pk %}" class="btn-secondary">Cancel</a>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}{{ lead.organization_name }}{% endblock %}
+{% block nav_leads %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<!-- Header -->
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <div class="flex items-center gap-3 mb-1">
+      <h1 class="text-2xl font-bold text-gray-900">{{ lead.organization_name }}</h1>
+      <span class="badge
+        {% if lead.status == "new" %}bg-gray-100 text-gray-700
+        {% elif lead.status == "contacted" %}bg-blue-100 text-blue-700
+        {% elif lead.status == "demo" %}bg-purple-100 text-purple-700
+        {% elif lead.status == "negotiation" %}bg-yellow-100 text-yellow-800
+        {% elif lead.status == "won" %}bg-green-100 text-green-700
+        {% elif lead.status == "lost" %}bg-red-100 text-red-700
+        {% endif %}">{{ lead.get_status_display }}</span>
+    </div>
+    <p class="text-gray-500">{{ lead.contact_person }} · {{ lead.phone }} {% if lead.email %}· {{ lead.email }}{% endif %}</p>
+  </div>
+  <div class="flex gap-2">
+    {% if lead.is_won %}
+      {% if lead.client %}
+      <a href="{% url "clients:client_detail" lead.client.pk %}" class="btn-secondary">View Client</a>
+      {% else %}
+      <a href="{% url "leads:convert_to_client" lead.pk %}" class="btn-primary">Convert to Client</a>
+      {% endif %}
+    {% endif %}
+    <a href="{% url "leads:lead_edit" lead.pk %}" class="btn-secondary">Edit</a>
+    {% if user.is_admin %}
+    <a href="{% url "leads:lead_delete" lead.pk %}" class="btn-danger">Delete</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+  <!-- Lead Info -->
+  <div class="card p-5 space-y-3">
+    <h3 class="font-semibold text-gray-900">Lead Details</h3>
+    {% if lead.notes %}
+    <div>
+      <p class="text-xs text-gray-400 mb-0.5">Notes</p>
+      <p class="text-sm text-gray-700">{{ lead.notes }}</p>
+    </div>
+    {% endif %}
+    <div>
+      <p class="text-xs text-gray-400 mb-0.5">Assigned To</p>
+      <p class="text-sm font-medium">{{ lead.assigned_to|default:"Unassigned" }}</p>
+    </div>
+    <div>
+      <p class="text-xs text-gray-400 mb-0.5">Created</p>
+      <p class="text-sm">{{ lead.created_at|date:"M d, Y" }}</p>
+    </div>
+  </div>
+
+  <!-- Activity Timeline -->
+  <div class="lg:col-span-2">
+    <div class="flex items-center justify-between mb-3">
+      <h3 class="font-semibold text-gray-900">Activity Log</h3>
+      <a href="{% url "leads:activity_add" lead.pk %}" class="btn-primary text-xs">+ Log Activity</a>
+    </div>
+    <div class="space-y-3">
+      {% for activity in activities %}
+      <div class="card p-4">
+        <div class="flex items-start gap-3">
+          <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-bold flex-shrink-0">
+            {% if activity.type == "call" %}&#x260E;
+            {% elif activity.type == "meeting" %}&#x1F91D;
+            {% elif activity.type == "follow_up" %}&#x1F504;
+            {% else %}&#x2709;{% endif %}
+          </div>
+          <div class="flex-1">
+            <div class="flex items-center justify-between">
+              <span class="text-sm font-medium text-gray-900">{{ activity.get_type_display }}</span>
+              <span class="text-xs text-gray-400">{{ activity.created_at|date:"M d, Y H:i" }}</span>
+            </div>
+            <p class="text-sm text-gray-600 mt-1">{{ activity.notes }}</p>
+            {% if activity.next_follow_up_date %}
+            <p class="text-xs text-blue-600 mt-1">&#x1F4C5; Next follow-up: {{ activity.next_follow_up_date }}</p>
+            {% endif %}
+            {% if activity.created_by %}
+            <p class="text-xs text-gray-400 mt-1">by {{ activity.created_by.get_full_name|default:activity.created_by.username }}</p>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+      {% empty %}
+      <div class="card p-8 text-center text-gray-400">
+        <p>No activities logged yet.</p>
+        <a href="{% url "leads:activity_add" lead.pk %}" class="text-blue-600 hover:underline text-sm mt-1 inline-block">Log first activity</a>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Billing{% endblock %}
+{% block nav_billing %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Invoices</h1>
+  <div class="flex gap-2">
+    <form method="post" action="{% url "billing:mark_overdue" %}">{% csrf_token %}<button type="submit" class="btn-secondary text-xs">Mark Overdue</button></form>
+    {% if user.role in "admin,accounts" or user.is_superuser %}
+    <a href="{% url "billing:invoice_create" %}" class="btn-primary">+ New Invoice</a>
+    {% endif %}
+  </div>
+</div>
+
+<form method="get" class="flex gap-3 mb-5">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search invoice #, client…" class="input max-w-xs" />
+  <select name="status" class="input max-w-[160px]">
+    <option value="">All Status</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn-secondary">Filter</button>
+  {% if q or status %}<a href="/billing/" class="btn-secondary">Clear</a>{% endif %}
+</form>
+
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Invoice #</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Client</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Amount</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Due Date</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for inv in invoices %}
+      <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "billing:invoice_detail" inv.pk %}'">
+        <td class="px-4 py-3 font-medium text-blue-600">{{ inv.invoice_number }}</td>
+        <td class="px-4 py-3 text-gray-700">{{ inv.client }}</td>
+        <td class="px-4 py-3 font-medium">Rs. {{ inv.amount|floatformat:0 }}</td>
+        <td class="px-4 py-3 text-gray-500 {% if inv.is_overdue %}text-red-600 font-medium{% endif %}">{{ inv.due_date }}</td>
+        <td class="px-4 py-3">
+          <span class="badge
+            {% if inv.status == "paid" %}bg-green-100 text-green-700
+            {% elif inv.status == "overdue" %}bg-red-100 text-red-700
+            {% elif inv.status == "pending" %}bg-yellow-100 text-yellow-800
+            {% else %}bg-gray-100 text-gray-600{% endif %}">{{ inv.get_status_display }}</span>
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">No invoices found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% endblock %}
