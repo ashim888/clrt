@@ -120,7 +120,12 @@ def lead_update_status(request, pk):
         return JsonResponse({"error": "Invalid status"}, status=400)
     lead.status = new_status
     lead.save(update_fields=["status", "updated_at"])
-    return JsonResponse({"status": new_status, "label": lead.get_status_display()})
+    response = {"status": new_status, "label": lead.get_status_display()}
+    # If just marked Won and not yet a client, signal frontend to redirect
+    if new_status == "won" and not hasattr(lead, "client"):
+        from django.urls import reverse
+        response["redirect"] = reverse("leads:convert_to_client", args=[lead.pk])
+    return JsonResponse(response)
 
 
 @login_required
@@ -137,6 +142,8 @@ def convert_to_client(request, pk):
         client = Client.objects.create(
             organization_name=lead.organization_name,
             linked_lead=lead,
+            phone=lead.phone,
+            email=lead.email,
         )
         messages.success(request, f"Lead converted to client: {client.organization_name}")
         return redirect("clients:client_detail", pk=client.pk)
