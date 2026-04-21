@@ -58,6 +58,8 @@ class Activity(models.Model):
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="call")
     notes = models.TextField()
     next_follow_up_date = models.DateField(null=True, blank=True)
+    is_done = models.BooleanField(default=False)
+    resolution_note = models.TextField(blank=True, default="")
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name="activities"

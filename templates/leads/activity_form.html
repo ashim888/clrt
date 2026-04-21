@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Log Activity{% endblock %}
+{% block title %}{% if editing %}Edit Activity{% else %}Log Activity{% endif %}{% endblock %}
 {% block nav_leads %}bg-gray-800 text-white{% endblock %}
 {% block content %}
 <div class="flex items-center gap-3 mb-8">
@@ -8,7 +8,7 @@
     {{ lead.organization_name }}
   </a>
   <span class="text-gray-300">/</span>
-  <h1 class="text-xl font-semibold text-gray-900">Log Activity</h1>
+  <h1 class="text-xl font-semibold text-gray-900">{% if editing %}Edit Activity{% else %}Log Activity{% endif %}</h1>
 </div>
 
 <div class="grid lg:grid-cols-3 gap-8 items-start">
@@ -47,7 +47,7 @@
           <div class="grid grid-cols-4 gap-3" id="type-picker">
             {% for val, label in form.fields.type.choices %}
             <label class="relative cursor-pointer">
-              <input type="radio" name="type" value="{{ val }}" class="sr-only peer" {% if forloop.first %}checked{% endif %}>
+              <input type="radio" name="type" value="{{ val }}" class="sr-only peer" {% if form.type.value == val %}checked{% elif not form.type.value and forloop.first %}checked{% endif %}>
               <div class="flex flex-col items-center gap-1.5 p-3 rounded-xl border-2 border-gray-200 text-gray-500 text-xs font-medium text-center
                 peer-checked:border-blue-500 peer-checked:bg-blue-50 peer-checked:text-blue-700 hover:border-gray-300 transition-all">
                 {% if val == 'call' %}📞
@@ -68,7 +68,7 @@
 
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1.5">Next Follow-up Date</label>
-          <input type="date" name="next_follow_up_date" value="{{ form.next_follow_up_date.value|default:"" }}" class="input" />
+          <input type="date" name="next_follow_up_date" value="{% if form.next_follow_up_date.value %}{{ form.next_follow_up_date.value|date:'Y-m-d' }}{% endif %}" class="input" />
           <p class="text-xs text-gray-400 mt-1">Leave blank if no follow-up needed</p>
         </div>
 

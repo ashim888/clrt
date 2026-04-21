@@ -116,12 +116,17 @@
       <a href="/leads/">View leads</a>
     </div>
     {% for a in todays_followups %}
-    <div class="alert-row">
+    <div class="alert-row" id="activity-row-{{ a.pk }}">
       <div>
         <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
         <p class="row-sub">{{ a.get_type_display }}{% if a.notes %} · {{ a.notes|truncatechars:45 }}{% endif %}</p>
       </div>
-      <span class="alert-pill pill-blue">Today</span>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <span class="alert-pill pill-blue">Today</span>
+        <button onclick="openDoneModal({{ a.pk }}, '{{ csrf_token }}')"
+          style="font-size:.68rem;padding:3px 10px;border-radius:999px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.18);"
+          title="Mark as done">✓ Done</button>
+      </div>
     </div>
     {% empty %}
     <div class="empty-state">✅ No follow-ups scheduled today</div>
@@ -136,12 +141,17 @@
       </h2>
     </div>
     {% for a in overdue_followups|slice:":8" %}
-    <div class="alert-row">
+    <div class="alert-row" id="activity-row-{{ a.pk }}">
       <div>
         <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
         <p class="row-sub">Due {{ a.next_follow_up_date }} · {{ a.get_type_display }}</p>
       </div>
-      <span class="alert-pill pill-red">Overdue</span>
+      <div style="display:flex;align-items:center;gap:.5rem;">
+        <span class="alert-pill pill-red">Overdue</span>
+        <button onclick="openDoneModal({{ a.pk }}, '{{ csrf_token }}')"
+          style="font-size:.68rem;padding:3px 10px;border-radius:999px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.18);"
+          title="Mark as done">✓ Done</button>
+      </div>
     </div>
     {% empty %}
     <div class="empty-state">✅ No overdue follow-ups</div>
@@ -190,4 +200,72 @@
   </div>
 
 </div>
+
+<!-- Done Remark Modal -->
+<div id="done-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;padding:1.6rem 1.8rem;max-width:440px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.22);">
+    <h3 style="font-size:1rem;font-weight:700;color:#111827;margin:0 0 .4rem;">Mark as Done</h3>
+    <p style="font-size:.8rem;color:#6b7280;margin:0 0 .9rem;">Add a short note on what was resolved or discussed (optional but recommended).</p>
+    <textarea id="done-note" rows="3" placeholder="e.g. Called client, discussed pricing. Follow-up next week."
+      style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.55rem .7rem;font-size:.85rem;resize:vertical;outline:none;font-family:inherit;"></textarea>
+    <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:.9rem;">
+      <button onclick="closeDoneModal()"
+        style="padding:.42rem 1.1rem;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;color:#374151;font-size:.82rem;font-weight:600;cursor:pointer;">Cancel</button>
+      <button onclick="confirmDone()"
+        style="padding:.42rem 1.2rem;border-radius:7px;border:none;background:#16a34a;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;">✓ Confirm Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+let _doneActivityId = null;
+let _doneCsrf = null;
+
+function openDoneModal(activityId, csrf) {
+  _doneActivityId = activityId;
+  _doneCsrf = csrf;
+  document.getElementById('done-note').value = '';
+  const modal = document.getElementById('done-modal');
+  modal.style.display = 'flex';
+  setTimeout(() => document.getElementById('done-note').focus(), 80);
+}
+
+function closeDoneModal() {
+  document.getElementById('done-modal').style.display = 'none';
+  _doneActivityId = null; _doneCsrf = null;
+}
+
+async function confirmDone() {
+  if (!_doneActivityId) return;
+  const note = document.getElementById('done-note').value.trim();
+  const row = document.getElementById('activity-row-' + _doneActivityId);
+  closeDoneModal();
+  try {
+    const body = new URLSearchParams({resolution_note: note});
+    const resp = await fetch('/leads/activity/' + _doneActivityId + '/toggle-done/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': _doneCsrf},
+      body: body,
+    });
+    const data = await resp.json();
+    if (data.is_done && row) {
+      row.style.transition = 'opacity .4s, max-height .4s';
+      row.style.opacity = '0';
+      row.style.maxHeight = '0';
+      row.style.overflow = 'hidden';
+      setTimeout(() => row.remove(), 420);
+    }
+  } catch { alert('Could not update — please refresh.'); }
+}
+
+// Close modal on backdrop click
+document.getElementById('done-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeDoneModal();
+});
+// Enter key submits
+document.getElementById('done-note').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirmDone();
+});
+</script>
+
 {% endblock %}

@@ -109,6 +109,51 @@ def activity_add(request, lead_pk):
 
 
 @login_required
+def activity_edit(request, pk):
+    activity = get_object_or_404(Activity, pk=pk)
+    if not _can_edit_leads(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("leads:lead_detail", pk=activity.lead.pk)
+    form = ActivityForm(request.POST or None, instance=activity)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Activity updated.")
+        return redirect("leads:lead_detail", pk=activity.lead.pk)
+    return render(request, "leads/activity_form.html", {"form": form, "lead": activity.lead, "editing": True})
+
+
+@login_required
+@require_POST
+def activity_delete(request, pk):
+    activity = get_object_or_404(Activity, pk=pk)
+    if not _can_edit_leads(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("leads:lead_detail", pk=activity.lead.pk)
+    lead_pk = activity.lead.pk
+    activity.delete()
+    messages.success(request, "Activity deleted.")
+    return redirect("leads:lead_detail", pk=lead_pk)
+
+
+@login_required
+@require_POST
+def activity_toggle_done(request, pk):
+    activity = get_object_or_404(Activity, pk=pk)
+    activity.is_done = not activity.is_done
+    update_fields = ["is_done"]
+    if activity.is_done:
+        note = request.POST.get("resolution_note", "").strip()
+        if note:
+            activity.resolution_note = note
+            update_fields.append("resolution_note")
+    else:
+        activity.resolution_note = ""
+        update_fields.append("resolution_note")
+    activity.save(update_fields=update_fields)
+    return JsonResponse({"is_done": activity.is_done, "resolution_note": activity.resolution_note})
+
+
+@login_required
 @require_POST
 def lead_update_status(request, pk):
     if not _can_edit_leads(request.user):

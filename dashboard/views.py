@@ -13,12 +13,14 @@ def dashboard(request):
 
     # Today's and overdue follow-ups
     todays_followups = Activity.objects.filter(
-        next_follow_up_date=today
+        next_follow_up_date=today,
+        is_done=False,
     ).select_related("lead", "created_by")
 
     overdue_followups = Activity.objects.filter(
         next_follow_up_date__lt=today,
         next_follow_up_date__isnull=False,
+        is_done=False,
     ).select_related("lead").order_by("next_follow_up_date")
 
     # Contracts expiring in 30 days
