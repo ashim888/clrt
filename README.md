@@ -1,321 +1,160 @@
-🧾 PROJECT SPEC: Client Lifecycle & Revenue Tracker
-===================================================
+# CLRT — Client Lifecycle & Revenue Tracker
 
-NOTE: Build this strictly as MVP. Do NOT add extra features. Follow schema and workflows exactly.
+> **MVP** · Django 5 · SQLite (swap-ready for PostgreSQL) · Tailwind CSS (CDN)
 
-1\. 🎯 Objective
-----------------
+---
+
+## Quick Start
 
-Build a **web-based application** that helps service businesses:
+```bash
+# 1. Clone / open the project folder
+cd clrt
 
--   Track sales/marketing follow-ups
--   Manage AMC (recurring billing)
--   Store and manage contracts
--   Prevent missed revenue and missed follow-ups
+# 2. Create & activate virtual environment
+python3 -m venv venv
+source venv/bin/activate          # macOS / Linux
+# venv\Scripts\activate           # Windows
 
-* * * * *
+# 3. Install dependencies
+pip install -r requirements.txt
 
-2\. 🧠 Core Concept
--------------------
+# 4. Copy env file (optional, defaults work for dev)
+cp .env.example .env
 
-The system must revolve around a **Client Lifecycle Pipeline**:
+# 5. Run migrations
+python manage.py migrate
 
-Lead → Contact → Meeting → Follow-up → Deal Won → Contract → Billing → Renewal
+# 6. Create admin user (or use the seeded one below)
+python manage.py createsuperuser
 
-Each module MUST be interconnected. No isolated modules.
+# 7. Start the server
+python manage.py runserver
+```
 
-* * * * *
+Open **http://127.0.0.1:8000** in your browser.
 
-3\. 👥 User Roles
------------------
+---
 
-### Roles:
+## Pre-Seeded Accounts
 
--   Admin
--   Sales/Marketing
--   Accounts
--   Super Admin (optional)
+| Username    | Password   | Role     |
+|-------------|------------|----------|
+| `admin`     | `admin123` | Admin    |
+| `sales1`    | `demo123`  | Sales    |
+| `accounts1` | `demo123`  | Accounts |
 
-### Permissions:
+---
 
-| Module | Sales | Accounts | Admin |
-| --- | --- | --- | --- |
-| Leads | ✅ | ❌ | ✅ |
-| Follow-ups | ✅ | ❌ | ✅ |
-| Contracts | View | ✅ | ✅ |
-| Billing (AMC) | ❌ | ✅ | ✅ |
-| Dashboard | Partial | Partial | Full |
+## Project Structure
 
-* * * * *
+```
+clrt/
+├── core/               # Django project settings & root URLs
+├── accounts/           # Custom User model, roles, login/logout
+├── leads/              # Lead + Activity (Mini CRM)
+├── clients/            # Client + Contract (with file upload)
+├── billing/            # Invoice + Payment (manual entry)
+├── dashboard/          # Overview dashboard + alerts management command
+├── templates/          # All HTML templates (Tailwind CSS)
+├── static/             # Static files
+├── media/              # Uploaded contract documents
+├── requirements.txt
+└── manage.py
+```
 
-4\. 🧱 Core Modules
--------------------
+---
 
-* * * * *
+## Modules
 
-MODULE 1: Lead & Follow-Up Management (Mini CRM)
-------------------------------------------------
+### 1. Leads (`/leads/`)
+- Create / edit / delete leads
+- Status pipeline: New → Contacted → Demo → Negotiation → Won → Lost
+- Log activities (call / meeting / follow-up / email) with next follow-up date
+- Convert Won leads → Client (single click)
 
-### Entities:
+### 2. Clients (`/clients/`)
+- Created automatically from lead conversion or manually
+- Each client has Contracts with file uploads (PDF / image)
+- Contract value, billing cycle, start/end dates, expiry alerts
 
--   Lead
--   Contact Person
--   Activity (meeting/call/follow-up)
+### 3. Billing (`/billing/`)
+- Manual invoice creation linked to client + contract
+- Record partial or full payments
+- Auto-detect overdue (click "Mark Overdue" or run management command)
 
-### Features:
+### 4. Dashboard (`/`)
+- Today's follow-ups
+- Overdue follow-ups
+- Contracts expiring within 30 days
+- Pending / overdue invoices
+- Monthly revenue summary
 
--   Create/Edit Lead
--   Add meeting logs (date, notes, outcome)
--   Set follow-up date
--   Reminder system (in-app)
+---
 
-### Required Fields:
+## Role Permissions
 
-Lead:
-- id
-- organization_name
-- contact_person
-- phone
-- email
-- status (new/contacted/demo/negotiation/won/lost)
-- assigned_to
-- created_at
+| Feature          | Sales | Accounts | Admin |
+|------------------|-------|----------|-------|
+| View leads       | ✅    | ❌       | ✅    |
+| Create/edit leads| ✅    | ❌       | ✅    |
+| View clients     | ✅    | ✅       | ✅    |
+| Create clients   | ❌    | ✅       | ✅    |
+| Contracts        | View  | ✅       | ✅    |
+| Invoices         | View  | ✅       | ✅    |
+| Dashboard        | ✅    | ✅       | ✅    |
+| User management  | ❌    | ❌       | ✅    |
 
-Activity:
-- id
-- lead_id
-- type (call/meeting/follow-up)
-- notes
-- next_follow_up_date
-- created_by
-- created_at
+---
 
-### Logic:
+## Daily Alerts (Cron Job)
 
--   Every activity can create a **next follow-up task**
--   Daily dashboard should show:
-    -   Today's follow-ups
-    -   Overdue follow-ups
+```bash
+# Run manually anytime:
+python manage.py check_alerts
 
-* * * * *
+# Schedule via cron (daily at 9 AM):
+0 9 * * * /path/to/clrt/venv/bin/python /path/to/clrt/manage.py check_alerts
+```
 
-MODULE 2: Client & Contract Management
---------------------------------------
+The command:
+- Marks overdue invoices automatically
+- Prints today's follow-ups
+- Lists contracts expiring within 30 days
 
-### Entities:
+---
 
--   Client (converted lead)
--   Contract
+## Switching to PostgreSQL
 
-### Features:
+1. Install: `pip install psycopg2-binary`
+2. Update `core/settings.py`:
 
--   Convert Lead → Client
--   Upload contract (image/PDF)
--   Tag contract details
+```python
+DATABASES = {
+    "default": {
+        "ENGINE": "django.db.backends.postgresql",
+        "NAME": "clrt_db",
+        "USER": "postgres",
+        "PASSWORD": "your_password",
+        "HOST": "localhost",
+        "PORT": "5432",
+    }
+}
+```
 
-### Required Fields:
+3. Run: `python manage.py migrate`
 
-Client:
-- id
-- organization_name
-- linked_lead_id
-- created_at
+---
 
-Contract:
-- id
-- client_id
-- contract_title
-- start_date
-- end_date
-- billing_cycle (monthly/quarterly/yearly)
-- contract_value
-- document_url
-- status (active/expired)
+## Django Admin
 
-### Logic:
+Access at **http://127.0.0.1:8000/admin/** with the `admin` account.
 
--   Contract expiry triggers renewal alert
--   Contract defines billing behavior
+---
 
-* * * * *
+## Phase 2 (Excluded from MVP)
 
-MODULE 3: AMC / Recurring Billing System
-----------------------------------------
+- Auto-invoice generation (cron-based)
+- OCR for contract parsing
+- WhatsApp / email notifications
+- Advanced analytics & charts
 
-### Entities:
-
--   Invoice
--   Payment
-
-### Features:
-
--   Auto-generate invoices based on contract
--   Track payment status
--   Overdue alerts
-
-### Required Fields:
-
-Invoice:
-- id
-- client_id
-- contract_id
-- amount
-- due_date
-- status (pending/paid/overdue)
-- generated_date
-
-Payment:
-- id
-- invoice_id
-- amount_paid
-- payment_date
-- payment_mode
-
-### Logic:
-
--   Cron job / scheduler:
-    -   Generate invoice based on billing_cycle
--   If unpaid after due_date → mark overdue
--   Dashboard alert for overdue invoices
-
-* * * * *
-
-MODULE 4: Dashboard & Alerts
-----------------------------
-
-### Dashboard Sections:
-
--   Today's Follow-Ups
--   Overdue Follow-Ups
--   Upcoming Renewals
--   Pending Payments
--   Revenue Summary
-
-### Alerts:
-
--   Follow-up reminder
--   Contract expiry reminder
--   Payment overdue alert
-
-* * * * *
-
-5\. 🔄 Key Workflows (VERY IMPORTANT)
--------------------------------------
-
-### Workflow 1: Lead to Client
-
-Create Lead → Add Activities → Mark as "Won" → Convert to Client → Create Contract
-
-* * * * *
-
-### Workflow 2: Contract to Billing
-
-Create Contract → Define billing cycle → System auto-generates invoices → Track payments
-
-* * * * *
-
-### Workflow 3: Renewal Loop
-
-Contract nearing expiry → Alert → Sales follow-up → Renew → New contract cycle
-
-* * * * *
-
-6\. 🛠️ Technical Requirements
-------------------------------
-
-### Suggested Stack:
-
--   Frontend: HTML / CSS 
--   Backend: Django
--   Database: PostgreSQL
--   Storage: local storage (for contracts)
-
-### APIs:
-
--   RESTful APIs for all modules
--   Auth (JWT-based)
-
-* * * * *
-
-7\. ⏰ Background Jobs (IMPORTANT)
----------------------------------
-
-Implement scheduler (cron or worker):
-
-### Jobs:
-
--   Daily at 9 AM:
-    -   Fetch today's follow-ups
--   Daily:
-    -   Check contract expiry (within 30 days)
--   Billing:
-    -   Generate invoices automatically
-
-* * * * *
-
-8\. 📱 UX Requirements
-----------------------
-
--   Simple, fast UI (NOT enterprise clutter)
--   Design Flavor: shadcn/ui
--   Mobile responsive (sales team usage)
--   Minimal clicks:
-    -   Add lead in < 10 seconds
-    -   Log activity in < 15 seconds
-
-
-* * * * *
-
-9\. 🚀 MVP Scope (STRICT)
--------------------------
-
-Coding agent should ONLY build:
-
-### Include:
-
--   Lead management + follow-ups
--   Client + contract upload
--   Manual invoice entry (no auto yet)
--   Dashboard (basic)
-
-### Exclude (Phase 2):
-
--   OCR
--   WhatsApp integration
--   Auto invoice generation
--   Advanced analytics
-
-* * * * *
-
-10\. 📊 Success Criteria
-------------------------
-
-System is successful if:
-
--   No follow-up is missed
--   All contracts are searchable
--   No billing cycle is forgotten
-
-* * * * *
-
-11\. ⚠️ Constraints
--------------------
-
--   Avoid over-engineering
--   Keep schema flexible (future expansion)
--   Prioritize usability over features
-
-* * * * *
-
-12\. 📦 Deliverables
---------------------
-
-Coding agent must provide:
-
--   Backend API
--   Backend UI
--   Frontend UI
--   Database schema
--   Setup instructions
-
-* * * * *
