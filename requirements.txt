@@ -1,5 +1,5 @@
 Django==5.1.15
-Pillow==10.3.0
+Pillow==12.2.0
 python-dotenv==1.2.2
 django-crispy-forms==2.1
 crispy-tailwind==1.0.3
