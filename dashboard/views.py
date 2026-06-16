@@ -18,7 +18,7 @@ def dashboard(request):
 
     overdue_followups = Activity.objects.filter(
         next_follow_up_date__lt=today,
-        lead__status__in=["new", "contacted", "demo", "negotiation"]
+        next_follow_up_date__isnull=False,
     ).select_related("lead").order_by("next_follow_up_date")
 
     # Contracts expiring in 30 days

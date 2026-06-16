@@ -1,119 +1,193 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
+
 {% block content %}
-<div class="mb-6">
-  <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-  <p class="text-gray-500 text-sm">{{ today|date:"l, F j, Y" }}</p>
+<style>
+  /* Stat cards */
+  .stat-card { border-radius: .875rem; padding: 1.25rem 1.5rem; color: #fff; }
+  .stat-card .stat-label  { font-size: .72rem; font-weight: 500; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
+  .stat-card .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; margin: .25rem 0; }
+  .stat-card .stat-sub    { font-size: .75rem; opacity: .75; }
+
+  /* Section headers */
+  .section-header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: .875rem 1.25rem;
+    border-bottom: 1px solid rgba(0,0,0,.06);
+    border-radius: .875rem .875rem 0 0;
+  }
+  .section-header h2 { font-size: .9rem; font-weight: 700; display:flex; align-items:center; gap:.5rem; }
+  .section-header a  { font-size: .72rem; font-weight: 500; opacity: .8; text-decoration: underline; }
+
+  /* Alert sections */
+  .alert-section       { border-radius: .875rem; overflow: hidden; border: 1.5px solid; }
+  .alert-section.blue   { border-color: #93c5fd; background:#eff6ff; }
+  .alert-section.red    { border-color: #fca5a5; background:#fff5f5; }
+  .alert-section.amber  { border-color: #fcd34d; background:#fffbeb; }
+  .alert-section.orange { border-color: #fdba74; background:#fff7ed; }
+  .alert-section.gray   { border-color: #e5e7eb; background:#fff; }
+
+  .alert-section.blue   .section-header { background:#2563eb; color:#fff; }
+  .alert-section.red    .section-header { background:#dc2626; color:#fff; }
+  .alert-section.amber  .section-header { background:#d97706; color:#fff; }
+  .alert-section.orange .section-header { background:#ea580c; color:#fff; }
+  .alert-section.gray   .section-header { background:#f9fafb; color:#111827; }
+
+  /* Alert rows */
+  .alert-row { display:flex; align-items:center; justify-content:space-between; padding:.7rem 1.25rem; }
+  .alert-section.blue   .alert-row { border-bottom:1px solid #bfdbfe; }
+  .alert-section.red    .alert-row { border-bottom:1px solid #fecaca; }
+  .alert-section.amber  .alert-row { border-bottom:1px solid #fde68a; }
+  .alert-section.orange .alert-row { border-bottom:1px solid #fed7aa; }
+  .alert-section.gray   .alert-row { border-bottom:1px solid #f3f4f6; }
+  .alert-row:last-child { border-bottom: none; }
+
+  .alert-section.blue   .alert-row:hover { background:#dbeafe; }
+  .alert-section.red    .alert-row:hover { background:#fee2e2; }
+  .alert-section.amber  .alert-row:hover { background:#fef3c7; }
+  .alert-section.orange .alert-row:hover { background:#ffedd5; }
+  .alert-section.gray   .alert-row:hover { background:#f9fafb; }
+
+  .alert-row .row-title { font-size:.85rem; font-weight:600; color:#111827; }
+  .alert-row .row-title:hover { text-decoration:underline; }
+  .alert-row .row-sub   { font-size:.72rem; color:#6b7280; margin-top:1px; }
+
+  .alert-pill {
+    font-size:.68rem; font-weight:700; letter-spacing:.04em;
+    padding:3px 10px; border-radius:999px; white-space:nowrap; text-transform:uppercase;
+  }
+  .pill-blue  { background:#2563eb; color:#fff; }
+  .pill-red   { background:#dc2626; color:#fff; }
+  .pill-amber { background:#d97706; color:#fff; }
+  .pill-orange { background:#ea580c; color:#fff; }
+  .pill-red-soft   { background:#fee2e2; color:#b91c1c; }
+  .pill-amber-soft { background:#fef3c7; color:#92400e; }
+
+  .empty-state { padding: 2.5rem 1rem; text-align:center; font-size:.85rem; }
+  .alert-section.blue   .empty-state { color:#3b82f6; }
+  .alert-section.red    .empty-state { color:#ef4444; }
+  .alert-section.amber  .empty-state { color:#f59e0b; }
+  .alert-section.orange .empty-state { color:#f97316; }
+  .alert-section.gray   .empty-state { color:#9ca3af; }
+</style>
+
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
+    <p class="text-gray-500 text-sm">{{ today|date:"l, F j, Y" }}</p>
+  </div>
 </div>
 
-<!-- Stats Row -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  <div class="card p-4">
-    <p class="text-xs text-gray-500 mb-1">Total Leads</p>
-    <p class="text-3xl font-bold text-gray-900">{{ lead_stats.total }}</p>
-    <p class="text-xs text-green-600 mt-1">{{ lead_stats.won }} won · {{ lead_stats.new }} new</p>
+  <!-- Stats Row -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
+  <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);">
+    <p class="stat-label">Total Leads</p>
+    <p class="stat-number">{{ lead_stats.total }}</p>
+    <p class="stat-sub">{{ lead_stats.won }} won &middot; {{ lead_stats.new }} new</p>
   </div>
-  <div class="card p-4 {% if todays_followups %}border-blue-300{% endif %}">
-    <p class="text-xs text-gray-500 mb-1">Follow-ups Today</p>
-    <p class="text-3xl font-bold {% if todays_followups %}text-blue-600{% else %}text-gray-900{% endif %}">{{ todays_followups|length }}</p>
-    <p class="text-xs text-gray-400 mt-1">Scheduled for today</p>
+  <div class="stat-card {% if todays_followups %}{% else %}opacity-80{% endif %}"
+    style="background:{% if todays_followups %}linear-gradient(135deg,#0e7490,#06b6d4){% else %}linear-gradient(135deg,#6b7280,#9ca3af){% endif %}">
+    <p class="stat-label">Follow-ups Today</p>
+    <p class="stat-number">{{ todays_followups|length }}</p>
+    <p class="stat-sub">{% if todays_followups %}Needs your attention{% else %}All clear{% endif %}</p>
   </div>
-  <div class="card p-4 {% if overdue_followups %}border-orange-300{% endif %}">
-    <p class="text-xs text-gray-500 mb-1">Overdue Follow-ups</p>
-    <p class="text-3xl font-bold {% if overdue_followups %}text-orange-600{% else %}text-gray-900{% endif %}">{{ overdue_followups|length }}</p>
-    <p class="text-xs text-gray-400 mt-1">Missed follow-ups</p>
+  <div class="stat-card {% if overdue_followups %}{% else %}opacity-80{% endif %}"
+    style="background:{% if overdue_followups %}linear-gradient(135deg,#991b1b,#ef4444){% else %}linear-gradient(135deg,#6b7280,#9ca3af){% endif %}">
+    <p class="stat-label">Overdue Follow-ups</p>
+    <p class="stat-number">{{ overdue_followups|length }}</p>
+    <p class="stat-sub">{% if overdue_followups %}Action required{% else %}All clear{% endif %}</p>
   </div>
-  <div class="card p-4">
-    <p class="text-xs text-gray-500 mb-1">Revenue This Month</p>
-    <p class="text-2xl font-bold text-green-600">Rs. {{ revenue_month|floatformat:0 }}</p>
-    <p class="text-xs text-gray-400 mt-1">Paid invoices</p>
+  <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981);">
+    <p class="stat-label">Revenue This Month</p>
+    <p class="stat-number" style="font-size:1.6rem;">Rs. {{ revenue_month|floatformat:0 }}</p>
+    <p class="stat-sub">Paid invoices</p>
   </div>
 </div>
 
 <div class="grid lg:grid-cols-2 gap-6">
+
   <!-- Today's Follow-ups -->
-  <div class="card">
-    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-      <h2 class="font-semibold text-gray-900">&#x1F4C5; Today's Follow-ups</h2>
-      <a href="/leads/?followup=today" class="text-xs text-blue-600 hover:underline">View all</a>
+  <div class="alert-section {% if todays_followups %}blue{% else %}gray{% endif %}">
+    <div class="section-header">
+      <h2>📅 Today's Follow-ups
+        {% if todays_followups %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ todays_followups|length }}</span>{% endif %}
+      </h2>
+      <a href="/leads/">View leads</a>
     </div>
-    <ul class="divide-y divide-gray-50">
-      {% for a in todays_followups %}
-      <li class="px-5 py-3 flex items-center justify-between">
-        <div>
-          <a href="{% url "leads:lead_detail" a.lead.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ a.lead.organization_name }}</a>
-          <p class="text-xs text-gray-400">{{ a.get_type_display }}</p>
-        </div>
-        <span class="badge bg-blue-100 text-blue-700">Today</span>
-      </li>
-      {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-gray-400">No follow-ups scheduled today &#x2705;</li>
-      {% endfor %}
-    </ul>
+    {% for a in todays_followups %}
+    <div class="alert-row">
+      <div>
+        <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
+        <p class="row-sub">{{ a.get_type_display }}{% if a.notes %} · {{ a.notes|truncatechars:45 }}{% endif %}</p>
+      </div>
+      <span class="alert-pill pill-blue">Today</span>
+    </div>
+    {% empty %}
+    <div class="empty-state">✅ No follow-ups scheduled today</div>
+    {% endfor %}
   </div>
 
   <!-- Overdue Follow-ups -->
-  <div class="card">
-    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-      <h2 class="font-semibold text-gray-900">&#x26A0;&#xFE0F; Overdue Follow-ups</h2>
+  <div class="alert-section {% if overdue_followups %}red{% else %}gray{% endif %}">
+    <div class="section-header">
+      <h2>⚠️ Overdue Follow-ups
+        {% if overdue_followups %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ overdue_followups|length }}</span>{% endif %}
+      </h2>
     </div>
-    <ul class="divide-y divide-gray-50">
-      {% for a in overdue_followups|slice:":8" %}
-      <li class="px-5 py-3 flex items-center justify-between">
-        <div>
-          <a href="{% url "leads:lead_detail" a.lead.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ a.lead.organization_name }}</a>
-          <p class="text-xs text-gray-400">Due: {{ a.next_follow_up_date }}</p>
-        </div>
-        <span class="badge bg-red-100 text-red-700">Overdue</span>
-      </li>
-      {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-gray-400">No overdue follow-ups &#x2705;</li>
-      {% endfor %}
-    </ul>
+    {% for a in overdue_followups|slice:":8" %}
+    <div class="alert-row">
+      <div>
+        <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
+        <p class="row-sub">Due {{ a.next_follow_up_date }} · {{ a.get_type_display }}</p>
+      </div>
+      <span class="alert-pill pill-red">Overdue</span>
+    </div>
+    {% empty %}
+    <div class="empty-state">✅ No overdue follow-ups</div>
+    {% endfor %}
   </div>
 
   <!-- Expiring Contracts -->
-  <div class="card">
-    <div class="px-5 py-4 border-b border-gray-100">
-      <h2 class="font-semibold text-gray-900">&#x1F4C3; Contracts Expiring Soon (30 days)</h2>
+  <div class="alert-section {% if expiring_contracts %}amber{% else %}gray{% endif %}">
+    <div class="section-header">
+      <h2>📃 Contracts Expiring Soon
+        {% if expiring_contracts %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ expiring_contracts|length }}</span>{% endif %}
+      </h2>
     </div>
-    <ul class="divide-y divide-gray-50">
-      {% for c in expiring_contracts %}
-      <li class="px-5 py-3 flex items-center justify-between">
-        <div>
-          <a href="{% url "clients:contract_detail" c.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ c.contract_title }}</a>
-          <p class="text-xs text-gray-400">{{ c.client }} · expires {{ c.end_date }}</p>
-        </div>
-        <span class="badge bg-yellow-100 text-yellow-800">{{ c.days_until_expiry }}d left</span>
-      </li>
-      {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-gray-400">No contracts expiring soon &#x2705;</li>
-      {% endfor %}
-    </ul>
+    {% for c in expiring_contracts %}
+    <div class="alert-row">
+      <div>
+        <a href="{% url "clients:contract_detail" c.pk %}" class="row-title">{{ c.contract_title }}</a>
+        <p class="row-sub">{{ c.client }} · expires {{ c.end_date }}</p>
+      </div>
+      <span class="alert-pill pill-amber">{{ c.days_until_expiry }}d left</span>
+    </div>
+    {% empty %}
+    <div class="empty-state">✅ No contracts expiring in 30 days</div>
+    {% endfor %}
   </div>
 
   <!-- Pending Invoices -->
-  <div class="card">
-    <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
-      <h2 class="font-semibold text-gray-900">&#x1F4B3; Pending Invoices</h2>
-      <a href="/billing/?status=overdue" class="text-xs text-red-600 hover:underline">View overdue</a>
+  <div class="alert-section {% if pending_invoices %}orange{% else %}gray{% endif %}">
+    <div class="section-header">
+      <h2>💳 Pending Invoices</h2>
+      <a href="/billing/?status=overdue" style="color:{% if pending_invoices %}rgba(255,255,255,.85){% else %}#ea580c{% endif %};">View overdue</a>
     </div>
-    <ul class="divide-y divide-gray-50">
-      {% for inv in pending_invoices|slice:":8" %}
-      <li class="px-5 py-3 flex items-center justify-between">
-        <div>
-          <a href="{% url "billing:invoice_detail" inv.pk %}" class="font-medium text-sm text-gray-900 hover:text-blue-600">{{ inv.invoice_number }}</a>
-          <p class="text-xs text-gray-400">{{ inv.client }} · Rs. {{ inv.amount|floatformat:0 }} · due {{ inv.due_date }}</p>
-        </div>
-        <span class="badge {% if inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">
-          {{ inv.get_status_display }}
-        </span>
-      </li>
-      {% empty %}
-      <li class="px-5 py-8 text-center text-sm text-gray-400">No pending invoices &#x2705;</li>
-      {% endfor %}
-    </ul>
+    {% for inv in pending_invoices|slice:":8" %}
+    <div class="alert-row">
+      <div>
+        <a href="{% url "billing:invoice_detail" inv.pk %}" class="row-title">{{ inv.invoice_number }}</a>
+        <p class="row-sub">{{ inv.client }} · Rs. {{ inv.amount|floatformat:0 }} · due {{ inv.due_date }}</p>
+      </div>
+      <span class="alert-pill {% if inv.status == "overdue" %}pill-orange{% else %}pill-amber-soft{% endif %}">
+        {{ inv.get_status_display }}
+      </span>
+    </div>
+    {% empty %}
+    <div class="empty-state">✅ No pending invoices</div>
+    {% endfor %}
   </div>
+
 </div>
 {% endblock %}
