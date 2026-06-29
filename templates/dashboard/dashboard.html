@@ -214,6 +214,11 @@
     </div>
     <textarea id="done-note" rows="2" placeholder="Add a note (outcome, reason, next steps…)"
       style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.5rem .7rem;font-size:.82rem;resize:vertical;outline:none;font-family:inherit;"></textarea>
+    <div style="margin-top:.65rem;">
+      <label style="font-size:.75rem;color:#6b7280;display:block;margin-bottom:.3rem;font-weight:500;">Attach photo or file <span style="font-weight:400;">(optional)</span></label>
+      <input type="file" id="done-attachment" accept="image/*,.pdf,.doc,.docx,.xlsx,.txt"
+        style="font-size:.78rem;color:#6b7280;border:1.5px dashed #d1d5db;border-radius:8px;padding:.4rem .6rem;background:#f9fafb;width:100%;display:block;box-sizing:border-box;cursor:pointer;">
+    </div>
     <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:.9rem;">
       <button onclick="closeDoneModal()"
         style="padding:.42rem 1.1rem;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;color:#374151;font-size:.82rem;font-weight:600;cursor:pointer;">Cancel</button>
@@ -268,20 +273,30 @@ function dashPickStatus(s) {
 
 function closeDoneModal() {
   document.getElementById('done-modal').style.display = 'none';
+  const att = document.getElementById('done-attachment');
+  if (att) att.value = '';
   _doneActivityId = null; _doneCsrf = null;
 }
 
 async function confirmDone() {
   if (!_doneActivityId) return;
+  // Capture locals BEFORE closing modal (closing nulls the globals)
+  const activityId = _doneActivityId;
+  const csrf = _doneCsrf;
+  const status = _dashSelectedStatus;
   const note = document.getElementById('done-note').value.trim();
-  const row = document.getElementById('activity-row-' + _doneActivityId);
+  const fileInput = document.getElementById('done-attachment');
+  const row = document.getElementById('activity-row-' + activityId);
   closeDoneModal();
   try {
-    const body = new URLSearchParams({status: _dashSelectedStatus, resolution_note: note});
-    const resp = await fetch('/leads/activity/' + _doneActivityId + '/update-status/', {
+    const fd = new FormData();
+    fd.append('status', status);
+    fd.append('resolution_note', note);
+    if (fileInput && fileInput.files[0]) fd.append('attachment', fileInput.files[0]);
+    const resp = await fetch('/leads/activity/' + activityId + '/update-status/', {
       method: 'POST',
-      headers: {'X-CSRFToken': _doneCsrf},
-      body: body,
+      headers: {'X-CSRFToken': csrf},
+      body: fd,
     });
     const data = await resp.json();
     if (data.status !== 'pending' && row) {

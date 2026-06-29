@@ -70,6 +70,7 @@ class Activity(models.Model):
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
         null=True, related_name="activities"
     )
+    attachment = models.FileField(upload_to="activity_attachments/", blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -77,3 +78,10 @@ class Activity(models.Model):
 
     def __str__(self):
         return f"{self.get_type_display()} on {self.lead} - {self.created_at.date()}"
+
+    @property
+    def attachment_is_image(self):
+        if not self.attachment:
+            return False
+        ext = self.attachment.name.rsplit(".", 1)[-1].lower()
+        return ext in ("jpg", "jpeg", "png", "gif", "webp")

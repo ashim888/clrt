@@ -148,8 +148,16 @@ def activity_update_status(request, pk):
     note = request.POST.get("resolution_note", "").strip()
     activity.resolution_note = note
     update_fields.append("resolution_note")
+    if request.FILES.get("attachment"):
+        activity.attachment = request.FILES["attachment"]
+        update_fields.append("attachment")
     activity.save(update_fields=update_fields)
-    return JsonResponse({"status": activity.status, "resolution_note": activity.resolution_note})
+    attachment_url = activity.attachment.url if activity.attachment else None
+    return JsonResponse({
+        "status": activity.status,
+        "resolution_note": activity.resolution_note,
+        "attachment_url": attachment_url,
+    })
 
 
 @login_required

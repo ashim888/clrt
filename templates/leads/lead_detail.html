@@ -161,6 +161,24 @@
               </span> {{ activity.resolution_note }}
             </p>
             {% endif %}
+            {% if activity.attachment %}
+            <div class="mt-2">
+              {% if activity.attachment_is_image %}
+              <img src="{{ activity.attachment.url }}" alt="Attachment"
+                onclick="openLightbox('{{ activity.attachment.url }}')"
+                class="rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+                style="max-height:160px;max-width:100%;object-fit:cover;display:block;">
+              {% else %}
+              <a href="{{ activity.attachment.url }}" target="_blank" rel="noopener"
+                class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded-md">
+                <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+                </svg>
+                {{ activity.attachment.name|truncatechars:40 }}
+              </a>
+              {% endif %}
+            </div>
+            {% endif %}
             {% if activity.next_follow_up_date %}
             <p class="text-xs {% if activity.status == 'completed' or activity.status == 'cancelled' %}text-gray-400{% else %}text-blue-600{% endif %} mt-1">&#x1F4C5; Next follow-up: {{ activity.next_follow_up_date }}</p>
             {% endif %}
@@ -194,6 +212,11 @@
     </div>
     <textarea id="detail-done-note" rows="2" placeholder="Add a note (reason, outcome, next steps…)"
       style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.5rem .7rem;font-size:.82rem;resize:vertical;outline:none;font-family:inherit;"></textarea>
+    <div style="margin-top:.65rem;">
+      <label style="font-size:.75rem;color:#6b7280;display:block;margin-bottom:.3rem;font-weight:500;">Attach photo or file <span style="font-weight:400;">(optional)</span></label>
+      <input type="file" id="detail-attachment" accept="image/*,.pdf,.doc,.docx,.xlsx,.txt"
+        style="font-size:.78rem;color:#6b7280;border:1.5px dashed #d1d5db;border-radius:8px;padding:.4rem .6rem;background:#f9fafb;width:100%;display:block;box-sizing:border-box;cursor:pointer;">
+    </div>
     <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:.9rem;">
       <button onclick="closeDetailDoneModal()"
         style="padding:.42rem 1.1rem;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;color:#374151;font-size:.82rem;font-weight:600;cursor:pointer;">Cancel</button>
@@ -256,15 +279,27 @@ function pickStatus(s) {
 }
 function closeDetailDoneModal() {
   document.getElementById('detail-done-modal').style.display = 'none';
+  const att = document.getElementById('detail-attachment');
+  if (att) att.value = '';
   _detailActivityId = null; _detailCsrf = null; _selectedStatus = null;
 }
 async function confirmDetailDone() {
   if (!_detailActivityId || !_selectedStatus) return;
+  // Capture locals BEFORE closing modal (closing nulls the globals)
+  const activityId = _detailActivityId;
+  const csrf = _detailCsrf;
+  const status = _selectedStatus;
   const note = document.getElementById('detail-done-note').value.trim();
+  const fileInput = document.getElementById('detail-attachment');
   closeDetailDoneModal();
-  const body = new URLSearchParams({status: _selectedStatus, resolution_note: note});
-  const resp = await fetch('/leads/activity/' + _detailActivityId + '/update-status/', {
-    method: 'POST', headers: {'X-CSRFToken': _detailCsrf}, body: body,
+  const fd = new FormData();
+  fd.append('status', status);
+  fd.append('resolution_note', note);
+  if (fileInput && fileInput.files[0]) fd.append('attachment', fileInput.files[0]);
+  const resp = await fetch('/leads/activity/' + activityId + '/update-status/', {
+    method: 'POST',
+    headers: {'X-CSRFToken': csrf},
+    body: fd,
   });
   if (resp.ok) { location.reload(); }
   else { alert('Could not update — please refresh.'); }
@@ -295,6 +330,32 @@ document.querySelectorAll('.status-select-detail').forEach(sel => {
       else if (data.redirect) { window.location.href = data.redirect; }
     } catch { alert('Network error — please refresh.'); }
   });
+});
+</script>
+
+<!-- Lightbox -->
+<div id="lightbox" onclick="closeLightbox()"
+  style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;cursor:zoom-out;padding:1rem;">
+  <img id="lightbox-img" src="" alt=""
+    style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);"
+    onclick="event.stopPropagation()">
+  <button onclick="closeLightbox()"
+    style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;width:2.2rem;height:2.2rem;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">&#x2715;</button>
+</div>
+
+<script>
+function openLightbox(url) {
+  const lb = document.getElementById('lightbox');
+  document.getElementById('lightbox-img').src = url;
+  lb.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeLightbox() {
+  document.getElementById('lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') { closeLightbox(); closeDetailDoneModal(); }
 });
 </script>
 
