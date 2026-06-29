@@ -137,20 +137,19 @@ def activity_delete(request, pk):
 
 @login_required
 @require_POST
-def activity_toggle_done(request, pk):
+def activity_update_status(request, pk):
     activity = get_object_or_404(Activity, pk=pk)
-    activity.is_done = not activity.is_done
-    update_fields = ["is_done"]
-    if activity.is_done:
-        note = request.POST.get("resolution_note", "").strip()
-        if note:
-            activity.resolution_note = note
-            update_fields.append("resolution_note")
-    else:
-        activity.resolution_note = ""
-        update_fields.append("resolution_note")
+    valid_statuses = [s for s, _ in Activity.STATUS_CHOICES]
+    new_status = request.POST.get("status", "").strip()
+    if new_status not in valid_statuses:
+        return JsonResponse({"error": "Invalid status"}, status=400)
+    activity.status = new_status
+    update_fields = ["status"]
+    note = request.POST.get("resolution_note", "").strip()
+    activity.resolution_note = note
+    update_fields.append("resolution_note")
     activity.save(update_fields=update_fields)
-    return JsonResponse({"is_done": activity.is_done, "resolution_note": activity.resolution_note})
+    return JsonResponse({"status": activity.status, "resolution_note": activity.resolution_note})
 
 
 @login_required

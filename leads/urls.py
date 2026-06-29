@@ -12,7 +12,7 @@ urlpatterns = [
     path("<int:lead_pk>/activity/add/", views.activity_add, name="activity_add"),
     path("activity/<int:pk>/edit/", views.activity_edit, name="activity_edit"),
     path("activity/<int:pk>/delete/", views.activity_delete, name="activity_delete"),
-    path("activity/<int:pk>/toggle-done/", views.activity_toggle_done, name="activity_toggle_done"),
+    path("activity/<int:pk>/update-status/", views.activity_update_status, name="activity_update_status"),
     path("<int:pk>/convert/", views.convert_to_client, name="convert_to_client"),
     path("<int:pk>/status/", views.lead_update_status, name="lead_update_status"),
 ]
