@@ -35,30 +35,73 @@
   .status-select[data-current="lost"]        { background-color:#fee2e2; color:#b91c1c; }
 </style>
 
-<div class="flex items-center justify-between mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Leads</h1>
     <p class="text-sm text-gray-500 mt-0.5">Pipeline overview with latest activity &amp; follow-up status</p>
   </div>
   {% if user.role in "admin,sales" or user.is_superuser %}
-  <a href="{% url "leads:lead_create" %}" class="btn-primary">+ Add Lead</a>
+  <a href="{% url "leads:lead_create" %}" class="btn-primary self-start sm:self-auto">+ Add Lead</a>
   {% endif %}
 </div>
 
 <!-- Filters -->
-<form method="get" class="flex flex-wrap gap-3 mb-5">
-  <input type="text" name="q" value="{{ q }}" placeholder="Search organization, contact, phone…" class="input max-w-xs" />
-  <select name="status" class="input max-w-[180px]">
+<form method="get" class="flex flex-wrap gap-2 mb-5">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search org, contact, phone…" class="input flex-1 min-w-[160px] sm:max-w-xs" />
+  <select name="status" class="input w-full sm:w-auto sm:max-w-[180px]">
     <option value="">All Status</option>
     {% for val, label in status_choices %}
     <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
-  <button type="submit" class="btn-secondary">Filter</button>
-  {% if q or status %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
+  <div class="flex gap-2">
+    <button type="submit" class="btn-secondary">Filter</button>
+    {% if q or status %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
+  </div>
 </form>
 
-<div class="card overflow-visible">
+<!-- Mobile: Card list -->
+<div class="space-y-3 md:hidden">
+  {% for lead in leads %}
+  {% with latest=lead.all_activities.0 %}
+  <a href="{% url "leads:lead_detail" lead.pk %}" class="card p-4 block hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0 flex-1">
+        <p class="font-semibold text-gray-900 truncate">{{ lead.organization_name }}</p>
+        <p class="text-sm text-gray-500 mt-0.5">{{ lead.contact_person }} · {{ lead.phone }}</p>
+      </div>
+      <span class="badge flex-shrink-0
+        {% if lead.status == "new" %}bg-gray-100 text-gray-700
+        {% elif lead.status == "contacted" %}bg-blue-100 text-blue-700
+        {% elif lead.status == "demo" %}bg-purple-100 text-purple-700
+        {% elif lead.status == "negotiation" %}bg-yellow-100 text-yellow-800
+        {% elif lead.status == "won" %}bg-green-100 text-green-700
+        {% elif lead.status == "lost" %}bg-red-100 text-red-700
+        {% endif %}">{{ lead.get_status_display }}</span>
+    </div>
+    <div class="flex flex-wrap items-center gap-x-3 gap-y-1 mt-2 text-xs text-gray-400">
+      {% if lead.next_followup_max %}
+        {% now "Y-m-d" as today_str %}
+        {% with fu=lead.next_followup_max|date:"Y-m-d" %}
+          {% if fu < today_str %}<span class="text-red-600 font-medium">⚠ Overdue: {{ lead.next_followup_max|date:"M d" }}</span>
+          {% elif fu == today_str %}<span class="text-amber-600 font-medium">📅 Today</span>
+          {% else %}<span>📅 {{ lead.next_followup_max|date:"M d" }}</span>
+          {% endif %}
+        {% endwith %}
+      {% endif %}
+      {% if latest %}<span class="activity-pill act-{{ latest.type }}">{{ latest.get_type_display }}</span>{% endif %}
+      {% if lead.activity_count %}<span>{{ lead.activity_count }} activities</span>{% endif %}
+      {% if lead.assigned_to %}<span>{{ lead.assigned_to }}</span>{% endif %}
+    </div>
+  </a>
+  {% endwith %}
+  {% empty %}
+  <div class="card p-8 text-center text-gray-400">No leads found. <a href="{% url "leads:lead_create" %}" class="text-blue-600 hover:underline">Add your first lead.</a></div>
+  {% endfor %}
+</div>
+
+<!-- Desktop: Table -->
+<div class="hidden md:block card overflow-visible">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
@@ -78,22 +121,18 @@
       {% with latest=lead.all_activities.0 %}
       <tr class="hover:bg-blue-50 cursor-pointer transition-colors" onclick="location.href='{% url "leads:lead_detail" lead.pk %}'">
 
-        <!-- Serial number -->
         <td class="px-4 py-3 text-gray-400 text-xs font-medium">{{ forloop.counter }}</td>
 
-        <!-- Organization + added date -->
         <td class="px-4 py-3">
           <div class="font-semibold text-gray-900">{{ lead.organization_name }}</div>
           <div class="text-xs text-gray-400 mt-0.5">Added {{ lead.created_at|date:"M d, Y" }}</div>
         </td>
 
-        <!-- Contact + phone -->
         <td class="px-4 py-3">
           <div class="text-gray-700">{{ lead.contact_person }}</div>
           <div class="text-xs text-gray-400">{{ lead.phone }}</div>
         </td>
 
-        <!-- Status — quick-change select (sales/admin only) -->
         <td class="px-4 py-3" onclick="event.stopPropagation()">
           {% if user.role in "admin,sales" or user.is_superuser %}
           <select class="status-select" data-url="{% url 'leads:lead_update_status' lead.pk %}" data-current="{{ lead.status }}">
@@ -113,7 +152,6 @@
           {% endif %}
         </td>
 
-        <!-- Latest activity -->
         <td class="px-4 py-3 max-w-xs">
           {% if latest %}
             <div class="flex items-center gap-2 mb-1">
@@ -127,7 +165,6 @@
           {% endif %}
         </td>
 
-        <!-- Next follow-up -->
         <td class="px-4 py-3 whitespace-nowrap">
           {% if lead.next_followup_max %}
             {% now "Y-m-d" as today_str %}
@@ -145,10 +182,8 @@
           {% endif %}
         </td>
 
-        <!-- Assigned to -->
         <td class="px-4 py-3 text-gray-500 text-sm">{{ lead.assigned_to|default:"—" }}</td>
 
-        <!-- Activity count -->
         <td class="px-4 py-3 text-center">
           {% if lead.activity_count %}
             <span class="inline-flex items-center justify-center w-6 h-6 rounded-full bg-gray-100 text-gray-700 text-xs font-semibold">{{ lead.activity_count }}</span>

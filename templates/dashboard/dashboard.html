@@ -7,7 +7,7 @@
   /* Stat cards */
   .stat-card { border-radius: .875rem; padding: 1.25rem 1.5rem; color: #fff; }
   .stat-card .stat-label  { font-size: .72rem; font-weight: 500; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
-  .stat-card .stat-number { font-size: 2.5rem; font-weight: 800; line-height: 1; margin: .25rem 0; }
+  .stat-card .stat-number { font-size: clamp(1.6rem, 5vw, 2.5rem); font-weight: 800; line-height: 1; margin: .25rem 0; }
   .stat-card .stat-sub    { font-size: .75rem; opacity: .75; }
 
   /* Section headers */
@@ -35,7 +35,7 @@
   .alert-section.gray   .section-header { background:#f9fafb; color:#111827; }
 
   /* Alert rows */
-  .alert-row { display:flex; align-items:center; justify-content:space-between; padding:.7rem 1.25rem; }
+  .alert-row { display:flex; align-items:center; justify-content:space-between; padding:.7rem 1.25rem; gap:.5rem; flex-wrap:wrap; }
   .alert-section.blue   .alert-row { border-bottom:1px solid #bfdbfe; }
   .alert-section.red    .alert-row { border-bottom:1px solid #fecaca; }
   .alert-section.amber  .alert-row { border-bottom:1px solid #fde68a; }
