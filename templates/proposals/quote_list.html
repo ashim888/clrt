@@ -38,7 +38,7 @@
           {% elif quote.status == 'accepted' %}bg-green-100 text-green-700
           {% elif quote.status == 'declined' %}bg-red-100 text-red-600
           {% else %}bg-amber-100 text-amber-700{% endif %}">{{ quote.get_status_display }}</span>
-        <p class="text-sm font-bold text-gray-900 mt-1">Rs. {{ quote.total|floatformat:0 }}</p>
+        <p class="text-sm font-bold text-gray-900 mt-1">{{ quote.total|inr }}</p>
       </div>
     </div>
     <p class="text-xs text-gray-400 mt-2">Valid until {{ quote.valid_until }}</p>
@@ -78,7 +78,7 @@
             {% else %}bg-amber-100 text-amber-700{% endif %}">{{ quote.get_status_display }}</span>
         </td>
         <td class="px-4 py-3 {% if quote.is_expired %}text-red-500 font-medium{% else %}text-gray-500{% endif %}">{{ quote.valid_until }}</td>
-        <td class="px-4 py-3 text-right font-semibold text-gray-900">Rs. {{ quote.total|floatformat:0 }}</td>
+        <td class="px-4 py-3 text-right font-semibold text-gray-900">{{ quote.total|inr }}</td>
         <td class="px-4 py-3 text-gray-400">{{ quote.created_at|date:"M d, Y" }}</td>
       </tr>
       {% empty %}

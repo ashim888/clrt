@@ -93,7 +93,7 @@
         <td class="px-4 py-3 text-center text-gray-700">{{ s.activities_this_month }}</td>
         <td class="px-4 py-3 text-center text-gray-700">{{ s.interactions_this_month }}</td>
         <td class="px-4 py-3 text-right font-semibold text-gray-900">
-          {% if s.revenue %}Rs. {{ s.revenue|floatformat:0 }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+          {% if s.revenue %}{{ s.revenue|inr }}{% else %}<span class="text-gray-300">—</span>{% endif %}
         </td>
       </tr>
       {% empty %}

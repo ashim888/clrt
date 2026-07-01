@@ -94,15 +94,15 @@
       <tr>
         <td>{{ item.description }}</td>
         <td class="right" style="color:#6b7280;">{{ item.quantity|floatformat:"-2" }}</td>
-        <td class="right" style="color:#6b7280;">Rs. {{ item.unit_price|floatformat:0 }}</td>
-        <td class="right" style="font-weight:600;">Rs. {{ item.line_total|floatformat:0 }}</td>
+        <td class="right" style="color:#6b7280;">{{ item.unit_price|inr }}</td>
+        <td class="right" style="font-weight:600;">{{ item.line_total|inr }}</td>
       </tr>
       {% endfor %}
     </tbody>
     <tfoot>
       <tr>
         <td colspan="3" class="right">Grand Total</td>
-        <td class="right grand-total">Rs. {{ quote.total|floatformat:0 }}</td>
+        <td class="right grand-total">{{ quote.total|inr }}</td>
       </tr>
     </tfoot>
   </table>

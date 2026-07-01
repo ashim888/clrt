@@ -216,11 +216,11 @@ def lead_kanban(request):
             buckets[lead.status].append(lead)
 
     columns = []
-    pipeline_total = 0   # active stages only (excludes won/lost)
-    weighted_total = 0
+    pipeline_total = 0.0
+    weighted_total = 0.0
     for s in status_order:
         col_leads = buckets[s]
-        col_value = sum(l.deal_value for l in col_leads if l.deal_value)
+        col_value = sum((float(l.deal_value) for l in col_leads if l.deal_value), 0.0)
         prob = STAGE_PROBABILITY[s]
         columns.append({
             "key": s,

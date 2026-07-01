@@ -38,19 +38,19 @@
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
   <div class="card p-4 text-center">
     <p class="text-xs text-gray-400 mb-1">Total Billed</p>
-    <p class="text-xl font-bold text-gray-900">Rs. {{ financial.total_billed|floatformat:0|default:"0" }}</p>
+    <p class="text-xl font-bold text-gray-900">{{ financial.total_billed|inr }}</p>
   </div>
   <div class="card p-4 text-center">
     <p class="text-xs text-gray-400 mb-1">Collected</p>
-    <p class="text-xl font-bold text-green-600">Rs. {{ financial.total_paid|floatformat:0|default:"0" }}</p>
+    <p class="text-xl font-bold text-green-600">{{ financial.total_paid|inr }}</p>
   </div>
   <div class="card p-4 text-center">
     <p class="text-xs text-gray-400 mb-1">Pending</p>
-    <p class="text-xl font-bold text-amber-600">Rs. {{ financial.total_pending|floatformat:0|default:"0" }}</p>
+    <p class="text-xl font-bold text-amber-600">{{ financial.total_pending|inr }}</p>
   </div>
   <div class="card p-4 text-center">
     <p class="text-xs text-gray-400 mb-1">Overdue</p>
-    <p class="text-xl font-bold {% if financial.total_overdue > 0 %}text-red-600{% else %}text-gray-400{% endif %}">Rs. {{ financial.total_overdue|floatformat:0|default:"0" }}</p>
+    <p class="text-xl font-bold {% if financial.total_overdue > 0 %}text-red-600{% else %}text-gray-400{% endif %}">{{ financial.total_overdue|inr }}</p>
   </div>
 </div>
 
@@ -170,7 +170,7 @@
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="min-w-0">
         <a href="{% url "clients:contract_detail" contract.pk %}" class="font-medium text-gray-900 hover:text-blue-600">{{ contract.contract_title }}</a>
-        <p class="text-xs text-gray-400 mt-0.5">{{ contract.start_date }} → {{ contract.end_date }} · {{ contract.get_billing_cycle_display }} · <span class="font-medium text-gray-700">Rs. {{ contract.contract_value|floatformat:0 }}</span></p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ contract.start_date }} → {{ contract.end_date }} · {{ contract.get_billing_cycle_display }} · <span class="font-medium text-gray-700">{{ contract.contract_value|inr }}</span></p>
       </div>
       <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
         {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">⚠ Expiring in {{ contract.days_until_expiry }}d</span>{% endif %}
@@ -192,7 +192,7 @@
     <div class="flex items-start justify-between gap-2">
       <div>
         <p class="font-medium text-gray-900">{{ inv.invoice_number }}</p>
-        <p class="font-semibold text-gray-800 mt-0.5">Rs. {{ inv.amount|floatformat:0 }}</p>
+        <p class="font-semibold text-gray-800 mt-0.5">{{ inv.amount|inr }}</p>
       </div>
       <span class="badge flex-shrink-0 {% if inv.status == "paid" %}bg-green-100 text-green-700{% elif inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ inv.get_status_display }}</span>
     </div>
@@ -218,7 +218,7 @@
       {% for inv in client.invoices.all|slice:":15" %}
       <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "billing:invoice_detail" inv.pk %}'">
         <td class="px-4 py-3 font-medium">{{ inv.invoice_number }}</td>
-        <td class="px-4 py-3">Rs. {{ inv.amount|floatformat:0 }}</td>
+        <td class="px-4 py-3">{{ inv.amount|inr }}</td>
         <td class="px-4 py-3 text-gray-500">{{ inv.due_date }}</td>
         <td class="px-4 py-3"><span class="badge {% if inv.status == "paid" %}bg-green-100 text-green-700{% elif inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ inv.get_status_display }}</span></td>
       </tr>
@@ -262,7 +262,7 @@
               {% else %}bg-amber-100 text-amber-700{% endif %}">{{ q.get_status_display }}</span>
           </td>
           <td class="px-4 py-2.5 {% if q.is_expired %}text-red-500{% else %}text-gray-500{% endif %}">{{ q.valid_until }}</td>
-          <td class="px-4 py-2.5 text-right font-semibold text-gray-900">Rs. {{ q.total|floatformat:0 }}</td>
+          <td class="px-4 py-2.5 text-right font-semibold text-gray-900">{{ q.total|inr }}</td>
         </tr>
         {% endfor %}
       </tbody>

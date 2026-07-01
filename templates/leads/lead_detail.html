@@ -56,7 +56,7 @@
       <p class="text-xs text-gray-400">📍 Source: <span class="font-medium text-gray-600">{{ lead.get_source_display }}</span></p>
       {% endif %}
       {% if lead.deal_value %}
-      <p class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5">💰 Rs. {{ lead.deal_value|floatformat:0 }}</p>
+      <p class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5">💰 {{ lead.deal_value|inr }}</p>
       {% endif %}
     </div>
   </div>
@@ -238,7 +238,7 @@
               {% else %}bg-amber-100 text-amber-700{% endif %}">{{ q.get_status_display }}</span>
           </td>
           <td class="px-4 py-2.5 {% if q.is_expired %}text-red-500{% else %}text-gray-500{% endif %}">{{ q.valid_until }}</td>
-          <td class="px-4 py-2.5 text-right font-semibold text-gray-900">Rs. {{ q.total|floatformat:0 }}</td>
+          <td class="px-4 py-2.5 text-right font-semibold text-gray-900">{{ q.total|inr }}</td>
         </tr>
         {% endfor %}
       </tbody>

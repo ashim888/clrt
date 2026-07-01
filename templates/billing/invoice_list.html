@@ -36,7 +36,7 @@
         <p class="text-sm text-gray-700 truncate">{{ inv.client }}</p>
       </div>
       <div class="text-right flex-shrink-0">
-        <p class="font-semibold text-gray-900">Rs. {{ inv.amount|floatformat:0 }}</p>
+        <p class="font-semibold text-gray-900">{{ inv.amount|inr }}</p>
         <span class="badge text-xs
           {% if inv.status == "paid" %}bg-green-100 text-green-700
           {% elif inv.status == "overdue" %}bg-red-100 text-red-700
@@ -69,7 +69,7 @@
       <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "billing:invoice_detail" inv.pk %}'">
         <td class="px-4 py-3 font-medium text-blue-600">{{ inv.invoice_number }}</td>
         <td class="px-4 py-3 text-gray-700">{{ inv.client }}</td>
-        <td class="px-4 py-3 font-medium">Rs. {{ inv.amount|floatformat:0 }}</td>
+        <td class="px-4 py-3 font-medium">{{ inv.amount|inr }}</td>
         <td class="px-4 py-3 text-gray-500 {% if inv.is_overdue %}text-red-600 font-medium{% endif %}">{{ inv.due_date }}</td>
         <td class="px-4 py-3">
           <span class="badge

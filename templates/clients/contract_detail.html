@@ -21,7 +21,7 @@
       <div><p class="text-gray-400 text-xs">Start Date</p><p class="font-medium">{{ contract.start_date }}</p></div>
       <div><p class="text-gray-400 text-xs">End Date</p><p class="font-medium">{{ contract.end_date }}</p></div>
       <div><p class="text-gray-400 text-xs">Billing Cycle</p><p class="font-medium">{{ contract.get_billing_cycle_display }}</p></div>
-      <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">Rs. {{ contract.contract_value|floatformat:0 }}</p></div>
+      <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">{{ contract.contract_value|inr }}</p></div>
     </div>
     {% if contract.notes %}<div><p class="text-gray-400 text-xs">Notes</p><p class="text-sm">{{ contract.notes }}</p></div>{% endif %}
     {% if contract.document %}

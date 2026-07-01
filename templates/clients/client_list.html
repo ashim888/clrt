@@ -52,7 +52,7 @@
     {% endwith %}
     <div class="flex items-center justify-between mt-2">
       <p class="text-xs text-gray-400">Since {{ client.created_at|date:"M Y" }}</p>
-      {% if client.total_billed %}<p class="text-xs font-medium text-gray-700">Rs. {{ client.total_billed|floatformat:0 }} billed</p>{% endif %}
+      {% if client.total_billed %}<p class="text-xs font-medium text-gray-700">{{ client.total_billed|inr }} billed</p>{% endif %}
     </div>
   </a>
   {% empty %}
@@ -97,8 +97,8 @@
           {% endwith %}
         </td>
         <td class="px-4 py-3 text-gray-500">{{ client.industry|default:"—" }}</td>
-        <td class="px-4 py-3 text-right font-medium text-gray-900">{% if client.total_billed %}Rs. {{ client.total_billed|floatformat:0 }}{% else %}—{% endif %}</td>
-        <td class="px-4 py-3 text-right text-green-700 font-medium">{% if client.total_paid %}Rs. {{ client.total_paid|floatformat:0 }}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 text-right font-medium text-gray-900">{% if client.total_billed %}{{ client.total_billed|inr }}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 text-right text-green-700 font-medium">{% if client.total_paid %}{{ client.total_paid|inr }}{% else %}—{% endif %}</td>
         <td class="px-4 py-3 text-gray-400">{{ client.created_at|date:"M Y" }}</td>
       </tr>
       {% empty %}

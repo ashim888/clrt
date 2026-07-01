@@ -90,7 +90,7 @@
     </div>
     <div class="meta-item">
       <div class="lbl">Amount</div>
-      <div class="val">Rs. {{ invoice.amount|floatformat:0 }}</div>
+      <div class="val">{{ invoice.amount|inr }}</div>
     </div>
   </div>
 
@@ -108,19 +108,19 @@
     <tbody>
       <tr>
         <td>{% if invoice.description %}{{ invoice.description }}{% else %}Services — {{ invoice.contract.contract_title|default:"Professional Services" }}{% endif %}</td>
-        <td style="text-align:right;font-weight:600;">Rs. {{ invoice.amount|floatformat:0 }}</td>
+        <td style="text-align:right;font-weight:600;">{{ invoice.amount|inr }}</td>
       </tr>
     </tbody>
   </table>
 
   <div class="total-section">
-    <div class="total-row"><span>Subtotal</span><span>Rs. {{ invoice.amount|floatformat:0 }}</span></div>
+    <div class="total-row"><span>Subtotal</span><span>{{ invoice.amount|inr }}</span></div>
     {% if paid_total > 0 %}
-    <div class="total-row"><span>Paid</span><span style="color:#059669;">- Rs. {{ paid_total|floatformat:0 }}</span></div>
+    <div class="total-row"><span>Paid</span><span style="color:#059669;">- {{ paid_total|inr }}</span></div>
     {% endif %}
     <div class="total-row grand">
       <span>Balance Due</span>
-      <span class="{% if balance > 0 %}balance-due{% endif %}">Rs. {{ balance|floatformat:0 }}</span>
+      <span class="{% if balance > 0 %}balance-due{% endif %}">{{ balance|inr }}</span>
     </div>
   </div>
 
@@ -142,7 +142,7 @@
           <td>{{ p.payment_date }}</td>
           <td>{{ p.get_payment_mode_display }}</td>
           <td>{{ p.reference|default:"—" }}</td>
-          <td style="text-align:right;">Rs. {{ p.amount_paid|floatformat:0 }}</td>
+          <td style="text-align:right;">{{ p.amount_paid|inr }}</td>
         </tr>
         {% endfor %}
       </tbody>

@@ -100,7 +100,7 @@
   </div>
   <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981);">
     <p class="stat-label">Revenue This Month</p>
-    <p class="stat-number" style="font-size:1.6rem;">Rs. {{ revenue_month|floatformat:0 }}</p>
+    <p class="stat-number" style="font-size:1.6rem;">{{ revenue_month|inr }}</p>
     <p class="stat-sub">Paid invoices</p>
   </div>
 </div>
@@ -236,7 +236,7 @@
     <div class="alert-row">
       <div>
         <a href="{% url "billing:invoice_detail" inv.pk %}" class="row-title">{{ inv.invoice_number }}</a>
-        <p class="row-sub">{{ inv.client }} · Rs. {{ inv.amount|floatformat:0 }} · due {{ inv.due_date }}</p>
+        <p class="row-sub">{{ inv.client }} · {{ inv.amount|inr }} · due {{ inv.due_date }}</p>
       </div>
       <span class="alert-pill {% if inv.status == "overdue" %}pill-orange{% else %}pill-amber-soft{% endif %}">
         {{ inv.get_status_display }}

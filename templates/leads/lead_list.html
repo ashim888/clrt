@@ -199,7 +199,7 @@
 
         <td class="px-4 py-3 text-right">
           {% if lead.deal_value %}
-          <span class="text-sm font-semibold text-gray-900">Rs. {{ lead.deal_value|floatformat:0 }}</span>
+          <span class="text-sm font-semibold text-gray-900">{{ lead.deal_value|inr }}</span>
           {% else %}
           <span class="text-gray-300 text-xs">—</span>
           {% endif %}

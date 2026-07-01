@@ -34,7 +34,7 @@
         </div>
         <div class="border-t pt-3 flex justify-between items-center">
           <span class="text-gray-600 font-medium">Total Due</span>
-          <span class="text-xl font-bold text-red-600">Rs. {{ invoice.amount|floatformat:0 }}</span>
+          <span class="text-xl font-bold text-red-600">{{ invoice.amount|inr }}</span>
         </div>
       </div>
     </div>

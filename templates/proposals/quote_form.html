@@ -120,7 +120,7 @@
                 <td class="px-3 py-2"><input type="text" name="item_description[]" value="{{ item.description }}" class="input" placeholder="Service or product description" required></td>
                 <td class="px-2 py-2"><input type="number" name="item_quantity[]" value="{{ item.quantity }}" class="input text-right" min="0.01" step="any"></td>
                 <td class="px-2 py-2"><input type="number" name="item_unit_price[]" value="{{ item.unit_price }}" class="input text-right" min="0" step="any" placeholder="0.00"></td>
-                <td class="px-3 py-2 text-right font-semibold text-gray-900 total-cell whitespace-nowrap">Rs. {{ item.line_total|floatformat:0 }}</td>
+                <td class="px-3 py-2 text-right font-semibold text-gray-900 total-cell whitespace-nowrap">{{ item.line_total|inr }}</td>
                 <td class="px-2 py-2 text-center"><button type="button" onclick="removeRow(this)" class="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none">×</button></td>
               </tr>
               {% endfor %}
