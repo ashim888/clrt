@@ -8,11 +8,18 @@
   <a href="{% url "clients:client_create" %}" class="btn-primary self-start sm:self-auto">+ Add Client</a>
   {% endif %}
 </div>
+
 <form method="get" class="flex flex-wrap gap-2 mb-5">
   <input type="text" name="q" value="{{ q }}" placeholder="Search clients…" class="input flex-1 min-w-[160px] sm:max-w-xs" />
+  <select name="status" class="input w-auto min-w-[130px]">
+    <option value="">All statuses</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
   <div class="flex gap-2">
-    <button type="submit" class="btn-secondary">Search</button>
-    {% if q %}<a href="/clients/" class="btn-secondary">Clear</a>{% endif %}
+    <button type="submit" class="btn-secondary">Filter</button>
+    {% if q or status %}<a href="/clients/" class="btn-secondary">Clear</a>{% endif %}
   </div>
 </form>
 
@@ -21,14 +28,29 @@
   {% for client in clients %}
   <a href="{% url "clients:client_detail" client.pk %}" class="card p-4 block hover:shadow-md transition-shadow">
     <div class="flex items-start justify-between gap-2">
-      <p class="font-semibold text-gray-900">{{ client.organization_name }}</p>
-      <span class="badge bg-gray-100 text-gray-700 flex-shrink-0">{{ client.contracts.count }} contracts</span>
+      <div class="min-w-0">
+        <p class="font-semibold text-gray-900">{{ client.organization_name }}</p>
+        {% if client.industry %}<p class="text-xs text-gray-400">{{ client.industry }}</p>{% endif %}
+      </div>
+      <span class="text-xs px-2 py-0.5 rounded-full font-semibold flex-shrink-0
+        {% if client.status == 'active' %}bg-green-100 text-green-700
+        {% elif client.status == 'at_risk' %}bg-amber-100 text-amber-700
+        {% elif client.status == 'inactive' %}bg-gray-100 text-gray-500
+        {% else %}bg-red-100 text-red-600{% endif %}">
+        {{ client.get_status_display }}
+      </span>
     </div>
-    <div class="mt-1 space-y-0.5">
-      {% if client.email %}<p class="text-sm text-gray-500">{{ client.email }}</p>{% endif %}
-      {% if client.phone %}<p class="text-sm text-gray-500">{{ client.phone }}</p>{% endif %}
+    {% with primary=client.contacts.all|first %}
+    {% if primary %}
+    <p class="text-xs text-gray-500 mt-1.5">{{ primary.name }}{% if primary.role %} · {{ primary.role }}{% endif %}</p>
+    {% elif client.email %}
+    <p class="text-sm text-gray-500 mt-1">{{ client.email }}</p>
+    {% endif %}
+    {% endwith %}
+    <div class="flex items-center justify-between mt-2">
+      <p class="text-xs text-gray-400">Since {{ client.created_at|date:"M Y" }}</p>
+      {% if client.total_billed %}<p class="text-xs font-medium text-gray-700">Rs. {{ client.total_billed|floatformat:0 }} billed</p>{% endif %}
     </div>
-    <p class="text-xs text-gray-400 mt-2">Since {{ client.created_at|date:"M Y" }}</p>
   </a>
   {% empty %}
   <div class="card p-8 text-center text-gray-400">No clients yet.</div>
@@ -42,23 +64,42 @@
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Organization</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Email</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Phone</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Contracts</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Primary Contact</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Industry</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Total Billed</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Collected</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Since</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
       {% for client in clients %}
       <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "clients:client_detail" client.pk %}'">
-        <td class="px-4 py-3 font-medium text-gray-900">{{ client.organization_name }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ client.email|default:"—" }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ client.phone|default:"—" }}</td>
-        <td class="px-4 py-3"><span class="badge bg-gray-100 text-gray-700">{{ client.contracts.count }}</span></td>
+        <td class="px-4 py-3">
+          <p class="font-medium text-gray-900">{{ client.organization_name }}</p>
+          {% if client.email %}<p class="text-xs text-gray-400">{{ client.email }}</p>{% endif %}
+        </td>
+        <td class="px-4 py-3">
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+            {% if client.status == 'active' %}bg-green-100 text-green-700
+            {% elif client.status == 'at_risk' %}bg-amber-100 text-amber-700
+            {% elif client.status == 'inactive' %}bg-gray-100 text-gray-500
+            {% else %}bg-red-100 text-red-600{% endif %}">
+            {{ client.get_status_display }}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-gray-600">
+          {% with primary=client.contacts.all|first %}
+          {% if primary %}{{ primary.name }}{% if primary.role %}<span class="text-gray-400"> · {{ primary.role }}</span>{% endif %}{% else %}—{% endif %}
+          {% endwith %}
+        </td>
+        <td class="px-4 py-3 text-gray-500">{{ client.industry|default:"—" }}</td>
+        <td class="px-4 py-3 text-right font-medium text-gray-900">{% if client.total_billed %}Rs. {{ client.total_billed|floatformat:0 }}{% else %}—{% endif %}</td>
+        <td class="px-4 py-3 text-right text-green-700 font-medium">{% if client.total_paid %}Rs. {{ client.total_paid|floatformat:0 }}{% else %}—{% endif %}</td>
         <td class="px-4 py-3 text-gray-400">{{ client.created_at|date:"M Y" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">No clients yet.</td></tr>
+      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No clients yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>

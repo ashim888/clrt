@@ -39,7 +39,7 @@
   <!-- Form -->
   <div class="lg:col-span-2">
     <div class="card p-6">
-      <form method="post" class="space-y-5">
+      <form method="post" enctype="multipart/form-data" class="space-y-5">
         {% csrf_token %}
         <!-- Activity type pills -->
         <div>
@@ -70,6 +70,34 @@
           <label class="block text-sm font-medium text-gray-700 mb-1.5">Next Follow-up Date</label>
           <input type="date" name="next_follow_up_date" value="{% if form.next_follow_up_date.value %}{{ form.next_follow_up_date.value|date:'Y-m-d' }}{% endif %}" class="input" />
           <p class="text-xs text-gray-400 mt-1">Leave blank if no follow-up needed</p>
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">
+            Attachment <span class="text-gray-400 font-normal text-xs">(optional — image or document)</span>
+          </label>
+          {% if editing and form.instance.attachment %}
+          <div class="mb-3 p-3 bg-gray-50 border border-gray-200 rounded-lg">
+            <p class="text-xs text-gray-500 mb-2 font-medium">Current attachment:</p>
+            {% if form.instance.attachment_is_image %}
+            <img src="{{ form.instance.attachment.url }}" alt="Current attachment"
+              class="rounded-lg border border-gray-200"
+              style="max-height:140px;max-width:100%;object-fit:cover;display:block;cursor:pointer;"
+              onclick="window.open('{{ form.instance.attachment.url }}', '_blank')">
+            {% else %}
+            <a href="{{ form.instance.attachment.url }}" target="_blank" rel="noopener"
+              class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:underline">
+              <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+              </svg>
+              {{ form.instance.attachment.name|truncatechars:45 }}
+            </a>
+            {% endif %}
+            <p class="text-xs text-gray-400 mt-2">Select a new file below to replace it.</p>
+          </div>
+          {% endif %}
+          <input type="file" name="attachment" accept="image/*,.pdf,.doc,.docx,.xlsx,.txt"
+            class="input" style="padding:.4rem .6rem;cursor:pointer;">
         </div>
 
         <div class="flex items-center gap-3 pt-2">

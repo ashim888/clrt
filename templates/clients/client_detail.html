@@ -2,44 +2,192 @@
 {% block title %}{{ client.organization_name }}{% endblock %}
 {% block nav_clients %}bg-gray-800 text-white{% endblock %}
 {% block content %}
+
+<!-- Header -->
 <div class="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-6">
   <div class="min-w-0">
-    <h1 class="text-2xl font-bold text-gray-900 break-words">{{ client.organization_name }}</h1>
-    {% if client.email %}<p class="text-gray-500 text-sm mt-1 break-words">{{ client.email }}{% if client.phone %} · {{ client.phone }}{% endif %}</p>{% endif %}
-    {% if client.linked_lead %}<p class="text-xs text-blue-600 mt-1">&#x1F517; From lead: <a href="{% url "leads:lead_detail" client.linked_lead.pk %}" class="hover:underline">{{ client.linked_lead.organization_name }}</a></p>{% endif %}
+    <div class="flex flex-wrap items-center gap-2 mb-1">
+      <h1 class="text-2xl font-bold text-gray-900 break-words">{{ client.organization_name }}</h1>
+      <span class="text-xs px-2.5 py-1 rounded-full font-semibold
+        {% if client.status == 'active' %}bg-green-100 text-green-700
+        {% elif client.status == 'at_risk' %}bg-amber-100 text-amber-700
+        {% elif client.status == 'inactive' %}bg-gray-100 text-gray-500
+        {% else %}bg-red-100 text-red-600{% endif %}">
+        {% if client.status == 'active' %}● Active
+        {% elif client.status == 'at_risk' %}⚠ At Risk
+        {% elif client.status == 'inactive' %}○ Inactive
+        {% else %}✕ Churned{% endif %}
+      </span>
+    </div>
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500 mt-1">
+      {% if client.email %}<span class="break-all">{{ client.email }}</span>{% endif %}
+      {% if client.phone %}<span>{{ client.phone }}</span>{% endif %}
+      {% if client.industry %}<span class="text-gray-400">· {{ client.industry }}</span>{% endif %}
+      {% if client.website %}<a href="{{ client.website }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">{{ client.website|truncatechars:40 }}</a>{% endif %}
+    </div>
+    {% if client.linked_lead %}<p class="text-xs text-blue-600 mt-1">🔗 From lead: <a href="{% url "leads:lead_detail" client.linked_lead.pk %}" class="hover:underline">{{ client.linked_lead.organization_name }}</a></p>{% endif %}
   </div>
   <div class="flex flex-wrap gap-2 flex-shrink-0">
-    <a href="{% url "clients:contract_create" client.pk %}" class="btn-primary">+ Add Contract</a>
+    <a href="{% url "clients:client_interaction_add" client.pk %}" class="btn-primary">+ Log Interaction</a>
+    <a href="{% url "clients:contract_create" client.pk %}" class="btn-secondary">+ Contract</a>
     <a href="{% url "clients:client_edit" client.pk %}" class="btn-secondary">Edit</a>
   </div>
 </div>
 
+<!-- Financial snapshot -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Total Billed</p>
+    <p class="text-xl font-bold text-gray-900">Rs. {{ financial.total_billed|floatformat:0|default:"0" }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Collected</p>
+    <p class="text-xl font-bold text-green-600">Rs. {{ financial.total_paid|floatformat:0|default:"0" }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Pending</p>
+    <p class="text-xl font-bold text-amber-600">Rs. {{ financial.total_pending|floatformat:0|default:"0" }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Overdue</p>
+    <p class="text-xl font-bold {% if financial.total_overdue > 0 %}text-red-600{% else %}text-gray-400{% endif %}">Rs. {{ financial.total_overdue|floatformat:0|default:"0" }}</p>
+  </div>
+</div>
+
+{% if client.notes %}
+<div class="card p-4 mb-6 bg-amber-50 border border-amber-200">
+  <p class="text-xs font-semibold text-amber-800 mb-1">📝 Internal Notes</p>
+  <p class="text-sm text-amber-900 whitespace-pre-line">{{ client.notes }}</p>
+</div>
+{% endif %}
+
+<!-- Contacts -->
+<div class="flex items-center justify-between mb-3 mt-2">
+  <h2 class="font-semibold text-gray-900">Contacts</h2>
+  <a href="{% url "clients:client_contact_add" client.pk %}" class="text-sm text-blue-600 hover:underline">+ Add contact</a>
+</div>
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-8">
+  {% for contact in contacts %}
+  <div class="card p-4 relative group">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900 text-sm">
+          {{ contact.name }}
+          {% if contact.is_primary %}<span class="ml-1 text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full">Primary</span>{% endif %}
+        </p>
+        {% if contact.role %}<p class="text-xs text-gray-400 mt-0.5">{{ contact.role }}</p>{% endif %}
+        {% if contact.email %}<a href="mailto:{{ contact.email }}" class="text-xs text-blue-600 hover:underline block mt-1 break-all">{{ contact.email }}</a>{% endif %}
+        {% if contact.phone %}<a href="tel:{{ contact.phone }}" class="text-xs text-gray-500 hover:underline block">{{ contact.phone }}</a>{% endif %}
+      </div>
+      <a href="{% url "clients:client_contact_edit" contact.pk %}" class="text-xs text-gray-400 hover:text-gray-700 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">Edit</a>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card p-5 text-center text-gray-400 sm:col-span-2 lg:col-span-3 text-sm">
+    No contacts yet. <a href="{% url "clients:client_contact_add" client.pk %}" class="text-blue-600 hover:underline">Add first contact.</a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Interaction Log -->
+<div class="flex items-center justify-between mb-3">
+  <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+    💬 Interaction Log
+    {% if interactions %}<span class="badge bg-indigo-50 text-indigo-700">{{ interactions|length }}</span>{% endif %}
+  </h2>
+  <a href="{% url "clients:client_interaction_add" client.pk %}" class="text-sm text-blue-600 hover:underline">+ Log</a>
+</div>
+<div class="space-y-3 mb-8">
+  {% for item in interactions %}
+  {% with type=item.type %}
+  <div class="card p-4"
+    style="border-left:3px solid {% if type == 'call' %}#93c5fd{% elif type == 'meeting' %}#c4b5fd{% elif type == 'email' %}#6ee7b7{% elif type == 'support' %}#fca5a5{% elif type == 'renewal' %}#fcd34d{% elif type == 'check_in' %}#fdba74{% else %}#d1d5db{% endif %};">
+    <div class="flex items-start gap-3">
+      <!-- Icon -->
+      <div class="w-8 h-8 rounded-full flex items-center justify-center text-sm flex-shrink-0
+        {% if type == 'call' %}bg-blue-100 text-blue-600
+        {% elif type == 'meeting' %}bg-purple-100 text-purple-600
+        {% elif type == 'email' %}bg-green-100 text-green-600
+        {% elif type == 'support' %}bg-red-100 text-red-500
+        {% elif type == 'renewal' %}bg-amber-100 text-amber-600
+        {% elif type == 'check_in' %}bg-orange-100 text-orange-600
+        {% else %}bg-gray-100 text-gray-500{% endif %}">
+        {% if type == 'call' %}☎
+        {% elif type == 'meeting' %}🤝
+        {% elif type == 'email' %}✉
+        {% elif type == 'support' %}🔧
+        {% elif type == 'renewal' %}🔄
+        {% elif type == 'check_in' %}📋
+        {% else %}📌{% endif %}
+      </div>
+      <div class="flex-1 min-w-0">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="text-sm font-medium text-gray-900">{{ item.get_type_display }}</span>
+          <span class="text-xs text-gray-400">{{ item.created_at|date:"M d, Y H:i" }}</span>
+          {% if item.created_by %}
+          <span class="text-xs text-gray-400">· {{ item.created_by.get_full_name|default:item.created_by.username }}</span>
+          {% endif %}
+          <a href="{% url "clients:client_interaction_edit" item.pk %}" class="ml-auto text-xs text-gray-400 hover:text-gray-700 flex-shrink-0">Edit</a>
+        </div>
+        <p class="text-sm text-gray-600 whitespace-pre-line">{{ item.notes }}</p>
+        {% if item.next_follow_up_date %}
+        <p class="text-xs text-blue-600 mt-1.5">📅 Follow-up: {{ item.next_follow_up_date }}</p>
+        {% endif %}
+        {% if item.attachment %}
+        <div class="mt-2">
+          {% if item.attachment_is_image %}
+          <img src="{{ item.attachment.url }}" alt="Attachment"
+            onclick="openClientLightbox('{{ item.attachment.url }}')"
+            class="rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+            style="max-height:140px;max-width:100%;object-fit:cover;display:block;">
+          {% else %}
+          <a href="{{ item.attachment.url }}" target="_blank" rel="noopener"
+            class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded-md">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/>
+            </svg>
+            {{ item.attachment.name|truncatechars:40 }}
+          </a>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endwith %}
+  {% empty %}
+  <div class="card p-8 text-center text-gray-400 text-sm">
+    No interactions logged yet. <a href="{% url "clients:client_interaction_add" client.pk %}" class="text-blue-600 hover:underline">Log the first one.</a>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Contracts -->
 <h2 class="font-semibold text-gray-900 mb-3">Contracts</h2>
-<div class="space-y-3">
+<div class="space-y-3 mb-8">
   {% for contract in contracts %}
   <div class="card p-4 sm:p-5">
     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
       <div class="min-w-0">
         <a href="{% url "clients:contract_detail" contract.pk %}" class="font-medium text-gray-900 hover:text-blue-600">{{ contract.contract_title }}</a>
-        <p class="text-xs text-gray-400 mt-0.5">{{ contract.start_date }} → {{ contract.end_date }} · {{ contract.get_billing_cycle_display }} · Rs. {{ contract.contract_value|floatformat:0 }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ contract.start_date }} → {{ contract.end_date }} · {{ contract.get_billing_cycle_display }} · <span class="font-medium text-gray-700">Rs. {{ contract.contract_value|floatformat:0 }}</span></p>
       </div>
       <div class="flex flex-wrap items-center gap-2 flex-shrink-0">
-        {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">Expiring in {{ contract.days_until_expiry }}d</span>{% endif %}
-        <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
+        {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">⚠ Expiring in {{ contract.days_until_expiry }}d</span>{% endif %}
+        <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% elif contract.status == "expired" %}bg-gray-100 text-gray-500{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
       </div>
     </div>
   </div>
   {% empty %}
-  <div class="card p-8 text-center text-gray-400">No contracts yet. <a href="{% url "clients:contract_create" client.pk %}" class="text-blue-600 hover:underline">Add first contract.</a></div>
+  <div class="card p-6 text-center text-gray-400 text-sm">No contracts. <a href="{% url "clients:contract_create" client.pk %}" class="text-blue-600 hover:underline">Add first contract.</a></div>
   {% endfor %}
 </div>
 
 <!-- Invoices -->
-<h2 class="font-semibold text-gray-900 mt-8 mb-3">Recent Invoices</h2>
+<h2 class="font-semibold text-gray-900 mb-3">Invoices</h2>
 
-<!-- Mobile: Invoice cards -->
-<div class="space-y-3 md:hidden">
-  {% for inv in client.invoices.all|slice:":10" %}
+<div class="space-y-3 md:hidden mb-8">
+  {% for inv in client.invoices.all|slice:":15" %}
   <a href="{% url "billing:invoice_detail" inv.pk %}" class="card p-4 block hover:shadow-md transition-shadow">
     <div class="flex items-start justify-between gap-2">
       <div>
@@ -51,12 +199,11 @@
     <p class="text-xs text-gray-400 mt-2">Due: {{ inv.due_date }}</p>
   </a>
   {% empty %}
-  <div class="card p-6 text-center text-gray-400">No invoices.</div>
+  <div class="card p-6 text-center text-gray-400 text-sm">No invoices.</div>
   {% endfor %}
 </div>
 
-<!-- Desktop: Invoice table -->
-<div class="hidden md:block card overflow-hidden">
+<div class="hidden md:block card overflow-hidden mb-8">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b">
@@ -68,7 +215,7 @@
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
-      {% for inv in client.invoices.all|slice:":10" %}
+      {% for inv in client.invoices.all|slice:":15" %}
       <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "billing:invoice_detail" inv.pk %}'">
         <td class="px-4 py-3 font-medium">{{ inv.invoice_number }}</td>
         <td class="px-4 py-3">Rs. {{ inv.amount|floatformat:0 }}</td>
@@ -82,4 +229,114 @@
   </table>
   </div>
 </div>
+
+<!-- Lead History -->
+{% if lead_activities is not None %}
+<div class="mt-2">
+  <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-4">
+    <div>
+      <h2 class="font-semibold text-gray-900 flex items-center gap-2">
+        <span class="text-lg">📋</span> Lead Activity Trail
+      </h2>
+      <p class="text-xs text-gray-400 mt-0.5">
+        History from when this was a lead ·
+        <a href="{% url "leads:lead_detail" client.linked_lead.pk %}" class="text-blue-600 hover:underline">View original lead →</a>
+      </p>
+    </div>
+    <span class="badge bg-blue-50 text-blue-700 self-start sm:self-auto">
+      {{ lead_activities|length }} activit{{ lead_activities|length|pluralize:"y,ies" }}
+    </span>
+  </div>
+
+  <div class="space-y-3">
+    {% for activity in lead_activities %}
+    <div class="card p-4 {% if activity.status == 'completed' or activity.status == 'cancelled' %}opacity-70{% endif %}"
+      style="{% if activity.status == 'completed' %}background:#f0fdf4;{% elif activity.status == 'cancelled' %}background:#fff5f5;{% elif activity.status == 'rescheduled' %}background:#fffbeb;{% endif %}border-left:3px solid {% if activity.status == 'completed' %}#86efac{% elif activity.status == 'cancelled' %}#fca5a5{% elif activity.status == 'rescheduled' %}#fcd34d{% elif activity.type == 'call' %}#93c5fd{% elif activity.type == 'meeting' %}#c4b5fd{% elif activity.type == 'follow_up' %}#fde68a{% else %}#6ee7b7{% endif %};">
+      <div class="flex items-start gap-3">
+        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0
+          {% if activity.status == 'completed' %}bg-green-100 text-green-600
+          {% elif activity.status == 'cancelled' %}bg-red-100 text-red-500
+          {% elif activity.status == 'rescheduled' %}bg-amber-100 text-amber-600
+          {% elif activity.type == 'call' %}bg-blue-100 text-blue-600
+          {% elif activity.type == 'meeting' %}bg-purple-100 text-purple-600
+          {% elif activity.type == 'follow_up' %}bg-yellow-100 text-yellow-600
+          {% else %}bg-green-100 text-green-600{% endif %}">
+          {% if activity.type == "call" %}☎{% elif activity.type == "meeting" %}🤝{% elif activity.type == "follow_up" %}🔄{% else %}✉{% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex flex-wrap items-center gap-2 mb-1">
+            <span class="text-sm font-medium
+              {% if activity.status == 'cancelled' %}text-red-400 line-through
+              {% elif activity.status == 'completed' %}text-green-700
+              {% else %}text-gray-900{% endif %}">{{ activity.get_type_display }}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+              {% if activity.status == 'pending' %}bg-gray-100 text-gray-500
+              {% elif activity.status == 'completed' %}bg-green-100 text-green-700
+              {% elif activity.status == 'cancelled' %}bg-red-100 text-red-600
+              {% elif activity.status == 'rescheduled' %}bg-amber-100 text-amber-700{% endif %}">
+              {% if activity.status == 'pending' %}⏳ Pending{% elif activity.status == 'completed' %}✅ Completed{% elif activity.status == 'cancelled' %}❌ Cancelled{% elif activity.status == 'rescheduled' %}📅 Rescheduled{% endif %}
+            </span>
+            <span class="text-xs text-gray-400">{{ activity.created_at|date:"M d, Y" }}</span>
+          </div>
+          <p class="text-sm {% if activity.status == 'completed' or activity.status == 'cancelled' %}text-gray-400{% else %}text-gray-600{% endif %}">{{ activity.notes }}</p>
+          {% if activity.resolution_note %}
+          <p class="text-xs border rounded px-2 py-1 mt-1
+            {% if activity.status == 'cancelled' %}text-red-700 bg-red-50 border-red-200
+            {% elif activity.status == 'rescheduled' %}text-amber-700 bg-amber-50 border-amber-200
+            {% else %}text-green-700 bg-green-50 border-green-200{% endif %}">
+            <span class="font-semibold">{% if activity.status == 'cancelled' %}Reason:{% elif activity.status == 'rescheduled' %}Note:{% else %}Resolution:{% endif %}</span> {{ activity.resolution_note }}
+          </p>
+          {% endif %}
+          {% if activity.attachment %}
+          <div class="mt-2">
+            {% if activity.attachment_is_image %}
+            <img src="{{ activity.attachment.url }}" alt="Attachment"
+              onclick="openClientLightbox('{{ activity.attachment.url }}')"
+              class="rounded-lg border border-gray-200 cursor-zoom-in hover:opacity-90 transition-opacity"
+              style="max-height:140px;max-width:100%;object-fit:cover;display:block;">
+            {% else %}
+            <a href="{{ activity.attachment.url }}" target="_blank" rel="noopener"
+              class="inline-flex items-center gap-1.5 text-xs text-blue-600 hover:underline bg-blue-50 px-2 py-1 rounded-md">
+              <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+              {{ activity.attachment.name|truncatechars:40 }}
+            </a>
+            {% endif %}
+          </div>
+          {% endif %}
+          <div class="flex flex-wrap items-center gap-x-4 mt-1.5">
+            {% if activity.next_follow_up_date %}<span class="text-xs {% if activity.status == 'completed' or activity.status == 'cancelled' %}text-gray-400{% else %}text-blue-600{% endif %}">📅 Next: {{ activity.next_follow_up_date }}</span>{% endif %}
+            {% if activity.created_by %}<span class="text-xs text-gray-400">by {{ activity.created_by.get_full_name|default:activity.created_by.username }}</span>{% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+    {% empty %}
+    <div class="card p-8 text-center text-gray-400 text-sm">No activities were logged on this lead.</div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Lightbox -->
+<div id="client-lightbox" onclick="closeClientLightbox()"
+  style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.88);align-items:center;justify-content:center;cursor:zoom-out;padding:1rem;">
+  <img id="client-lightbox-img" src="" alt=""
+    style="max-width:90vw;max-height:90vh;border-radius:10px;object-fit:contain;box-shadow:0 8px 40px rgba(0,0,0,.5);"
+    onclick="event.stopPropagation()">
+  <button onclick="closeClientLightbox()"
+    style="position:absolute;top:1rem;right:1rem;background:rgba(255,255,255,.15);border:none;color:#fff;font-size:1.4rem;width:2.2rem;height:2.2rem;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">&#x2715;</button>
+</div>
+<script>
+function openClientLightbox(url) {
+  document.getElementById('client-lightbox-img').src = url;
+  document.getElementById('client-lightbox').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+function closeClientLightbox() {
+  document.getElementById('client-lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeClientLightbox(); });
+</script>
+
 {% endblock %}

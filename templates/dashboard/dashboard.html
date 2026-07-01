@@ -206,11 +206,17 @@
   <div style="background:#fff;border-radius:14px;padding:1.6rem 1.8rem;max-width:460px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.22);">
     <h3 style="font-size:1rem;font-weight:700;color:#111827;margin:0 0 .3rem;">Update Activity Status</h3>
     <p style="font-size:.78rem;color:#6b7280;margin:0 0 1rem;">Select the new status and optionally add a note.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:1rem;" id="dash-status-grid">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.6rem;" id="dash-status-grid">
       <button data-status="pending"     onclick="dashPickStatus('pending')"     style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">⏳ Pending</button>
       <button data-status="completed"   onclick="dashPickStatus('completed')"   style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">✅ Completed</button>
       <button data-status="cancelled"   onclick="dashPickStatus('cancelled')"   style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">❌ Cancelled</button>
       <button data-status="rescheduled" onclick="dashPickStatus('rescheduled')" style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">📅 Rescheduled</button>
+    </div>
+    <!-- Reschedule date — shown only when Rescheduled is selected -->
+    <div id="done-reschedule-wrap" style="display:none;margin:.2rem 0 .6rem;padding:.6rem .75rem;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;">
+      <label style="font-size:.75rem;font-weight:600;color:#92400e;display:block;margin-bottom:.3rem;">📅 Reschedule to <span style="color:#dc2626;font-weight:400;">*</span></label>
+      <input type="date" id="done-reschedule-date"
+        style="width:100%;box-sizing:border-box;border:1.5px solid #fcd34d;border-radius:6px;padding:.4rem .6rem;font-size:.82rem;outline:none;font-family:inherit;background:#fff;color:#92400e;">
     </div>
     <textarea id="done-note" rows="2" placeholder="Add a note (outcome, reason, next steps…)"
       style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.5rem .7rem;font-size:.82rem;resize:vertical;outline:none;font-family:inherit;"></textarea>
@@ -245,6 +251,11 @@ function openDoneModal(activityId, csrf) {
   _doneCsrf = csrf;
   _dashSelectedStatus = 'completed';
   document.getElementById('done-note').value = '';
+  // Reset reschedule date
+  const rw = document.getElementById('done-reschedule-wrap');
+  const rd = document.getElementById('done-reschedule-date');
+  if (rw) rw.style.display = 'none';
+  if (rd) { rd.value = ''; rd.style.borderColor = '#fcd34d'; rd.min = new Date().toISOString().split('T')[0]; }
   // Default highlight completed
   document.querySelectorAll('#dash-status-grid button').forEach(btn => {
     const c = DASH_STATUS_COLORS[btn.dataset.status];
@@ -269,30 +280,54 @@ function dashPickStatus(s) {
       btn.style.borderColor = '#e5e7eb'; btn.style.background = '#f9fafb'; btn.style.color = '#374151';
     }
   });
+  // Show reschedule date field only when Rescheduled is selected
+  const rw = document.getElementById('done-reschedule-wrap');
+  if (rw) rw.style.display = s === 'rescheduled' ? 'block' : 'none';
+  if (s === 'rescheduled') {
+    setTimeout(() => document.getElementById('done-reschedule-date').focus(), 50);
+  }
 }
 
 function closeDoneModal() {
   document.getElementById('done-modal').style.display = 'none';
   const att = document.getElementById('done-attachment');
   if (att) att.value = '';
+  const rw = document.getElementById('done-reschedule-wrap');
+  const rd = document.getElementById('done-reschedule-date');
+  if (rw) rw.style.display = 'none';
+  if (rd) rd.value = '';
   _doneActivityId = null; _doneCsrf = null;
 }
 
 async function confirmDone() {
   if (!_doneActivityId) return;
-  // Capture locals BEFORE closing modal (closing nulls the globals)
+  const status = _dashSelectedStatus;
+
+  // Validate reschedule date before touching globals
+  let rescheduleDate = '';
+  if (status === 'rescheduled') {
+    const rdInput = document.getElementById('done-reschedule-date');
+    rescheduleDate = rdInput ? rdInput.value.trim() : '';
+    if (!rescheduleDate) {
+      if (rdInput) { rdInput.style.borderColor = '#dc2626'; rdInput.focus(); }
+      return;
+    }
+  }
+
+  // Capture ALL values before closing modal — close clears file input and nulls globals
   const activityId = _doneActivityId;
   const csrf = _doneCsrf;
-  const status = _dashSelectedStatus;
   const note = document.getElementById('done-note').value.trim();
   const fileInput = document.getElementById('done-attachment');
+  const file = (fileInput && fileInput.files[0]) ? fileInput.files[0] : null;
   const row = document.getElementById('activity-row-' + activityId);
   closeDoneModal();
   try {
     const fd = new FormData();
     fd.append('status', status);
     fd.append('resolution_note', note);
-    if (fileInput && fileInput.files[0]) fd.append('attachment', fileInput.files[0]);
+    if (rescheduleDate) fd.append('reschedule_date', rescheduleDate);
+    if (file) fd.append('attachment', file);
     const resp = await fetch('/leads/activity/' + activityId + '/update-status/', {
       method: 'POST',
       headers: {'X-CSRFToken': csrf},
