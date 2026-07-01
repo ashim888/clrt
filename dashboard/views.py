@@ -122,11 +122,41 @@ def reports(request):
     if total_leads:
         conversion_rate = round(won_leads / total_leads * 100, 1)
 
+    # Pipeline value metrics
+    STAGE_PROB = {"new": 10, "contacted": 25, "demo": 50, "negotiation": 75, "won": 100, "lost": 0}
+    active_stages = ["new", "contacted", "demo", "negotiation"]
+    pipeline_value_qs = (
+        Lead.objects
+        .filter(status__in=active_stages, deal_value__isnull=False)
+        .values("status")
+        .annotate(total=Sum("deal_value"))
+    )
+    pipeline_value_map = {row["status"]: float(row["total"]) for row in pipeline_value_qs}
+    active_pipeline_value = sum(pipeline_value_map.values())
+    weighted_forecast = sum(
+        pipeline_value_map.get(s, 0) * STAGE_PROB[s] / 100
+        for s in active_stages
+    )
+    won_pipeline_value = Lead.objects.filter(
+        status="won", deal_value__isnull=False
+    ).aggregate(t=Sum("deal_value"))["t"] or 0
+
+    # Pipeline value by stage (for chart)
+    pv_labels = [lead_status_map[s] for s in status_order]
+    pv_data = [pipeline_value_map.get(s, 0) for s in status_order]
+    # Won value
+    pv_data[status_order.index("won")] = float(
+        Lead.objects.filter(status="won", deal_value__isnull=False)
+        .aggregate(t=Sum("deal_value"))["t"] or 0
+    )
+
     return render(request, "dashboard/reports.html", {
         "revenue_labels": json.dumps(revenue_labels),
         "revenue_data": json.dumps(revenue_data),
         "pipeline_labels": json.dumps(pipeline_labels),
         "pipeline_data": json.dumps(pipeline_data),
+        "pv_labels": json.dumps(pv_labels),
+        "pv_data": json.dumps(pv_data),
         "source_labels": json.dumps(source_labels),
         "source_data": json.dumps(source_data),
         "client_labels": json.dumps(client_labels),
@@ -138,6 +168,9 @@ def reports(request):
         "conversion_rate": conversion_rate,
         "total_clients": Client.objects.count(),
         "active_clients": Client.objects.filter(status="active").count(),
+        "active_pipeline_value": active_pipeline_value,
+        "weighted_forecast": weighted_forecast,
+        "won_pipeline_value": won_pipeline_value,
     })
 
 

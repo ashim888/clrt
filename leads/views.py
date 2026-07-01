@@ -198,6 +198,10 @@ def lead_update_status(request, pk):
 
 @login_required
 def lead_kanban(request):
+    STAGE_PROBABILITY = {
+        "new": 10, "contacted": 25, "demo": 50,
+        "negotiation": 75, "won": 100, "lost": 0,
+    }
     status_order = ["new", "contacted", "demo", "negotiation", "won", "lost"]
     status_labels = dict(Lead.STATUS_CHOICES)
     latest_activity_qs = Activity.objects.order_by("-created_at")
@@ -210,14 +214,29 @@ def lead_kanban(request):
     for lead in all_leads:
         if lead.status in buckets:
             buckets[lead.status].append(lead)
-    # Build an ordered list of column dicts for the template
-    columns = [
-        {"key": s, "label": status_labels[s], "leads": buckets[s]}
-        for s in status_order
-    ]
+
+    columns = []
+    pipeline_total = 0   # active stages only (excludes won/lost)
+    weighted_total = 0
+    for s in status_order:
+        col_leads = buckets[s]
+        col_value = sum(l.deal_value for l in col_leads if l.deal_value)
+        prob = STAGE_PROBABILITY[s]
+        columns.append({
+            "key": s,
+            "label": status_labels[s],
+            "leads": col_leads,
+            "value": col_value,
+            "probability": prob,
+        })
+        if s not in ("won", "lost"):
+            pipeline_total += col_value
+        weighted_total += col_value * prob / 100
+
     return render(request, "leads/lead_kanban.html", {
         "columns": columns,
-        "status_order": status_order,
+        "pipeline_total": pipeline_total,
+        "weighted_total": weighted_total,
     })
 
 
@@ -228,7 +247,7 @@ def lead_export_csv(request):
     writer = csv.writer(response)
     writer.writerow([
         "Organization", "Contact Person", "Phone", "Email",
-        "Source", "Status", "Assigned To", "Created",
+        "Source", "Deal Value (Rs.)", "Status", "Assigned To", "Created",
     ])
     for lead in Lead.objects.select_related("assigned_to").order_by("-created_at"):
         writer.writerow([
@@ -237,6 +256,7 @@ def lead_export_csv(request):
             lead.phone,
             lead.email,
             lead.get_source_display() if lead.source else "",
+            lead.deal_value or "",
             lead.get_status_display(),
             lead.assigned_to.get_full_name() if lead.assigned_to else "",
             lead.created_at.strftime("%Y-%m-%d"),

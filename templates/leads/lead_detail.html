@@ -51,9 +51,14 @@
       {% endif %}
     </div>
     <p class="text-gray-500 text-sm break-words">{{ lead.contact_person }} · {{ lead.phone }} {% if lead.email %}· {{ lead.email }}{% endif %}</p>
-    {% if lead.source %}
-    <p class="text-xs text-gray-400 mt-1">📍 Source: <span class="font-medium text-gray-600">{{ lead.get_source_display }}</span></p>
-    {% endif %}
+    <div class="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1">
+      {% if lead.source %}
+      <p class="text-xs text-gray-400">📍 Source: <span class="font-medium text-gray-600">{{ lead.get_source_display }}</span></p>
+      {% endif %}
+      {% if lead.deal_value %}
+      <p class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5">💰 Rs. {{ lead.deal_value|floatformat:0 }}</p>
+      {% endif %}
+    </div>
   </div>
   <div class="flex flex-wrap gap-2 flex-shrink-0">
     {% if lead.is_won %}

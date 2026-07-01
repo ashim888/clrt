@@ -10,27 +10,54 @@
   <a href="{% url "dashboard:team_performance" %}" class="btn-secondary self-start sm:self-auto">Team Performance →</a>
 </div>
 
-<!-- Key metrics -->
-<div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-8">
-  <div class="card p-4 text-center lg:col-span-2">
-    <p class="text-xs text-gray-400 mb-1">Total Revenue Collected</p>
-    <p class="text-2xl font-bold text-green-600">Rs. {{ total_revenue|floatformat:0 }}</p>
+<!-- Key metrics: Revenue & Billing -->
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Revenue & Billing</p>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-4">
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Total Collected</p>
+    <p class="text-xl font-bold text-green-600">Rs. {{ total_revenue|floatformat:0 }}</p>
   </div>
-  <div class="card p-4 text-center">
+  <div class="card p-4">
     <p class="text-xs text-gray-400 mb-1">Outstanding</p>
     <p class="text-xl font-bold {% if total_outstanding > 0 %}text-amber-600{% else %}text-gray-400{% endif %}">Rs. {{ total_outstanding|floatformat:0 }}</p>
   </div>
-  <div class="card p-4 text-center">
-    <p class="text-xs text-gray-400 mb-1">Total Leads</p>
-    <p class="text-xl font-bold text-gray-900">{{ total_leads }}</p>
-  </div>
-  <div class="card p-4 text-center">
-    <p class="text-xs text-gray-400 mb-1">Conversion Rate</p>
-    <p class="text-xl font-bold text-blue-600">{{ conversion_rate }}%</p>
-  </div>
-  <div class="card p-4 text-center">
+  <div class="card p-4">
     <p class="text-xs text-gray-400 mb-1">Active Clients</p>
     <p class="text-xl font-bold text-gray-900">{{ active_clients }} <span class="text-sm font-normal text-gray-400">/ {{ total_clients }}</span></p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Conversion Rate</p>
+    <p class="text-xl font-bold text-blue-600">{{ conversion_rate }}%</p>
+    <p class="text-xs text-gray-400 mt-0.5">{{ won_leads }} won / {{ total_leads }} total</p>
+  </div>
+</div>
+
+<!-- Key metrics: Pipeline Value -->
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Pipeline Value</p>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+  <div class="card p-4 border-l-4 border-blue-400">
+    <p class="text-xs text-gray-400 mb-1">Active Pipeline</p>
+    <p class="text-xl font-bold text-gray-900">Rs. {{ active_pipeline_value|floatformat:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">all open stages</p>
+  </div>
+  <div class="card p-4 border-l-4 border-indigo-400">
+    <p class="text-xs text-gray-400 mb-1">Weighted Forecast</p>
+    <p class="text-xl font-bold text-indigo-600">Rs. {{ weighted_forecast|floatformat:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">probability-adjusted</p>
+  </div>
+  <div class="card p-4 border-l-4 border-emerald-500">
+    <p class="text-xs text-gray-400 mb-1">Won Deals Value</p>
+    <p class="text-xl font-bold text-emerald-600">Rs. {{ won_pipeline_value|floatformat:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">closed deals total</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-2">Stage weights used</p>
+    <div class="space-y-0.5 text-xs text-gray-500">
+      <div class="flex justify-between"><span>New</span><span>10%</span></div>
+      <div class="flex justify-between"><span>Contacted</span><span>25%</span></div>
+      <div class="flex justify-between"><span>Demo</span><span>50%</span></div>
+      <div class="flex justify-between"><span>Negotiation</span><span>75%</span></div>
+    </div>
   </div>
 </div>
 
@@ -47,15 +74,30 @@
 </div>
 
 <div class="grid lg:grid-cols-3 gap-6 mb-6">
-  <!-- Lead pipeline -->
-  <div class="card p-5 lg:col-span-2">
-    <h2 class="font-semibold text-gray-900 mb-4">Lead Pipeline</h2>
+  <!-- Lead pipeline counts - now spans 1 col each so 3 total with source -->
+  <!-- Lead pipeline counts -->
+  <div class="card p-5">
+    <h2 class="font-semibold text-gray-900 mb-1">Lead Pipeline</h2>
+    <p class="text-xs text-gray-400 mb-4">count by stage</p>
     {% if total_leads %}
-    <div style="height:200px;position:relative;">
+    <div style="height:190px;position:relative;">
       <canvas id="pipelineChart"></canvas>
     </div>
     {% else %}
     <div class="py-10 text-center text-gray-400 text-sm">No leads yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Pipeline value by stage -->
+  <div class="card p-5">
+    <h2 class="font-semibold text-gray-900 mb-1">Pipeline Value</h2>
+    <p class="text-xs text-gray-400 mb-4">deal value by stage (Rs.)</p>
+    {% if pv_data != "[0, 0, 0, 0, 0, 0]" %}
+    <div style="height:190px;position:relative;">
+      <canvas id="pvChart"></canvas>
+    </div>
+    {% else %}
+    <div class="py-10 text-center text-gray-400 text-sm">Add deal values to leads to see this chart.</div>
     {% endif %}
   </div>
 
@@ -85,14 +127,16 @@
 </div>
 
 <script>
-const revenueLabels = {{ revenue_labels|safe }};
-const revenueData   = {{ revenue_data|safe }};
+const revenueLabels  = {{ revenue_labels|safe }};
+const revenueData    = {{ revenue_data|safe }};
 const pipelineLabels = {{ pipeline_labels|safe }};
 const pipelineData   = {{ pipeline_data|safe }};
-const sourceLabels  = {{ source_labels|safe }};
-const sourceData    = {{ source_data|safe }};
-const clientLabels  = {{ client_labels|safe }};
-const clientData    = {{ client_data|safe }};
+const pvLabels       = {{ pv_labels|safe }};
+const pvData         = {{ pv_data|safe }};
+const sourceLabels   = {{ source_labels|safe }};
+const sourceData     = {{ source_data|safe }};
+const clientLabels   = {{ client_labels|safe }};
+const clientData     = {{ client_data|safe }};
 
 const PALETTE = ['#3b82f6','#6366f1','#8b5cf6','#f59e0b','#10b981','#ef4444','#06b6d4','#f97316'];
 const PIPELINE_COLORS = ['#93c5fd','#a5b4fc','#d8b4fe','#fcd34d','#6ee7b7','#fca5a5'];
@@ -143,6 +187,30 @@ if (pipelineLabels.length) {
       plugins: { legend: { display: false } },
       scales: {
         y: { grid: { color: '#f3f4f6' }, ticks: { precision: 0 } },
+        x: { grid: { display: false } },
+      }
+    }
+  });
+}
+
+if (pvData.some(v => v > 0)) {
+  new Chart(document.getElementById('pvChart'), {
+    type: 'bar',
+    data: {
+      labels: pvLabels,
+      datasets: [{
+        label: 'Deal Value (Rs.)',
+        data: pvData,
+        backgroundColor: PIPELINE_COLORS,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#f3f4f6' }, ticks: { callback: v => 'Rs. ' + (v >= 100000 ? (v/100000).toFixed(1)+'L' : v.toLocaleString()) } },
         x: { grid: { display: false } },
       }
     }

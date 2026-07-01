@@ -122,6 +122,7 @@
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Status</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Latest Activity</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Next Follow-up</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500 whitespace-nowrap">Deal Value</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Assigned To</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Activities</th>
       </tr>
@@ -193,6 +194,14 @@
             {% endwith %}
           {% else %}
             <span class="text-xs text-gray-300">—</span>
+          {% endif %}
+        </td>
+
+        <td class="px-4 py-3 text-right">
+          {% if lead.deal_value %}
+          <span class="text-sm font-semibold text-gray-900">Rs. {{ lead.deal_value|floatformat:0 }}</span>
+          {% else %}
+          <span class="text-gray-300 text-xs">—</span>
           {% endif %}
         </td>
 
