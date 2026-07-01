@@ -19,7 +19,7 @@ class LeadForm(forms.ModelForm):
 class ActivityForm(forms.ModelForm):
     class Meta:
         model = Activity
-        fields = ["type", "notes", "next_follow_up_date"]
+        fields = ["type", "notes", "next_follow_up_date", "attachment"]
         widgets = {
             "notes": forms.Textarea(attrs={"rows": 3}),
             "next_follow_up_date": forms.DateInput(attrs={"type": "date"}),

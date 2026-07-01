@@ -97,7 +97,7 @@ def lead_delete(request, pk):
 @login_required
 def activity_add(request, lead_pk):
     lead = get_object_or_404(Lead, pk=lead_pk)
-    form = ActivityForm(request.POST or None)
+    form = ActivityForm(request.POST or None, request.FILES or None)
     if form.is_valid():
         activity = form.save(commit=False)
         activity.lead = lead
@@ -114,7 +114,7 @@ def activity_edit(request, pk):
     if not _can_edit_leads(request.user):
         messages.error(request, "Access denied.")
         return redirect("leads:lead_detail", pk=activity.lead.pk)
-    form = ActivityForm(request.POST or None, instance=activity)
+    form = ActivityForm(request.POST or None, request.FILES or None, instance=activity)
     if form.is_valid():
         form.save()
         messages.success(request, "Activity updated.")
@@ -151,11 +151,21 @@ def activity_update_status(request, pk):
     if request.FILES.get("attachment"):
         activity.attachment = request.FILES["attachment"]
         update_fields.append("attachment")
+    if new_status == "rescheduled":
+        from datetime import date as _date
+        reschedule_date_str = request.POST.get("reschedule_date", "").strip()
+        if reschedule_date_str:
+            try:
+                activity.next_follow_up_date = _date.fromisoformat(reschedule_date_str)
+                update_fields.append("next_follow_up_date")
+            except ValueError:
+                pass
     activity.save(update_fields=update_fields)
     attachment_url = activity.attachment.url if activity.attachment else None
     return JsonResponse({
         "status": activity.status,
         "resolution_note": activity.resolution_note,
+        "next_follow_up_date": str(activity.next_follow_up_date) if activity.next_follow_up_date else None,
         "attachment_url": attachment_url,
     })
 

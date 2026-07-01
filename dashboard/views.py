@@ -11,16 +11,16 @@ def dashboard(request):
     today = timezone.now().date()
     in_30_days = today + timezone.timedelta(days=30)
 
-    # Today's and overdue follow-ups
+    # Today's and overdue follow-ups (pending + rescheduled so reschedules resurface on their new date)
     todays_followups = Activity.objects.filter(
         next_follow_up_date=today,
-        status="pending",
+        status__in=["pending", "rescheduled"],
     ).select_related("lead", "created_by")
 
     overdue_followups = Activity.objects.filter(
         next_follow_up_date__lt=today,
         next_follow_up_date__isnull=False,
-        status="pending",
+        status__in=["pending", "rescheduled"],
     ).select_related("lead").order_by("next_follow_up_date")
 
     # Contracts expiring in 30 days
