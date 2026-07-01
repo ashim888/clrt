@@ -60,6 +60,7 @@ class ClientInteraction(models.Model):
     type = models.CharField(max_length=20, choices=TYPE_CHOICES, default="call")
     notes = models.TextField()
     next_follow_up_date = models.DateField(null=True, blank=True)
+    follow_up_done = models.BooleanField(default=False)
     attachment = models.FileField(upload_to="client_interactions/", blank=True, null=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,

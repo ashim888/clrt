@@ -15,4 +15,6 @@ urlpatterns = [
     path("activity/<int:pk>/update-status/", views.activity_update_status, name="activity_update_status"),
     path("<int:pk>/convert/", views.convert_to_client, name="convert_to_client"),
     path("<int:pk>/status/", views.lead_update_status, name="lead_update_status"),
+    path("kanban/", views.lead_kanban, name="lead_kanban"),
+    path("export/", views.lead_export_csv, name="lead_export_csv"),
 ]

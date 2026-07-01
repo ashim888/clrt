@@ -1,7 +1,8 @@
+import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count, Max, Prefetch
 from .models import Lead, Activity
@@ -26,6 +27,7 @@ def lead_list(request):
             next_followup_max=Max("activities__next_follow_up_date"),
         )
     )
+    source = request.GET.get("source", "")
     if q:
         leads = leads.filter(
             Q(organization_name__icontains=q) |
@@ -34,12 +36,16 @@ def lead_list(request):
         )
     if status:
         leads = leads.filter(status=status)
+    if source:
+        leads = leads.filter(source=source)
     leads = leads.order_by("-created_at")
     return render(request, "leads/lead_list.html", {
         "leads": leads,
         "q": q,
         "status": status,
+        "source": source,
         "status_choices": Lead.STATUS_CHOICES,
+        "source_choices": Lead.SOURCE_CHOICES,
     })
 
 
@@ -188,6 +194,54 @@ def lead_update_status(request, pk):
         from django.urls import reverse
         response["redirect"] = reverse("leads:convert_to_client", args=[lead.pk])
     return JsonResponse(response)
+
+
+@login_required
+def lead_kanban(request):
+    status_order = ["new", "contacted", "demo", "negotiation", "won", "lost"]
+    status_labels = dict(Lead.STATUS_CHOICES)
+    latest_activity_qs = Activity.objects.order_by("-created_at")
+    all_leads = (
+        Lead.objects
+        .select_related("assigned_to")
+        .prefetch_related(Prefetch("activities", queryset=latest_activity_qs, to_attr="all_activities"))
+    )
+    buckets = {s: [] for s in status_order}
+    for lead in all_leads:
+        if lead.status in buckets:
+            buckets[lead.status].append(lead)
+    # Build an ordered list of column dicts for the template
+    columns = [
+        {"key": s, "label": status_labels[s], "leads": buckets[s]}
+        for s in status_order
+    ]
+    return render(request, "leads/lead_kanban.html", {
+        "columns": columns,
+        "status_order": status_order,
+    })
+
+
+@login_required
+def lead_export_csv(request):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="leads.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "Organization", "Contact Person", "Phone", "Email",
+        "Source", "Status", "Assigned To", "Created",
+    ])
+    for lead in Lead.objects.select_related("assigned_to").order_by("-created_at"):
+        writer.writerow([
+            lead.organization_name,
+            lead.contact_person,
+            lead.phone,
+            lead.email,
+            lead.get_source_display() if lead.source else "",
+            lead.get_status_display(),
+            lead.assigned_to.get_full_name() if lead.assigned_to else "",
+            lead.created_at.strftime("%Y-%m-%d"),
+        ])
+    return response
 
 
 @login_required

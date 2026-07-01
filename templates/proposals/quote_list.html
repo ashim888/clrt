@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+{% block title %}Proposals{% endblock %}
+{% block nav_proposals %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Proposals</h1>
+  <a href="{% url "proposals:quote_create" %}" class="btn-primary self-start sm:self-auto">+ New Proposal</a>
+</div>
+
+<form method="get" class="flex flex-wrap gap-2 mb-5">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search title, number, client…" class="input flex-1 min-w-[160px] sm:max-w-xs">
+  <select name="status" class="input w-auto min-w-[130px]">
+    <option value="">All statuses</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <div class="flex gap-2">
+    <button type="submit" class="btn-secondary">Filter</button>
+    {% if q or status %}<a href="/proposals/" class="btn-secondary">Clear</a>{% endif %}
+  </div>
+</form>
+
+<!-- Mobile cards -->
+<div class="space-y-3 md:hidden">
+  {% for quote in quotes %}
+  <a href="{% url "proposals:quote_detail" quote.pk %}" class="card p-4 block hover:shadow-md transition-shadow">
+    <div class="flex items-start justify-between gap-2">
+      <div class="min-w-0">
+        <p class="font-semibold text-gray-900">{{ quote.quote_number }}</p>
+        <p class="text-sm text-gray-600 mt-0.5 truncate">{{ quote.title }}</p>
+        <p class="text-xs text-gray-400 mt-1">{{ quote.recipient_name }}</p>
+      </div>
+      <div class="text-right flex-shrink-0">
+        <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+          {% if quote.status == 'draft' %}bg-gray-100 text-gray-600
+          {% elif quote.status == 'sent' %}bg-blue-100 text-blue-700
+          {% elif quote.status == 'accepted' %}bg-green-100 text-green-700
+          {% elif quote.status == 'declined' %}bg-red-100 text-red-600
+          {% else %}bg-amber-100 text-amber-700{% endif %}">{{ quote.get_status_display }}</span>
+        <p class="text-sm font-bold text-gray-900 mt-1">Rs. {{ quote.total|floatformat:0 }}</p>
+      </div>
+    </div>
+    <p class="text-xs text-gray-400 mt-2">Valid until {{ quote.valid_until }}</p>
+  </a>
+  {% empty %}
+  <div class="card p-10 text-center text-gray-400">No proposals yet. <a href="{% url "proposals:quote_create" %}" class="text-blue-600 hover:underline">Create first one.</a></div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table -->
+<div class="hidden md:block card overflow-hidden">
+  <div style="overflow-x:auto;">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Number</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Title</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Recipient</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Valid Until</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Total</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Created</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for quote in quotes %}
+      <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "proposals:quote_detail" quote.pk %}'">
+        <td class="px-4 py-3 font-medium text-gray-900">{{ quote.quote_number }}</td>
+        <td class="px-4 py-3 text-gray-800 max-w-xs truncate">{{ quote.title }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ quote.recipient_name }}</td>
+        <td class="px-4 py-3">
+          <span class="text-xs px-2 py-0.5 rounded-full font-semibold
+            {% if quote.status == 'draft' %}bg-gray-100 text-gray-600
+            {% elif quote.status == 'sent' %}bg-blue-100 text-blue-700
+            {% elif quote.status == 'accepted' %}bg-green-100 text-green-700
+            {% elif quote.status == 'declined' %}bg-red-100 text-red-600
+            {% else %}bg-amber-100 text-amber-700{% endif %}">{{ quote.get_status_display }}</span>
+        </td>
+        <td class="px-4 py-3 {% if quote.is_expired %}text-red-500 font-medium{% else %}text-gray-500{% endif %}">{{ quote.valid_until }}</td>
+        <td class="px-4 py-3 text-right font-semibold text-gray-900">Rs. {{ quote.total|floatformat:0 }}</td>
+        <td class="px-4 py-3 text-gray-400">{{ quote.created_at|date:"M d, Y" }}</td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No proposals yet. <a href="{% url "proposals:quote_create" %}" class="text-blue-600 hover:underline">Create the first one.</a></td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endblock %}

@@ -82,6 +82,17 @@
             </select>
           </div>
           <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Lead Source</label>
+            <select name="source" class="input">
+              <option value="">— Unknown —</option>
+              {% for val, label in form.fields.source.choices %}
+              {% if val %}
+              <option value="{{ val }}" {% if form.source.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endif %}
+              {% endfor %}
+            </select>
+          </div>
+          <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Assigned To</label>
             <select name="assigned_to" class="input">
               <option value="">— Unassigned —</option>

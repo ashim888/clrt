@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Invoice {{ invoice.invoice_number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: #111827; background: #fff; font-size: 14px; line-height: 1.5; }
+  .page { max-width: 720px; margin: 0 auto; padding: 48px 40px; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 40px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb; }
+  .brand { font-size: 22px; font-weight: 700; color: #2563eb; }
+  .brand-sub { font-size: 11px; color: #6b7280; margin-top: 3px; }
+  .inv-meta { text-align: right; }
+  .inv-number { font-size: 20px; font-weight: 700; color: #111827; }
+  .inv-status { display: inline-block; padding: 3px 10px; border-radius: 9999px; font-size: 12px; font-weight: 600; margin-top: 6px; }
+  .status-paid { background: #d1fae5; color: #065f46; }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-overdue { background: #fee2e2; color: #b91c1c; }
+  .status-cancelled { background: #f3f4f6; color: #6b7280; }
+  .parties { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; margin-bottom: 36px; }
+  .party-label { font-size: 11px; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 6px; font-weight: 600; }
+  .party-name { font-size: 16px; font-weight: 700; color: #111827; }
+  .party-detail { font-size: 13px; color: #6b7280; margin-top: 2px; }
+  .meta-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 36px; padding: 16px 20px; background: #f9fafb; border-radius: 10px; border: 1px solid #e5e7eb; }
+  .meta-item .lbl { font-size: 11px; color: #9ca3af; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; }
+  .meta-item .val { font-size: 14px; font-weight: 600; color: #111827; margin-top: 3px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 24px; }
+  thead { background: #f9fafb; }
+  th { padding: 10px 14px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #6b7280; border-bottom: 1px solid #e5e7eb; }
+  td { padding: 12px 14px; border-bottom: 1px solid #f3f4f6; font-size: 13px; }
+  .amount-row { font-weight: 700; font-size: 18px; }
+  .total-section { margin-left: auto; width: 260px; }
+  .total-row { display: flex; justify-content: space-between; padding: 5px 0; font-size: 13px; color: #6b7280; }
+  .total-row.grand { border-top: 2px solid #e5e7eb; margin-top: 4px; padding-top: 10px; font-size: 16px; font-weight: 700; color: #111827; }
+  .balance-due { color: #dc2626; }
+  .payments-section { margin-top: 28px; }
+  .payments-section h3 { font-size: 13px; font-weight: 600; color: #374151; margin-bottom: 10px; }
+  .note { margin-top: 28px; padding: 12px 16px; background: #f9fafb; border-radius: 8px; font-size: 13px; color: #6b7280; }
+  .footer { margin-top: 40px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; font-size: 12px; color: #9ca3af; }
+  .print-btn { position: fixed; top: 16px; right: 16px; background: #2563eb; color: #fff; border: none; padding: 8px 20px; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  @media print {
+    .print-btn { display: none; }
+    body { font-size: 13px; }
+    .page { padding: 20px; }
+  }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="brand">📋 CLRT</div>
+      <div class="brand-sub">Client Lifecycle & Revenue Tracker</div>
+    </div>
+    <div class="inv-meta">
+      <div class="inv-number">Invoice #{{ invoice.invoice_number }}</div>
+      <div>
+        <span class="inv-status status-{{ invoice.status }}">{{ invoice.get_status_display }}</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div>
+      <div class="party-label">Bill To</div>
+      <div class="party-name">{{ invoice.client.organization_name }}</div>
+      {% if invoice.client.email %}<div class="party-detail">{{ invoice.client.email }}</div>{% endif %}
+      {% if invoice.client.phone %}<div class="party-detail">{{ invoice.client.phone }}</div>{% endif %}
+      {% if invoice.client.address %}<div class="party-detail">{{ invoice.client.address }}</div>{% endif %}
+    </div>
+    {% if invoice.contract %}
+    <div>
+      <div class="party-label">Contract</div>
+      <div class="party-name" style="font-size:14px;">{{ invoice.contract.contract_title }}</div>
+      <div class="party-detail">{{ invoice.contract.get_billing_cycle_display }}</div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="meta-grid">
+    <div class="meta-item">
+      <div class="lbl">Invoice Date</div>
+      <div class="val">{{ invoice.generated_date }}</div>
+    </div>
+    <div class="meta-item">
+      <div class="lbl">Due Date</div>
+      <div class="val">{{ invoice.due_date }}</div>
+    </div>
+    <div class="meta-item">
+      <div class="lbl">Amount</div>
+      <div class="val">Rs. {{ invoice.amount|floatformat:0 }}</div>
+    </div>
+  </div>
+
+  {% if invoice.description %}
+  <div class="note">{{ invoice.description }}</div>
+  {% endif %}
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th style="text-align:right;">Amount</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>{% if invoice.description %}{{ invoice.description }}{% else %}Services — {{ invoice.contract.contract_title|default:"Professional Services" }}{% endif %}</td>
+        <td style="text-align:right;font-weight:600;">Rs. {{ invoice.amount|floatformat:0 }}</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="total-section">
+    <div class="total-row"><span>Subtotal</span><span>Rs. {{ invoice.amount|floatformat:0 }}</span></div>
+    {% if paid_total > 0 %}
+    <div class="total-row"><span>Paid</span><span style="color:#059669;">- Rs. {{ paid_total|floatformat:0 }}</span></div>
+    {% endif %}
+    <div class="total-row grand">
+      <span>Balance Due</span>
+      <span class="{% if balance > 0 %}balance-due{% endif %}">Rs. {{ balance|floatformat:0 }}</span>
+    </div>
+  </div>
+
+  {% if payments %}
+  <div class="payments-section">
+    <h3>Payment History</h3>
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Mode</th>
+          <th>Reference</th>
+          <th style="text-align:right;">Amount</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for p in payments %}
+        <tr>
+          <td>{{ p.payment_date }}</td>
+          <td>{{ p.get_payment_mode_display }}</td>
+          <td>{{ p.reference|default:"—" }}</td>
+          <td style="text-align:right;">Rs. {{ p.amount_paid|floatformat:0 }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+
+  <div class="footer">Thank you for your business.</div>
+</div>
+</body>
+</html>

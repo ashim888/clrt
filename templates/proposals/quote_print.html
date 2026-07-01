@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>{{ quote.quote_number }} – {{ quote.title }}</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family:'Segoe UI',system-ui,-apple-system,sans-serif; color:#111827; background:#fff; font-size:14px; line-height:1.5; }
+  .page { max-width:720px; margin:0 auto; padding:48px 40px; }
+  .header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:36px; padding-bottom:24px; border-bottom:2px solid #e5e7eb; }
+  .brand { font-size:22px; font-weight:700; color:#2563eb; }
+  .brand-sub { font-size:11px; color:#6b7280; margin-top:3px; }
+  .quote-meta { text-align:right; }
+  .quote-number { font-size:18px; font-weight:700; color:#111827; }
+  .status-badge { display:inline-block; padding:3px 10px; border-radius:9999px; font-size:12px; font-weight:600; margin-top:6px; }
+  .status-draft    { background:#f3f4f6; color:#374151; }
+  .status-sent     { background:#dbeafe; color:#1d4ed8; }
+  .status-accepted { background:#d1fae5; color:#065f46; }
+  .status-declined { background:#fee2e2; color:#b91c1c; }
+  .status-expired  { background:#fef3c7; color:#92400e; }
+  .parties { display:grid; grid-template-columns:1fr 1fr; gap:32px; margin-bottom:32px; }
+  .lbl { font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:#9ca3af; margin-bottom:6px; font-weight:600; }
+  .party-name { font-size:16px; font-weight:700; color:#111827; }
+  .party-detail { font-size:13px; color:#6b7280; margin-top:2px; }
+  .meta-row { display:flex; gap:24px; margin-bottom:28px; }
+  .meta-item .lbl { font-size:11px; color:#9ca3af; font-weight:600; text-transform:uppercase; letter-spacing:.05em; }
+  .meta-item .val { font-size:14px; font-weight:600; color:#111827; margin-top:2px; }
+  h2.section { font-size:15px; font-weight:700; color:#111827; margin-bottom:12px; }
+  table { width:100%; border-collapse:collapse; margin-bottom:24px; }
+  thead { background:#f9fafb; }
+  th { padding:10px 14px; text-align:left; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; color:#6b7280; border-bottom:1px solid #e5e7eb; }
+  th.right, td.right { text-align:right; }
+  td { padding:11px 14px; border-bottom:1px solid #f3f4f6; font-size:13px; }
+  tfoot td { padding:12px 14px; background:#f9fafb; font-weight:700; }
+  .grand-total { font-size:18px; color:#111827; }
+  .notes { margin-top:24px; padding:14px 16px; background:#f9fafb; border-radius:8px; font-size:13px; color:#6b7280; }
+  .terms { margin-top:16px; padding:14px 16px; border:1px solid #e5e7eb; border-radius:8px; font-size:12px; color:#6b7280; white-space:pre-line; }
+  .footer { margin-top:40px; padding-top:20px; border-top:1px solid #e5e7eb; text-align:center; font-size:12px; color:#9ca3af; }
+  .print-btn { position:fixed; top:16px; right:16px; background:#2563eb; color:#fff; border:none; padding:8px 20px; border-radius:8px; font-size:13px; font-weight:600; cursor:pointer; }
+  @media print { .print-btn { display:none; } .page { padding:20px; } }
+</style>
+</head>
+<body>
+<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+<div class="page">
+  <div class="header">
+    <div>
+      <div class="brand">📋 CLRT</div>
+      <div class="brand-sub">Client Lifecycle & Revenue Tracker</div>
+    </div>
+    <div class="quote-meta">
+      <div style="font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Proposal</div>
+      <div class="quote-number">{{ quote.quote_number }}</div>
+      <div><span class="status-badge status-{{ quote.status }}">{{ quote.get_status_display }}</span></div>
+    </div>
+  </div>
+
+  <div class="parties">
+    <div>
+      <div class="lbl">Prepared For</div>
+      <div class="party-name">{{ quote.recipient_name }}</div>
+      {% if quote.lead %}
+      <div class="party-detail">{{ quote.lead.contact_person }}</div>
+      {% if quote.lead.email %}<div class="party-detail">{{ quote.lead.email }}</div>{% endif %}
+      {% if quote.lead.phone %}<div class="party-detail">{{ quote.lead.phone }}</div>{% endif %}
+      {% elif quote.client %}
+      {% if quote.client.email %}<div class="party-detail">{{ quote.client.email }}</div>{% endif %}
+      {% if quote.client.phone %}<div class="party-detail">{{ quote.client.phone }}</div>{% endif %}
+      {% endif %}
+    </div>
+    <div>
+      <div class="lbl">Proposal Details</div>
+      <div class="meta-row" style="flex-direction:column;gap:8px;margin:0;">
+        <div><div class="lbl">Date</div><div class="val">{{ quote.created_at|date:"M d, Y" }}</div></div>
+        <div><div class="lbl">Valid Until</div><div class="val">{{ quote.valid_until }}</div></div>
+      </div>
+    </div>
+  </div>
+
+  <h2 class="section">{{ quote.title }}</h2>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Description</th>
+        <th class="right" style="width:70px;">Qty</th>
+        <th class="right" style="width:120px;">Unit Price</th>
+        <th class="right" style="width:120px;">Total</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for item in quote.items.all %}
+      <tr>
+        <td>{{ item.description }}</td>
+        <td class="right" style="color:#6b7280;">{{ item.quantity|floatformat:"-2" }}</td>
+        <td class="right" style="color:#6b7280;">Rs. {{ item.unit_price|floatformat:0 }}</td>
+        <td class="right" style="font-weight:600;">Rs. {{ item.line_total|floatformat:0 }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+    <tfoot>
+      <tr>
+        <td colspan="3" class="right">Grand Total</td>
+        <td class="right grand-total">Rs. {{ quote.total|floatformat:0 }}</td>
+      </tr>
+    </tfoot>
+  </table>
+
+  {% if quote.terms %}
+  <div>
+    <div class="lbl" style="margin-bottom:6px;">Terms &amp; Conditions</div>
+    <div class="terms">{{ quote.terms }}</div>
+  </div>
+  {% endif %}
+
+  <div class="footer">This proposal was generated by CLRT · {{ quote.quote_number }}</div>
+</div>
+</body>
+</html>

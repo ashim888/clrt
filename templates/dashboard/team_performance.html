@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Team Performance{% endblock %}
+{% block nav_reports %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Team Performance</h1>
+    <p class="text-sm text-gray-500 mt-0.5">{{ month }} — activity and conversion by team member</p>
+  </div>
+  <a href="{% url "dashboard:reports" %}" class="btn-secondary self-start sm:self-auto">← Reports</a>
+</div>
+
+<!-- Mobile cards -->
+<div class="space-y-3 md:hidden">
+  {% for s in stats %}
+  <div class="card p-4">
+    <div class="flex items-center gap-3 mb-3">
+      <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-sm flex-shrink-0">
+        {{ s.user.first_name|first|upper }}{{ s.user.last_name|first|upper }}
+      </div>
+      <div>
+        <p class="font-semibold text-gray-900 text-sm">{{ s.user.get_full_name|default:s.user.username }}</p>
+        <p class="text-xs text-gray-400">{{ s.user.email }}</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-3 gap-2 text-center">
+      <div class="bg-gray-50 rounded-lg p-2">
+        <p class="text-lg font-bold text-gray-900">{{ s.leads_assigned }}</p>
+        <p class="text-xs text-gray-400">Leads</p>
+      </div>
+      <div class="bg-green-50 rounded-lg p-2">
+        <p class="text-lg font-bold text-green-700">{{ s.leads_won }}</p>
+        <p class="text-xs text-gray-400">Won</p>
+      </div>
+      <div class="bg-blue-50 rounded-lg p-2">
+        <p class="text-lg font-bold text-blue-700">{{ s.conversion }}%</p>
+        <p class="text-xs text-gray-400">Conversion</p>
+      </div>
+    </div>
+    <div class="grid grid-cols-2 gap-2 text-center mt-2">
+      <div class="bg-gray-50 rounded-lg p-2">
+        <p class="text-base font-bold text-gray-900">{{ s.activities_this_month }}</p>
+        <p class="text-xs text-gray-400">Activities (month)</p>
+      </div>
+      <div class="bg-gray-50 rounded-lg p-2">
+        <p class="text-base font-bold text-gray-900">{{ s.interactions_this_month }}</p>
+        <p class="text-xs text-gray-400">Client touches (month)</p>
+      </div>
+    </div>
+  </div>
+  {% empty %}
+  <div class="card p-10 text-center text-gray-400">No team members yet.</div>
+  {% endfor %}
+</div>
+
+<!-- Desktop table -->
+<div class="hidden md:block card overflow-hidden">
+  <div style="overflow-x:auto;">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Team Member</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Leads Assigned</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Won</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Conversion</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Activities This Month</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Client Touches This Month</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Revenue (Won Leads)</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for s in stats %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-bold text-xs flex-shrink-0">
+              {{ s.user.first_name|first|upper }}{{ s.user.last_name|first|upper }}
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">{{ s.user.get_full_name|default:s.user.username }}</p>
+              <p class="text-xs text-gray-400">{{ s.user.email }}</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-3 text-center font-semibold text-gray-700">{{ s.leads_assigned }}</td>
+        <td class="px-4 py-3 text-center font-semibold text-green-700">{{ s.leads_won }}</td>
+        <td class="px-4 py-3 text-center">
+          <span class="inline-block px-2 py-0.5 rounded-full text-xs font-bold
+            {% if s.conversion >= 50 %}bg-green-100 text-green-700
+            {% elif s.conversion >= 20 %}bg-yellow-100 text-yellow-700
+            {% else %}bg-gray-100 text-gray-500{% endif %}">{{ s.conversion }}%</span>
+        </td>
+        <td class="px-4 py-3 text-center text-gray-700">{{ s.activities_this_month }}</td>
+        <td class="px-4 py-3 text-center text-gray-700">{{ s.interactions_this_month }}</td>
+        <td class="px-4 py-3 text-right font-semibold text-gray-900">
+          {% if s.revenue %}Rs. {{ s.revenue|floatformat:0 }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No team members found.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+
+{% if stats %}
+<p class="text-xs text-gray-400 mt-4 text-center">
+  Revenue column shows invoices linked to clients converted from won leads assigned to each user.
+</p>
+{% endif %}
+{% endblock %}

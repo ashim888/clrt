@@ -77,6 +77,19 @@ def mark_overdue(request):
 
 
 @login_required
+def invoice_print(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    payments = invoice.payments.all()
+    paid_total = payments.aggregate(t=Sum("amount_paid"))["t"] or 0
+    return render(request, "billing/invoice_print.html", {
+        "invoice": invoice,
+        "payments": payments,
+        "paid_total": paid_total,
+        "balance": invoice.amount - paid_total,
+    })
+
+
+@login_required
 def payment_add(request, invoice_pk):
     invoice = get_object_or_404(Invoice, pk=invoice_pk)
     if not (request.user.is_admin() or request.user.is_accounts()):

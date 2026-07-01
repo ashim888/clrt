@@ -158,6 +158,54 @@
     {% endfor %}
   </div>
 
+  <!-- Client Follow-ups Today -->
+  {% if client_followups_today %}
+  <div class="alert-section blue">
+    <div class="section-header">
+      <h2>🤝 Client Follow-ups — Today
+        <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ client_followups_today|length }}</span>
+      </h2>
+      <a href="/clients/" style="color:#fff;">All Clients →</a>
+    </div>
+    {% for item in client_followups_today %}
+    <div class="alert-row" id="cf-row-{{ item.pk }}">
+      <div>
+        <a href="{% url "clients:client_detail" item.client.pk %}" class="font-semibold text-blue-900 hover:underline text-sm">{{ item.client.organization_name }}</a>
+        <p class="text-xs text-blue-700 mt-0.5">{{ item.get_type_display }} · {{ item.notes|truncatechars:80 }}</p>
+      </div>
+      <button onclick="markClientFollowUpDone({{ item.pk }}, '{{ csrf_token }}')"
+        class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 transition-colors">
+        Done
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- Client Follow-ups Overdue -->
+  {% if client_followups_overdue %}
+  <div class="alert-section red">
+    <div class="section-header">
+      <h2>⚠️ Client Follow-ups — Overdue
+        <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ client_followups_overdue|length }}</span>
+      </h2>
+    </div>
+    {% for item in client_followups_overdue %}
+    <div class="alert-row" id="cf-row-{{ item.pk }}">
+      <div>
+        <a href="{% url "clients:client_detail" item.client.pk %}" class="font-semibold text-red-900 hover:underline text-sm">{{ item.client.organization_name }}</a>
+        <p class="text-xs text-red-700 mt-0.5">{{ item.get_type_display }} · was due {{ item.next_follow_up_date }}</p>
+        <p class="text-xs text-red-600 mt-0.5">{{ item.notes|truncatechars:70 }}</p>
+      </div>
+      <button onclick="markClientFollowUpDone({{ item.pk }}, '{{ csrf_token }}')"
+        class="text-xs bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 transition-colors">
+        Done
+      </button>
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
   <!-- Expiring Contracts -->
   <div class="alert-section {% if expiring_contracts %}amber{% else %}gray{% endif %}">
     <div class="section-header">
@@ -352,6 +400,23 @@ document.getElementById('done-modal').addEventListener('click', function(e) {
 document.getElementById('done-note').addEventListener('keydown', function(e) {
   if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirmDone();
 });
+
+async function markClientFollowUpDone(id, csrf) {
+  const row = document.getElementById('cf-row-' + id);
+  try {
+    const resp = await fetch('/clients/interactions/' + id + '/mark-done/', {
+      method: 'POST',
+      headers: {'X-CSRFToken': csrf},
+    });
+    if (resp.ok && row) {
+      row.style.transition = 'opacity .35s, max-height .35s';
+      row.style.opacity = '0';
+      row.style.maxHeight = '0';
+      row.style.overflow = 'hidden';
+      setTimeout(() => row.remove(), 370);
+    }
+  } catch { alert('Could not update — please refresh.'); }
+}
 </script>
 
 {% endblock %}

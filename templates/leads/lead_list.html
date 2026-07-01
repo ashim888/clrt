@@ -40,23 +40,33 @@
     <h1 class="text-2xl font-bold text-gray-900">Leads</h1>
     <p class="text-sm text-gray-500 mt-0.5">Pipeline overview with latest activity &amp; follow-up status</p>
   </div>
-  {% if user.role in "admin,sales" or user.is_superuser %}
-  <a href="{% url "leads:lead_create" %}" class="btn-primary self-start sm:self-auto">+ Add Lead</a>
-  {% endif %}
+  <div class="flex flex-wrap gap-2 self-start sm:self-auto">
+    <a href="{% url "leads:lead_kanban" %}" class="btn-secondary">🗂 Kanban</a>
+    <a href="{% url "leads:lead_export_csv" %}" class="btn-secondary">⬇ Export CSV</a>
+    {% if user.role in "admin,sales" or user.is_superuser %}
+    <a href="{% url "leads:lead_create" %}" class="btn-primary">+ Add Lead</a>
+    {% endif %}
+  </div>
 </div>
 
 <!-- Filters -->
 <form method="get" class="flex flex-wrap gap-2 mb-5">
   <input type="text" name="q" value="{{ q }}" placeholder="Search org, contact, phone…" class="input flex-1 min-w-[160px] sm:max-w-xs" />
-  <select name="status" class="input w-full sm:w-auto sm:max-w-[180px]">
+  <select name="status" class="input w-auto min-w-[130px]">
     <option value="">All Status</option>
     {% for val, label in status_choices %}
     <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+  <select name="source" class="input w-auto min-w-[140px]">
+    <option value="">All Sources</option>
+    {% for val, label in source_choices %}
+    <option value="{{ val }}" {% if source == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
   <div class="flex gap-2">
     <button type="submit" class="btn-secondary">Filter</button>
-    {% if q or status %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
+    {% if q or status or source %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
   </div>
 </form>
 
@@ -125,7 +135,11 @@
 
         <td class="px-4 py-3">
           <div class="font-semibold text-gray-900">{{ lead.organization_name }}</div>
+          {% if lead.source %}
+          <div class="text-xs text-gray-400 mt-0.5">{{ lead.get_source_display }}</div>
+          {% else %}
           <div class="text-xs text-gray-400 mt-0.5">Added {{ lead.created_at|date:"M d, Y" }}</div>
+          {% endif %}
         </td>
 
         <td class="px-4 py-3">

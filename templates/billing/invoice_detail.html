@@ -15,10 +15,11 @@
     <a href="{% url "clients:client_detail" invoice.client.pk %}" class="text-blue-600 hover:underline text-sm">{{ invoice.client }}</a>
     {% if invoice.contract %} · <a href="{% url "clients:contract_detail" invoice.contract.pk %}" class="text-blue-600 hover:underline text-sm">{{ invoice.contract.contract_title }}</a>{% endif %}
   </div>
-  <div class="flex gap-2">
+  <div class="flex flex-wrap gap-2">
     {% if invoice.status != "paid" %}
     <a href="{% url "billing:payment_add" invoice.pk %}" class="btn-primary">+ Record Payment</a>
     {% endif %}
+    <a href="{% url "billing:invoice_print" invoice.pk %}" target="_blank" class="btn-secondary">🖨 Print / PDF</a>
     <a href="{% url "billing:invoice_edit" invoice.pk %}" class="btn-secondary">Edit</a>
   </div>
 </div>

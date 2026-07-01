@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900 mb-4">Search</h1>
+  <form method="get" action="/search/" class="flex gap-2 max-w-xl">
+    <input type="text" name="q" value="{{ q }}" placeholder="Search leads, clients, invoices…"
+      class="input flex-1" autofocus>
+    <button type="submit" class="btn-primary">Search</button>
+  </form>
+</div>
+
+{% if q %}
+{% if not leads and not clients and not invoices %}
+<div class="card p-10 text-center text-gray-400">
+  <p class="text-lg mb-1">No results for "{{ q }}"</p>
+  <p class="text-sm">Try a different name, email, phone, or invoice number.</p>
+</div>
+{% else %}
+
+{% if leads %}
+<div class="mb-7">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Leads ({{ leads|length }})</h2>
+  <div class="card divide-y divide-gray-100 overflow-hidden">
+    {% for lead in leads %}
+    <a href="{% url "leads:lead_detail" lead.pk %}" class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900">{{ lead.organization_name }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ lead.contact_person }}{% if lead.phone %} · {{ lead.phone }}{% endif %}{% if lead.email %} · {{ lead.email }}{% endif %}</p>
+      </div>
+      <span class="badge flex-shrink-0
+        {% if lead.status == 'new' %}bg-blue-100 text-blue-700
+        {% elif lead.status == 'contacted' %}bg-indigo-100 text-indigo-700
+        {% elif lead.status == 'demo' %}bg-purple-100 text-purple-700
+        {% elif lead.status == 'negotiation' %}bg-amber-100 text-amber-700
+        {% elif lead.status == 'won' %}bg-green-100 text-green-700
+        {% else %}bg-red-100 text-red-600{% endif %}">
+        {{ lead.get_status_display }}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if clients %}
+<div class="mb-7">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Clients ({{ clients|length }})</h2>
+  <div class="card divide-y divide-gray-100 overflow-hidden">
+    {% for client in clients %}
+    <a href="{% url "clients:client_detail" client.pk %}" class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900">{{ client.organization_name }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{% if client.industry %}{{ client.industry }} · {% endif %}{{ client.email }}{% if client.phone %} · {{ client.phone }}{% endif %}</p>
+      </div>
+      <span class="badge flex-shrink-0
+        {% if client.status == 'active' %}bg-green-100 text-green-700
+        {% elif client.status == 'at_risk' %}bg-amber-100 text-amber-700
+        {% elif client.status == 'inactive' %}bg-gray-100 text-gray-500
+        {% else %}bg-red-100 text-red-600{% endif %}">
+        {{ client.get_status_display }}
+      </span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if invoices %}
+<div class="mb-7">
+  <h2 class="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-3">Invoices ({{ invoices|length }})</h2>
+  <div class="card divide-y divide-gray-100 overflow-hidden">
+    {% for inv in invoices %}
+    <a href="{% url "billing:invoice_detail" inv.pk %}" class="flex items-center justify-between gap-4 px-4 py-3 hover:bg-gray-50 transition-colors">
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900">{{ inv.invoice_number }}</p>
+        <p class="text-xs text-gray-400 mt-0.5">{{ inv.client.organization_name }} · Due {{ inv.due_date }}</p>
+      </div>
+      <div class="flex items-center gap-3 flex-shrink-0">
+        <span class="font-medium text-gray-900 text-sm">Rs. {{ inv.amount|floatformat:0 }}</span>
+        <span class="badge {% if inv.status == "paid" %}bg-green-100 text-green-700{% elif inv.status == "overdue" %}bg-red-100 text-red-700{% else %}bg-yellow-100 text-yellow-800{% endif %}">{{ inv.get_status_display }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% endif %}
+{% else %}
+<div class="text-center py-16 text-gray-400">
+  <svg class="w-10 h-10 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+  <p class="text-sm">Type to search across leads, clients, and invoices.</p>
+</div>
+{% endif %}
+{% endblock %}

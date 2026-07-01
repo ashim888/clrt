@@ -1,7 +1,9 @@
+import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.db.models import Q, Sum
+from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from .models import Client, Contract, ClientContact, ClientInteraction
 from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm
@@ -96,6 +98,43 @@ def client_edit(request, pk):
         messages.success(request, "Client updated.")
         return redirect("clients:client_detail", pk=pk)
     return render(request, "clients/client_form.html", {"form": form, "title": "Edit Client", "client": client})
+
+
+@login_required
+def client_export_csv(request):
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = 'attachment; filename="clients.csv"'
+    writer = csv.writer(response)
+    writer.writerow([
+        "Organization", "Status", "Industry", "Email", "Phone", "Website", "Since",
+        "Total Billed (Rs)", "Collected (Rs)",
+    ])
+    clients = Client.objects.annotate(
+        total_billed=Sum("invoices__amount"),
+        total_paid=Sum("invoices__amount", filter=Q(invoices__status="paid")),
+    ).order_by("organization_name")
+    for c in clients:
+        writer.writerow([
+            c.organization_name,
+            c.get_status_display(),
+            c.industry,
+            c.email,
+            c.phone,
+            c.website,
+            c.created_at.strftime("%Y-%m-%d"),
+            c.total_billed or 0,
+            c.total_paid or 0,
+        ])
+    return response
+
+
+@login_required
+@require_POST
+def client_interaction_mark_done(request, pk):
+    interaction = get_object_or_404(ClientInteraction, pk=pk)
+    interaction.follow_up_done = True
+    interaction.save(update_fields=["follow_up_done"])
+    return JsonResponse({"ok": True})
 
 
 # ── Client Contacts ─────────────────────────────────────────────────────────

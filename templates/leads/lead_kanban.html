@@ -1,0 +1,392 @@
+{% extends "base.html" %}
+{% block title %}Pipeline{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Pipeline</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Drag cards between stages — changes save instantly</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="/leads/" class="btn-secondary">List View</a>
+    <a href="/leads/add/" class="btn-primary">+ Add Lead</a>
+  </div>
+</div>
+
+<style>
+  /* ── Card drag states ── */
+  .kcard { cursor: grab; user-select: none; }
+  .kcard:active { cursor: grabbing; }
+  .kcard.dragging {
+    opacity: .2;
+    transform: scale(.96) rotate(.8deg);
+    box-shadow: none !important;
+  }
+  .kcard.saving { opacity: .55; pointer-events: none; }
+
+  /* ── Drop zone ── */
+  .kcol-body {
+    min-height: 80px;
+    padding: .125rem 0;
+    border-radius: .625rem;
+    border: 2px solid transparent;
+    transition: background .15s, border-color .15s;
+  }
+  .kcol-body.drag-over {
+    background: rgba(59,130,246,.04);
+    border-color: #93c5fd;
+  }
+
+  /* ── Drop placeholder ── */
+  #drag-ph {
+    border: 2px dashed #60a5fa;
+    border-radius: .5rem;
+    background: rgba(59,130,246,.05);
+    min-height: 72px;
+    margin-bottom: .625rem;
+    pointer-events: none;
+  }
+
+  /* ── Empty column ── */
+  .kcol-empty {
+    text-align: center;
+    padding: 1.5rem .75rem;
+    font-size: .75rem;
+    color: #9ca3af;
+    border: 2px dashed #e5e7eb;
+    border-radius: .625rem;
+    transition: border-color .15s, color .15s;
+  }
+  .kcol-body.drag-over .kcol-empty {
+    border-color: #93c5fd;
+    color: #60a5fa;
+  }
+
+  /* ── Toast ── */
+  #k-toast {
+    position: fixed; bottom: 1.25rem; right: 1.25rem;
+    background: #1e293b; color: #f8fafc;
+    font-size: .78rem; font-weight: 500;
+    padding: .45rem .9rem; border-radius: .5rem;
+    box-shadow: 0 4px 16px rgba(0,0,0,.35);
+    z-index: 999; pointer-events: none;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .2s, transform .2s;
+  }
+  #k-toast.show { opacity: 1; transform: translateY(0); }
+</style>
+
+<!-- Board -->
+<div class="overflow-x-auto -mx-4 sm:-mx-6 px-4 sm:px-6 pb-6">
+  <div id="kanban-board" style="display:flex;gap:.875rem;min-width:max-content;align-items:flex-start;padding-bottom:.25rem;">
+
+    {% for col in columns %}
+    <div class="kanban-col" style="width:268px;flex-shrink:0;" data-status="{{ col.key }}">
+
+      <!-- Column header -->
+      <div class="flex items-center gap-2 mb-3 px-0.5">
+        <span class="w-2 h-2 rounded-full flex-shrink-0
+          {% if col.key == 'new' %}bg-blue-400
+          {% elif col.key == 'contacted' %}bg-indigo-400
+          {% elif col.key == 'demo' %}bg-purple-400
+          {% elif col.key == 'negotiation' %}bg-amber-400
+          {% elif col.key == 'won' %}bg-emerald-500
+          {% else %}bg-red-400{% endif %}"></span>
+        <span class="text-sm font-semibold text-gray-800">{{ col.label }}</span>
+        <span class="kcol-count ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-0.5 rounded-full font-medium"
+          data-status="{{ col.key }}">{{ col.leads|length }}</span>
+      </div>
+
+      <!-- Drop zone -->
+      <div class="kcol-body"
+        data-status="{{ col.key }}"
+        ondragover="colDragOver(event)"
+        ondragenter="colDragEnter(event)"
+        ondragleave="colDragLeave(event)"
+        ondrop="colDrop(event, '{{ col.key }}')">
+
+        {% for lead in col.leads %}
+        <div class="kcard card p-3.5 mb-2.5 group hover:shadow-md transition-all"
+          draggable="true"
+          data-lead="{{ lead.pk }}"
+          data-status="{{ col.key }}"
+          ondragstart="cardDragStart(event)"
+          ondragend="cardDragEnd(event)"
+          style="border-left: 3px solid {% if col.key == 'new' %}#93c5fd{% elif col.key == 'contacted' %}#a5b4fc{% elif col.key == 'demo' %}#d8b4fe{% elif col.key == 'negotiation' %}#fcd34d{% elif col.key == 'won' %}#6ee7b7{% else %}#fca5a5{% endif %};">
+
+          <!-- Card body (click to open lead) -->
+          <a href="{% url "leads:lead_detail" lead.pk %}" class="block kcard-link" draggable="false">
+            <p class="font-semibold text-gray-900 text-sm leading-snug">{{ lead.organization_name }}</p>
+            <p class="text-xs text-gray-500 mt-0.5 truncate">{{ lead.contact_person }}{% if lead.phone %} · {{ lead.phone }}{% endif %}</p>
+            {% if lead.source %}
+            <span class="inline-block text-xs text-gray-400 bg-gray-50 border border-gray-100 rounded px-1.5 py-0.5 mt-1.5">{{ lead.get_source_display }}</span>
+            {% endif %}
+            {% if lead.all_activities %}{% with last=lead.all_activities.0 %}
+            <p class="text-xs text-gray-400 mt-1.5 flex items-center gap-1">
+              <span class="w-1.5 h-1.5 rounded-full flex-shrink-0
+                {% if last.status == 'completed' %}bg-green-400
+                {% elif last.status == 'pending' or last.status == 'rescheduled' %}bg-blue-400
+                {% else %}bg-gray-300{% endif %}"></span>
+              {{ last.get_type_display }} · {{ last.created_at|date:"M d" }}
+            </p>
+            {% endwith %}{% endif %}
+            {% if lead.assigned_to %}
+            <div class="flex items-center gap-1.5 mt-2">
+              <div class="w-4 h-4 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style="font-size:.55rem;">
+                {{ lead.assigned_to.first_name|first|upper }}{{ lead.assigned_to.last_name|first|upper }}
+              </div>
+              <p class="text-xs text-gray-400">{{ lead.assigned_to.get_full_name|default:lead.assigned_to.username }}</p>
+            </div>
+            {% endif %}
+          </a>
+
+          <!-- Move dropdown (hover fallback — useful for touch/keyboard) -->
+          <div class="mt-2 pt-2 border-t border-gray-100 opacity-0 group-hover:opacity-100 transition-opacity">
+            <select onchange="dropdownMove({{ lead.pk }}, this.value, this)"
+              class="text-xs text-gray-500 bg-white border border-gray-200 rounded-md cursor-pointer w-full py-1 pl-2"
+              style="padding-right:1.5rem;appearance:none;background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right .25rem center;background-size:.9em;">
+              <option value="">Move to…</option>
+              {% for other_col in columns %}{% if other_col.key != col.key %}
+              <option value="{{ other_col.key }}">{{ other_col.label }}</option>
+              {% endif %}{% endfor %}
+            </select>
+          </div>
+        </div>
+        {% empty %}
+        <div class="kcol-empty">Drop cards here</div>
+        {% endfor %}
+
+      </div><!-- /.kcol-body -->
+    </div><!-- /.kanban-col -->
+    {% endfor %}
+
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="k-toast"></div>
+
+<script>
+const CSRF = '{{ csrf_token }}';
+
+const COLORS = {
+  new:         '#93c5fd',
+  contacted:   '#a5b4fc',
+  demo:        '#d8b4fe',
+  negotiation: '#fcd34d',
+  won:         '#6ee7b7',
+  lost:        '#fca5a5',
+};
+
+const STATUS_LABELS = {
+  new: 'New', contacted: 'Contacted', demo: 'Demo',
+  negotiation: 'Negotiation', won: 'Won', lost: 'Lost',
+};
+
+let activeCard = null; // the card element being dragged
+
+// ═══════════════════════════════════
+//  DRAG EVENTS
+// ═══════════════════════════════════
+
+function cardDragStart(e) {
+  activeCard = e.currentTarget;
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', activeCard.dataset.lead); // Firefox needs this
+  requestAnimationFrame(() => activeCard.classList.add('dragging'));
+}
+
+function cardDragEnd(e) {
+  if (activeCard) activeCard.classList.remove('dragging');
+  document.querySelectorAll('.kcol-body.drag-over').forEach(el => el.classList.remove('drag-over'));
+  removePh();
+}
+
+function colDragEnter(e) {
+  e.preventDefault();
+  e.currentTarget.classList.add('drag-over');
+}
+
+function colDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  const body  = e.currentTarget;
+  const after = getInsertBefore(body, e.clientY);
+  const ph    = getPh();
+  const empty = body.querySelector('.kcol-empty');
+  if (after) {
+    body.insertBefore(ph, after);
+  } else if (empty) {
+    body.insertBefore(ph, empty);
+  } else {
+    body.appendChild(ph);
+  }
+}
+
+function colDragLeave(e) {
+  // Only fire if leaving the column body itself, not entering a child
+  if (!e.currentTarget.contains(e.relatedTarget)) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+async function colDrop(e, newStatus) {
+  e.preventDefault();
+  if (!activeCard) return;
+
+  const body      = e.currentTarget;
+  const oldStatus = activeCard.dataset.status;
+  const leadId    = activeCard.dataset.lead;
+
+  body.classList.remove('drag-over');
+
+  // Place card where placeholder is
+  const ph = document.getElementById('drag-ph');
+  if (ph && ph.parentElement === body) {
+    body.insertBefore(activeCard, ph);
+  } else {
+    body.appendChild(activeCard);
+  }
+  removePh();
+  syncEmptyStates();
+
+  if (oldStatus === newStatus) return; // dropped in same column — no API call needed
+
+  // Update card appearance
+  activeCard.dataset.status    = newStatus;
+  activeCard.style.borderLeftColor = COLORS[newStatus] || '#e5e7eb';
+  rebuildDropdown(activeCard, newStatus);
+  updateCounts();
+
+  // Persist
+  await persist(leadId, newStatus, activeCard);
+}
+
+// ═══════════════════════════════════
+//  DROPDOWN FALLBACK
+// ═══════════════════════════════════
+
+async function dropdownMove(leadId, newStatus, sel) {
+  if (!newStatus) return;
+  const card      = sel.closest('.kcard');
+  const oldStatus = card.dataset.status;
+  if (oldStatus === newStatus) { sel.value = ''; return; }
+
+  const targetBody = document.querySelector(`.kcol-body[data-status="${newStatus}"]`);
+  if (!targetBody) return;
+
+  targetBody.appendChild(card);
+  card.dataset.status      = newStatus;
+  card.style.borderLeftColor = COLORS[newStatus] || '#e5e7eb';
+  rebuildDropdown(card, newStatus);
+  sel.value = '';
+  syncEmptyStates();
+  updateCounts();
+
+  await persist(leadId, newStatus, card);
+}
+
+// ═══════════════════════════════════
+//  SHARED HELPERS
+// ═══════════════════════════════════
+
+async function persist(leadId, newStatus, cardEl) {
+  cardEl.classList.add('saving');
+  showToast('Saving…');
+  try {
+    const fd = new FormData();
+    fd.append('status', newStatus);
+    const resp = await fetch('/leads/' + leadId + '/status/', {
+      method: 'POST',
+      headers: { 'X-CSRFToken': CSRF },
+      body: fd,
+    });
+    if (!resp.ok) throw new Error();
+    showToast('Saved ✓', 1400);
+  } catch {
+    showToast('Error saving — refreshing…', 2000);
+    setTimeout(() => location.reload(), 2000);
+  } finally {
+    cardEl.classList.remove('saving');
+  }
+}
+
+function getInsertBefore(container, mouseY) {
+  const cards = [...container.querySelectorAll('.kcard:not(.dragging)')];
+  return cards.reduce((closest, child) => {
+    const box    = child.getBoundingClientRect();
+    const offset = mouseY - box.top - box.height / 2;
+    if (offset < 0 && offset > closest.offset) return { offset, element: child };
+    return closest;
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function getPh() {
+  let ph = document.getElementById('drag-ph');
+  if (!ph) {
+    ph = document.createElement('div');
+    ph.id = 'drag-ph';
+  }
+  return ph;
+}
+
+function removePh() {
+  document.getElementById('drag-ph')?.remove();
+}
+
+function updateCounts() {
+  document.querySelectorAll('.kcol-body').forEach(body => {
+    const status  = body.dataset.status;
+    const count   = body.querySelectorAll('.kcard').length;
+    const badge   = document.querySelector(`.kcol-count[data-status="${status}"]`);
+    if (badge) badge.textContent = count;
+  });
+}
+
+function syncEmptyStates() {
+  document.querySelectorAll('.kcol-body').forEach(body => {
+    const hasCards = body.querySelectorAll('.kcard').length > 0;
+    let empty      = body.querySelector('.kcol-empty');
+    if (!hasCards && !empty) {
+      empty = document.createElement('div');
+      empty.className = 'kcol-empty';
+      empty.textContent = 'Drop cards here';
+      body.appendChild(empty);
+    } else if (hasCards && empty) {
+      empty.remove();
+    }
+  });
+}
+
+function rebuildDropdown(cardEl, currentStatus) {
+  const sel = cardEl.querySelector('select');
+  if (!sel) return;
+  sel.innerHTML = '<option value="">Move to…</option>';
+  Object.entries(STATUS_LABELS).forEach(([key, label]) => {
+    if (key !== currentStatus) {
+      const opt = document.createElement('option');
+      opt.value = key; opt.textContent = label;
+      sel.appendChild(opt);
+    }
+  });
+}
+
+let toastTimer = null;
+function showToast(msg, hideMs = 0) {
+  const t = document.getElementById('k-toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  if (hideMs > 0) toastTimer = setTimeout(() => t.classList.remove('show'), hideMs);
+}
+
+// Prevent link navigation during/after a drag
+document.querySelectorAll('.kcard').forEach(card => {
+  card.addEventListener('mousedown', () => { card._mousedown = true; });
+  card.addEventListener('dragstart', () => { card._dragged = true; });
+  card.addEventListener('dragend',   () => { setTimeout(() => { card._dragged = false; }, 100); });
+  card.querySelector('.kcard-link')?.addEventListener('click', e => {
+    if (card._dragged) e.preventDefault();
+  });
+});
+</script>
+{% endblock %}

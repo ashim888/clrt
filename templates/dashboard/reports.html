@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block nav_reports %}bg-gray-800 text-white{% endblock %}
+{% block extra_head %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
+  <a href="{% url "dashboard:team_performance" %}" class="btn-secondary self-start sm:self-auto">Team Performance →</a>
+</div>
+
+<!-- Key metrics -->
+<div class="grid grid-cols-2 lg:grid-cols-6 gap-3 mb-8">
+  <div class="card p-4 text-center lg:col-span-2">
+    <p class="text-xs text-gray-400 mb-1">Total Revenue Collected</p>
+    <p class="text-2xl font-bold text-green-600">Rs. {{ total_revenue|floatformat:0 }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Outstanding</p>
+    <p class="text-xl font-bold {% if total_outstanding > 0 %}text-amber-600{% else %}text-gray-400{% endif %}">Rs. {{ total_outstanding|floatformat:0 }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Total Leads</p>
+    <p class="text-xl font-bold text-gray-900">{{ total_leads }}</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Conversion Rate</p>
+    <p class="text-xl font-bold text-blue-600">{{ conversion_rate }}%</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-xs text-gray-400 mb-1">Active Clients</p>
+    <p class="text-xl font-bold text-gray-900">{{ active_clients }} <span class="text-sm font-normal text-gray-400">/ {{ total_clients }}</span></p>
+  </div>
+</div>
+
+<!-- Revenue trend -->
+<div class="card p-5 mb-6">
+  <h2 class="font-semibold text-gray-900 mb-4">Monthly Revenue (collected, last 12 months)</h2>
+  {% if revenue_data != "[]" %}
+  <div style="height:220px;position:relative;">
+    <canvas id="revenueChart"></canvas>
+  </div>
+  {% else %}
+  <div class="py-12 text-center text-gray-400 text-sm">No paid invoices in the last 12 months.</div>
+  {% endif %}
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6 mb-6">
+  <!-- Lead pipeline -->
+  <div class="card p-5 lg:col-span-2">
+    <h2 class="font-semibold text-gray-900 mb-4">Lead Pipeline</h2>
+    {% if total_leads %}
+    <div style="height:200px;position:relative;">
+      <canvas id="pipelineChart"></canvas>
+    </div>
+    {% else %}
+    <div class="py-10 text-center text-gray-400 text-sm">No leads yet.</div>
+    {% endif %}
+  </div>
+
+  <!-- Lead source -->
+  <div class="card p-5">
+    <h2 class="font-semibold text-gray-900 mb-4">Lead Sources</h2>
+    {% if source_data != "[]" %}
+    <div style="height:200px;position:relative;">
+      <canvas id="sourceChart"></canvas>
+    </div>
+    {% else %}
+    <div class="py-10 text-center text-gray-400 text-sm">No source data yet. Add lead sources when creating leads.</div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Client health -->
+<div class="card p-5 mb-4 max-w-sm">
+  <h2 class="font-semibold text-gray-900 mb-4">Client Health</h2>
+  {% if client_data != "[]" %}
+  <div style="height:180px;position:relative;">
+    <canvas id="clientChart"></canvas>
+  </div>
+  {% else %}
+  <div class="py-8 text-center text-gray-400 text-sm">No clients yet.</div>
+  {% endif %}
+</div>
+
+<script>
+const revenueLabels = {{ revenue_labels|safe }};
+const revenueData   = {{ revenue_data|safe }};
+const pipelineLabels = {{ pipeline_labels|safe }};
+const pipelineData   = {{ pipeline_data|safe }};
+const sourceLabels  = {{ source_labels|safe }};
+const sourceData    = {{ source_data|safe }};
+const clientLabels  = {{ client_labels|safe }};
+const clientData    = {{ client_data|safe }};
+
+const PALETTE = ['#3b82f6','#6366f1','#8b5cf6','#f59e0b','#10b981','#ef4444','#06b6d4','#f97316'];
+const PIPELINE_COLORS = ['#93c5fd','#a5b4fc','#d8b4fe','#fcd34d','#6ee7b7','#fca5a5'];
+
+Chart.defaults.font.family = 'system-ui,-apple-system,sans-serif';
+Chart.defaults.font.size = 12;
+Chart.defaults.color = '#6b7280';
+
+if (revenueLabels.length) {
+  new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: revenueLabels,
+      datasets: [{
+        label: 'Revenue (Rs)',
+        data: revenueData,
+        backgroundColor: '#3b82f6',
+        borderRadius: 6,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#f3f4f6' }, ticks: { callback: v => 'Rs. ' + v.toLocaleString() } },
+        x: { grid: { display: false } },
+      }
+    }
+  });
+}
+
+if (pipelineLabels.length) {
+  new Chart(document.getElementById('pipelineChart'), {
+    type: 'bar',
+    data: {
+      labels: pipelineLabels,
+      datasets: [{
+        label: 'Leads',
+        data: pipelineData,
+        backgroundColor: PIPELINE_COLORS,
+        borderRadius: 5,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { grid: { color: '#f3f4f6' }, ticks: { precision: 0 } },
+        x: { grid: { display: false } },
+      }
+    }
+  });
+}
+
+if (sourceLabels.length) {
+  new Chart(document.getElementById('sourceChart'), {
+    type: 'doughnut',
+    data: {
+      labels: sourceLabels,
+      datasets: [{ data: sourceData, backgroundColor: PALETTE, hoverOffset: 6, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8 } } },
+      cutout: '62%',
+    }
+  });
+}
+
+if (clientLabels.length) {
+  new Chart(document.getElementById('clientChart'), {
+    type: 'doughnut',
+    data: {
+      labels: clientLabels,
+      datasets: [{ data: clientData, backgroundColor: ['#6ee7b7','#fcd34d','#d1d5db','#fca5a5'], hoverOffset: 6, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { boxWidth: 10, padding: 8 } } },
+      cutout: '62%',
+    }
+  });
+}
+</script>
+{% endblock %}

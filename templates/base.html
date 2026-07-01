@@ -17,176 +17,200 @@
     }
   </script>
   <style>
-    /* Form inputs */
+    /* ── Form inputs ── */
     .input {
-      display: block;
-      width: 100%;
-      border-radius: 0.375rem;
-      border: 1.5px solid #d1d5db;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-      background-color: #fff;
-      color: #111827;
-      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
+      display: block; width: 100%; border-radius: .375rem;
+      border: 1.5px solid #d1d5db; padding: .5rem .75rem;
+      font-size: .875rem; line-height: 1.25rem; background-color: #fff;
+      color: #111827; box-shadow: 0 1px 2px 0 rgb(0 0 0/.05);
+      outline: none; transition: border-color .15s, box-shadow .15s;
     }
-    .input:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgb(59 130 246 / 0.15);
-    }
-    .input:hover:not(:focus) {
-      border-color: #9ca3af;
-    }
+    .input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgb(59 130 246/.15); }
+    .input:hover:not(:focus) { border-color: #9ca3af; }
     select.input {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.5rem center;
-      background-size: 1.25em 1.25em;
-      padding-right: 2.5rem;
-      appearance: none;
+      background-repeat: no-repeat; background-position: right .5rem center;
+      background-size: 1.25em 1.25em; padding-right: 2.5rem; appearance: none;
     }
     textarea.input { resize: vertical; }
 
-    /* Buttons — each variant is self-contained so class="btn-primary" alone works */
+    /* ── Buttons ── */
     .btn-primary, .btn-secondary, .btn-danger {
-      display: inline-flex;
-      align-items: center;
-      gap: 0.375rem;
-      border-radius: 0.5rem;
-      padding: 0.5rem 1.125rem;
-      font-size: 0.875rem;
-      font-weight: 500;
-      line-height: 1.25rem;
-      transition: background-color 0.15s, box-shadow 0.15s, border-color 0.15s, transform 0.1s;
-      cursor: pointer;
-      text-decoration: none;
-      border: 1.5px solid transparent;
-      white-space: nowrap;
-      user-select: none;
+      display: inline-flex; align-items: center; gap: .375rem;
+      border-radius: .5rem; padding: .5rem 1.125rem;
+      font-size: .875rem; font-weight: 500; line-height: 1.25rem;
+      transition: background-color .15s, box-shadow .15s, border-color .15s, transform .1s;
+      cursor: pointer; text-decoration: none; border: 1.5px solid transparent;
+      white-space: nowrap; user-select: none;
     }
-    .btn-primary:focus, .btn-secondary:focus, .btn-danger:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgb(59 130 246 / 0.3);
-    }
-    .btn-primary:active, .btn-secondary:active, .btn-danger:active {
-      transform: translateY(1px);
-    }
-    .btn-primary {
-      background-color: #2563eb;
-      color: #fff !important;
-      border-color: #2563eb;
-      box-shadow: 0 1px 2px 0 rgb(37 99 235 / 0.25);
-    }
-    .btn-primary:hover {
-      background-color: #1d4ed8;
-      border-color: #1d4ed8;
-      box-shadow: 0 2px 6px 0 rgb(37 99 235 / 0.35);
-    }
-    .btn-secondary {
-      background-color: #fff;
-      color: #374151 !important;
-      border-color: #d1d5db;
-      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    }
-    .btn-secondary:hover {
-      background-color: #f9fafb;
-      border-color: #9ca3af;
-    }
-    .btn-danger {
-      background-color: #dc2626;
-      color: #fff !important;
-      border-color: #dc2626;
-      box-shadow: 0 1px 2px 0 rgb(220 38 38 / 0.25);
-    }
-    .btn-danger:hover {
-      background-color: #b91c1c;
-      border-color: #b91c1c;
-    }
-    /* Legacy .btn base class still works if used */
-    .btn {
-      display: inline-flex; align-items: center; border-radius: 0.5rem;
-      padding: 0.5rem 1.125rem; font-size: 0.875rem; font-weight: 500;
-      text-decoration: none; cursor: pointer; border: 1.5px solid transparent;
-    }
+    .btn-primary:focus, .btn-secondary:focus, .btn-danger:focus { outline: none; box-shadow: 0 0 0 3px rgb(59 130 246/.3); }
+    .btn-primary:active, .btn-secondary:active, .btn-danger:active { transform: translateY(1px); }
+    .btn-primary  { background-color: #2563eb; color: #fff !important; border-color: #2563eb; box-shadow: 0 1px 2px 0 rgb(37 99 235/.25); }
+    .btn-primary:hover  { background-color: #1d4ed8; border-color: #1d4ed8; box-shadow: 0 2px 6px 0 rgb(37 99 235/.35); }
+    .btn-secondary { background-color: #fff; color: #374151 !important; border-color: #d1d5db; box-shadow: 0 1px 2px 0 rgb(0 0 0/.05); }
+    .btn-secondary:hover { background-color: #f9fafb; border-color: #9ca3af; }
+    .btn-danger  { background-color: #dc2626; color: #fff !important; border-color: #dc2626; box-shadow: 0 1px 2px 0 rgb(220 38 38/.25); }
+    .btn-danger:hover { background-color: #b91c1c; border-color: #b91c1c; }
+    .btn { display: inline-flex; align-items: center; border-radius: .5rem; padding: .5rem 1.125rem; font-size: .875rem; font-weight: 500; text-decoration: none; cursor: pointer; border: 1.5px solid transparent; }
 
-    /* Badges */
-    .badge {
-      display: inline-flex;
-      align-items: center;
-      padding: 0.125rem 0.625rem;
-      border-radius: 9999px;
-      font-size: 0.75rem;
-      font-weight: 500;
-      white-space: nowrap;
-    }
+    /* ── Badge ── */
+    .badge { display: inline-flex; align-items: center; padding: .125rem .625rem; border-radius: 9999px; font-size: .75rem; font-weight: 500; white-space: nowrap; }
 
-    /* Card */
-    .card {
-      background-color: #fff;
-      border-radius: 0.75rem;
-      border: 1px solid #e5e7eb;
-      box-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.07), 0 1px 2px -1px rgb(0 0 0 / 0.07);
-    }
+    /* ── Card ── */
+    .card { background-color: #fff; border-radius: .75rem; border: 1px solid #e5e7eb; box-shadow: 0 1px 3px 0 rgb(0 0 0/.07), 0 1px 2px -1px rgb(0 0 0/.07); }
 
-    /* Django auto-generated form fields */
+    /* ── Django form fields ── */
     input[type="text"], input[type="email"], input[type="password"],
     input[type="number"], input[type="url"], input[type="tel"],
     input[type="date"], input[type="datetime-local"], input[type="time"],
     input[type="search"], textarea, select {
-      display: block;
-      width: 100%;
-      border-radius: 0.375rem;
-      border: 1.5px solid #d1d5db;
-      padding: 0.5rem 0.75rem;
-      font-size: 0.875rem;
-      line-height: 1.25rem;
-      background-color: #fff;
-      color: #111827;
-      box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-      outline: none;
-      transition: border-color 0.15s, box-shadow 0.15s;
-      margin-top: 0.125rem;
+      display: block; width: 100%; border-radius: .375rem;
+      border: 1.5px solid #d1d5db; padding: .5rem .75rem;
+      font-size: .875rem; line-height: 1.25rem; background-color: #fff;
+      color: #111827; box-shadow: 0 1px 2px 0 rgb(0 0 0/.05);
+      outline: none; transition: border-color .15s, box-shadow .15s; margin-top: .125rem;
     }
     input[type="text"]:focus, input[type="email"]:focus, input[type="password"]:focus,
     input[type="number"]:focus, input[type="date"]:focus, input[type="datetime-local"]:focus,
     input[type="time"]:focus, textarea:focus, select:focus {
-      border-color: #3b82f6;
-      box-shadow: 0 0 0 3px rgb(59 130 246 / 0.15);
+      border-color: #3b82f6; box-shadow: 0 0 0 3px rgb(59 130 246/.15);
     }
     select {
       background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E");
-      background-repeat: no-repeat;
-      background-position: right 0.5rem center;
-      background-size: 1.25em;
-      padding-right: 2.5rem;
-      appearance: none;
+      background-repeat: no-repeat; background-position: right .5rem center;
+      background-size: 1.25em; padding-right: 2.5rem; appearance: none;
     }
-    input[type="file"] {
-      font-size: 0.875rem;
-      color: #6b7280;
-      border: 1.5px dashed #d1d5db;
-      border-radius: 0.375rem;
-      padding: 0.5rem 0.75rem;
-      background: #f9fafb;
-      width: 100%;
-      display: block;
-      cursor: pointer;
+    input[type="file"] { font-size: .875rem; color: #6b7280; border: 1.5px dashed #d1d5db; border-radius: .375rem; padding: .5rem .75rem; background: #f9fafb; width: 100%; display: block; cursor: pointer; }
+    input[type="checkbox"] { width: 1rem; height: 1rem; border-radius: .25rem; border: 1.5px solid #d1d5db; accent-color: #2563eb; }
+    label { display: block; font-size: .875rem; font-weight: 500; color: #374151; margin-bottom: .25rem; }
+    .helptext, span.helptext { font-size: .75rem; color: #6b7280; margin-top: .25rem; display: block; }
+    ul.errorlist { list-style: none; padding: 0; margin: .25rem 0 0; }
+    ul.errorlist li { font-size: .75rem; color: #dc2626; }
+
+    /* ══════════════════════════════════════
+       SIDEBAR
+    ══════════════════════════════════════ */
+    #sidebar {
+      width: 240px;
+      flex-shrink: 0;
+      transition: width .25s cubic-bezier(.4,0,.2,1);
+      overflow: hidden;
     }
-    input[type="checkbox"] {
-      width: 1rem; height: 1rem;
-      border-radius: 0.25rem;
-      border: 1.5px solid #d1d5db;
-      accent-color: #2563eb;
+    #sidebar.sb-col { width: 56px; }
+    @media (max-width: 767px) { #sidebar { width: 240px !important; } }
+
+    /* Text/labels that hide on collapse */
+    .sb-text {
+      overflow: hidden; white-space: nowrap;
+      transition: opacity .15s ease, max-width .22s ease;
+      max-width: 180px; opacity: 1;
     }
-    /* Form label spacing when Django renders the label */
-    label { display: block; font-size: 0.875rem; font-weight: 500; color: #374151; margin-bottom: 0.25rem; }
-    /* Help text */
-    .helptext, span.helptext { font-size: 0.75rem; color: #6b7280; margin-top: 0.25rem; display: block; }
-    /* Error list */
-    ul.errorlist { list-style: none; padding: 0; margin: 0.25rem 0 0; }
-    ul.errorlist li { font-size: 0.75rem; color: #dc2626; }
+    #sidebar.sb-col .sb-text { opacity: 0; max-width: 0; pointer-events: none; }
+
+    /* Section labels */
+    .sb-section-lbl {
+      font-size: .6rem; font-weight: 700; letter-spacing: .1em;
+      color: #4b5563; padding: .7rem .75rem .2rem; text-transform: uppercase;
+      overflow: hidden; white-space: nowrap;
+      transition: opacity .15s ease, max-height .22s ease, padding .22s ease;
+      max-height: 2.5rem;
+    }
+    #sidebar.sb-col .sb-section-lbl { opacity: 0; max-height: 0; padding-top: 0; padding-bottom: 0; pointer-events: none; }
+
+    /* Section divider */
+    .sb-section { margin-top: .5rem; }
+    .sb-section:first-child { margin-top: 0; }
+
+    /* Direct nav link */
+    .sb-link {
+      display: flex; align-items: center; gap: .7rem;
+      padding: .45rem .75rem; border-radius: .5rem;
+      color: #9ca3af; text-decoration: none; font-size: .82rem;
+      transition: background .13s, color .13s;
+      position: relative;
+    }
+    .sb-link:hover { background: rgba(255,255,255,.08); color: #e5e7eb; }
+    .sb-link.sb-active { background: rgba(59,130,246,.2); color: #93c5fd; }
+    .sb-link .sb-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+
+    /* Parent accordion button */
+    .sb-parent {
+      display: flex; align-items: center; gap: .7rem;
+      padding: .45rem .75rem; border-radius: .5rem;
+      color: #9ca3af; font-size: .82rem;
+      background: none; border: none; cursor: pointer; width: 100%; text-align: left;
+      transition: background .13s, color .13s;
+      position: relative;
+    }
+    .sb-parent:hover { background: rgba(255,255,255,.08); color: #e5e7eb; }
+    .sb-group.has-active > .sb-parent { color: #93c5fd; }
+    .sb-parent .sb-icon { width: 1rem; height: 1rem; flex-shrink: 0; }
+    .sb-parent .sb-chev {
+      width: .8rem; height: .8rem; margin-left: auto; flex-shrink: 0;
+      transition: transform .2s ease;
+    }
+    .sb-group.open > .sb-parent .sb-chev { transform: rotate(180deg); }
+    #sidebar.sb-col .sb-parent .sb-chev { display: none; }
+
+    /* Submenu */
+    .sb-sub { overflow: hidden; max-height: 0; transition: max-height .25s ease; }
+    .sb-sub.open { max-height: 400px; }
+    #sidebar.sb-col .sb-sub { display: none; }
+
+    /* Sub-item link */
+    .sb-sublink {
+      display: flex; align-items: center; gap: .5rem;
+      padding: .35rem .75rem .35rem 2.6rem;
+      font-size: .78rem; color: #6b7280; text-decoration: none;
+      border-radius: .375rem; transition: background .12s, color .12s;
+      position: relative;
+    }
+    .sb-sublink::before {
+      content: ''; position: absolute; left: 1.55rem; top: 50%;
+      transform: translateY(-50%);
+      width: 4px; height: 4px; border-radius: 50%;
+      background: currentColor; opacity: .4;
+    }
+    .sb-sublink:hover { background: rgba(255,255,255,.06); color: #d1d5db; }
+    .sb-sublink:hover::before, .sb-sublink.sb-active::before { opacity: 1; }
+    .sb-sublink.sb-active { color: #93c5fd; background: rgba(59,130,246,.15); }
+
+    /* Tooltip when collapsed (desktop only) */
+    @media (min-width: 768px) {
+      #sidebar.sb-col .sb-link[data-tip],
+      #sidebar.sb-col .sb-parent[data-tip] {
+        overflow: visible;
+      }
+      #sidebar.sb-col .sb-link[data-tip]:hover::after,
+      #sidebar.sb-col .sb-parent[data-tip]:hover::after {
+        content: attr(data-tip);
+        position: absolute;
+        left: calc(100% + 10px);
+        top: 50%;
+        transform: translateY(-50%);
+        background: #111827;
+        color: #f3f4f6;
+        font-size: .72rem;
+        font-weight: 600;
+        padding: .28rem .65rem;
+        border-radius: .375rem;
+        white-space: nowrap;
+        z-index: 300;
+        box-shadow: 0 4px 14px rgba(0,0,0,.45);
+        border: 1px solid #374151;
+        pointer-events: none;
+      }
+    }
+
+    /* Search box in collapsed state */
+    .sb-search-box { transition: opacity .15s, max-height .22s; max-height: 3rem; overflow: hidden; }
+    #sidebar.sb-col .sb-search-box { opacity: 0; max-height: 0; pointer-events: none; }
+    .sb-search-icon-btn { display: none; }
+    #sidebar.sb-col .sb-search-icon-btn { display: flex; justify-content: center; padding: .4rem 0; }
+
+    /* Collapse toggle icon rotation */
+    #sb-col-icon { transition: transform .25s ease; }
+    #sidebar.sb-col #sb-col-icon { transform: rotate(180deg); }
   </style>
   {% block extra_head %}{% endblock %}
 </head>
@@ -196,75 +220,220 @@
 
 <!-- Mobile top bar -->
 <div class="md:hidden fixed top-0 inset-x-0 z-30 h-14 bg-gray-900 flex items-center justify-between px-4 shadow-md">
-  <span class="text-white font-bold tracking-tight">&#x1F4CB; CLRT</span>
-  <button onclick="toggleMobileMenu()" class="text-gray-300 hover:text-white p-1 rounded" aria-label="Open menu">
-    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <span class="text-white font-bold tracking-tight text-sm">&#x1F4CB; CLRT</span>
+  <button onclick="toggleMobileMenu()" class="text-gray-300 hover:text-white p-1.5 rounded" aria-label="Open menu">
+    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
     </svg>
   </button>
 </div>
 
-<!-- Backdrop (mobile) -->
+<!-- Mobile backdrop -->
 <div id="mobile-backdrop" onclick="toggleMobileMenu()" class="hidden fixed inset-0 z-40 bg-black bg-opacity-50 md:hidden"></div>
 
 <!-- App shell -->
 <div class="flex h-full pt-14 md:pt-0">
 
-  <!-- Sidebar -->
-  <aside id="sidebar" class="fixed top-0 bottom-0 left-0 z-50 w-64 flex-shrink-0 bg-gray-900 flex flex-col -translate-x-full transition-transform duration-200 ease-in-out md:static md:translate-x-0 md:w-60 md:z-auto">
-    <!-- Header (close btn visible on mobile) -->
-    <div class="px-5 py-5 border-b border-gray-700 flex items-start justify-between">
-      <div>
-        <span class="text-white font-bold text-lg tracking-tight">&#x1F4CB; CLRT</span>
-        <p class="text-gray-400 text-xs mt-0.5">Client Lifecycle & Revenue Tracker</p>
+  <!-- ═══════════════ SIDEBAR ═══════════════ -->
+  <aside id="sidebar"
+    class="fixed top-0 bottom-0 left-0 z-50 flex flex-col bg-gray-900
+           -translate-x-full transition-transform duration-200 ease-in-out
+           md:static md:translate-x-0 md:z-auto">
+
+    <!-- Header -->
+    <div class="flex items-center justify-between px-3 py-3.5 border-b border-gray-800 flex-shrink-0">
+      <div class="flex items-center gap-2 min-w-0">
+        <span class="text-lg flex-shrink-0 leading-none">&#x1F4CB;</span>
+        <div class="sb-text">
+          <p class="text-white font-bold text-sm leading-tight">CLRT</p>
+          <p class="text-gray-500 text-xs leading-tight">Revenue Tracker</p>
+        </div>
       </div>
-      <button onclick="toggleMobileMenu()" class="md:hidden text-gray-400 hover:text-white mt-1 ml-2 flex-shrink-0" aria-label="Close menu">
-        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
-        </svg>
-      </button>
+      <div class="flex items-center gap-1 flex-shrink-0">
+        <!-- Desktop collapse button -->
+        <button onclick="toggleSidebar()" title="Toggle sidebar"
+          class="hidden md:flex items-center justify-center w-7 h-7 rounded-md text-gray-500 hover:text-white hover:bg-gray-800 transition-colors">
+          <svg id="sb-col-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 19l-7-7 7-7m8 14l-7-7 7-7"/>
+          </svg>
+        </button>
+        <!-- Mobile close button -->
+        <button onclick="toggleMobileMenu()" class="md:hidden text-gray-400 hover:text-white p-1 rounded">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+          </svg>
+        </button>
+      </div>
     </div>
-    <nav class="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-      <a href="/" onclick="closeMobileMenu()" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white {% block nav_dashboard %}{% endblock %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
-        Dashboard
+
+    <!-- Search -->
+    <div class="px-2 py-2 border-b border-gray-800 flex-shrink-0">
+      <div class="sb-search-box">
+        <form action="/search/" method="get">
+          <div class="relative">
+            {% comment %} <svg class="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-gray-500 pointer-events-none" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+            </svg> {% endcomment %}
+            <input type="text" name="q" placeholder="Search…" onclick="closeMobileMenu()"
+              class="w-full bg-gray-800 text-gray-200 text-xs rounded-lg pl-8 pr-3 py-2 placeholder-gray-500 border border-gray-700 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500">
+          </div>
+        </form>
+      </div>
+      <a href="/search/" class="sb-search-icon-btn text-gray-500 hover:text-white" title="Search">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+        </svg>
       </a>
-      <a href="/leads/" onclick="closeMobileMenu()" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white {% block nav_leads %}{% endblock %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        Leads
+    </div>
+
+    <!-- Navigation -->
+    <nav class="flex-1 overflow-y-auto px-2 py-2 space-y-0.5">
+
+      <!-- Dashboard -->
+      <a href="/" class="sb-link" data-exact="true" data-tip="Dashboard" onclick="closeMobileMenu()">
+        <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/>
+        </svg>
+        <span class="sb-text font-medium">Dashboard</span>
       </a>
-      <a href="/clients/" onclick="closeMobileMenu()" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white {% block nav_clients %}{% endblock %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-        Clients
-      </a>
-      <a href="/billing/" onclick="closeMobileMenu()" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white {% block nav_billing %}{% endblock %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-2-7 2V5a2 2 0 012-2h10a2 2 0 012 2v16z"/></svg>
-        Billing
-      </a>
+
+      <!-- ── SALES ── -->
+      <div class="sb-section">
+        <p class="sb-section-lbl">Sales</p>
+
+        <!-- Leads -->
+        <div class="sb-group" data-group="leads">
+          <button class="sb-parent" data-tip="Leads" onclick="toggleGroup('leads')">
+            <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+            </svg>
+            <span class="sb-text">Leads</span>
+            <svg class="sb-chev" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="sb-sub" id="sub-leads">
+            <a href="/leads/" class="sb-sublink" onclick="closeMobileMenu()">All Leads</a>
+            <a href="/leads/kanban/" class="sb-sublink" onclick="closeMobileMenu()">Kanban Board</a>
+            <a href="/leads/add/" class="sb-sublink" onclick="closeMobileMenu()">Add New Lead</a>
+          </div>
+        </div>
+
+        <!-- Proposals -->
+        <div class="sb-group" data-group="proposals">
+          <button class="sb-parent" data-tip="Proposals" onclick="toggleGroup('proposals')">
+            <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+            </svg>
+            <span class="sb-text">Proposals</span>
+            <svg class="sb-chev" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="sb-sub" id="sub-proposals">
+            <a href="/proposals/" class="sb-sublink" onclick="closeMobileMenu()">All Proposals</a>
+            <a href="/proposals/add/" class="sb-sublink" onclick="closeMobileMenu()">New Proposal</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── CLIENTS ── -->
+      <div class="sb-section">
+        <p class="sb-section-lbl">Clients</p>
+        <div class="sb-group" data-group="clients">
+          <button class="sb-parent" data-tip="Clients" onclick="toggleGroup('clients')">
+            <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+            </svg>
+            <span class="sb-text">Clients</span>
+            <svg class="sb-chev" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="sb-sub" id="sub-clients">
+            <a href="/clients/" class="sb-sublink" onclick="closeMobileMenu()">All Clients</a>
+            <a href="/clients/add/" class="sb-sublink" onclick="closeMobileMenu()">Add Client</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── FINANCE ── -->
+      <div class="sb-section">
+        <p class="sb-section-lbl">Finance</p>
+        <div class="sb-group" data-group="billing">
+          <button class="sb-parent" data-tip="Billing" onclick="toggleGroup('billing')">
+            <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 14l6-6m-5.5.5h.01m4.99 5h.01M19 21l-7-2-7 2V5a2 2 0 012-2h10a2 2 0 012 2v16z"/>
+            </svg>
+            <span class="sb-text">Billing</span>
+            <svg class="sb-chev" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="sb-sub" id="sub-billing">
+            <a href="/billing/" class="sb-sublink" onclick="closeMobileMenu()">Invoices</a>
+            <a href="/billing/add/" class="sb-sublink" onclick="closeMobileMenu()">New Invoice</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ANALYTICS ── -->
+      <div class="sb-section">
+        <p class="sb-section-lbl">Analytics</p>
+        <div class="sb-group" data-group="reports">
+          <button class="sb-parent" data-tip="Reports" onclick="toggleGroup('reports')">
+            <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            <span class="sb-text">Reports</span>
+            <svg class="sb-chev" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+          <div class="sb-sub" id="sub-reports">
+            <a href="/reports/" class="sb-sublink" onclick="closeMobileMenu()">Analytics Overview</a>
+            <a href="/reports/team/" class="sb-sublink" onclick="closeMobileMenu()">Team Performance</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── ADMIN ── -->
       {% if user.is_admin %}
-      <a href="/accounts/users/" onclick="closeMobileMenu()" class="nav-link group flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-300 hover:bg-gray-800 hover:text-white {% block nav_users %}{% endblock %}">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-        Users
-      </a>
+      <div class="sb-section">
+        <p class="sb-section-lbl">Admin</p>
+        <a href="/accounts/users/" class="sb-link" data-tip="Users" onclick="closeMobileMenu()">
+          <svg class="sb-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+          </svg>
+          <span class="sb-text">Users</span>
+        </a>
+      </div>
       {% endif %}
+
     </nav>
-    <div class="px-3 py-4 border-t border-gray-700">
-      <div class="flex items-center gap-3 px-3 py-2">
-        <div class="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
+
+    <!-- User footer -->
+    <div class="px-2 py-3 border-t border-gray-800 flex-shrink-0">
+      <div class="flex items-center gap-2.5 px-1">
+        <div class="w-7 h-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold flex-shrink-0">
           {{ user.username|slice:":2"|upper }}
         </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm text-white truncate">{{ user.get_full_name|default:user.username }}</p>
-          <p class="text-xs text-gray-400">{{ user.get_role_display }}</p>
+        <div class="sb-text flex-1 min-w-0">
+          <p class="text-xs text-white font-medium truncate leading-tight">{{ user.get_full_name|default:user.username }}</p>
+          <p class="text-xs text-gray-500 leading-tight truncate">{{ user.get_role_display }}</p>
         </div>
-        <a href="/accounts/logout/" class="text-gray-400 hover:text-white flex-shrink-0" title="Logout">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <a href="/accounts/logout/" title="Sign out"
+          class="sb-text text-gray-500 hover:text-red-400 flex-shrink-0 transition-colors"
+          style="max-width:1.25rem; overflow:visible;">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+          </svg>
         </a>
       </div>
     </div>
   </aside>
 
-  <!-- Main content -->
+  <!-- ═══════════════ MAIN CONTENT ═══════════════ -->
   <main class="flex-1 overflow-y-auto min-w-0">
     <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 sm:py-6">
       {% if messages %}
@@ -285,22 +454,103 @@
 </div>
 
 <script>
+// ── Mobile menu ──
 function toggleMobileMenu() {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('mobile-backdrop');
-  const isOpen = !sidebar.classList.contains('-translate-x-full');
-  sidebar.classList.toggle('-translate-x-full');
-  backdrop.classList.toggle('hidden');
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('mobile-backdrop');
+  const isOpen = !sb.classList.contains('-translate-x-full');
+  sb.classList.toggle('-translate-x-full');
+  bd.classList.toggle('hidden');
   document.body.style.overflow = isOpen ? '' : 'hidden';
 }
 function closeMobileMenu() {
-  const sidebar = document.getElementById('sidebar');
-  const backdrop = document.getElementById('mobile-backdrop');
-  sidebar.classList.add('-translate-x-full');
-  backdrop.classList.add('hidden');
+  const sb = document.getElementById('sidebar');
+  const bd = document.getElementById('mobile-backdrop');
+  sb.classList.add('-translate-x-full');
+  bd.classList.add('hidden');
   document.body.style.overflow = '';
 }
-document.addEventListener('keydown', function(e) {
+
+// ── Sidebar collapse (desktop) ──
+function toggleSidebar() {
+  const sb = document.getElementById('sidebar');
+  const col = sb.classList.toggle('sb-col');
+  localStorage.setItem('sb-c', col ? '1' : '0');
+}
+function initCollapse() {
+  if (localStorage.getItem('sb-c') === '1') {
+    document.getElementById('sidebar').classList.add('sb-col');
+  }
+}
+
+// ── Accordion groups ──
+function toggleGroup(id) {
+  const group  = document.querySelector(`.sb-group[data-group="${id}"]`);
+  const sub    = document.getElementById('sub-' + id);
+  if (!group || !sub) return;
+  const opening = !group.classList.contains('open');
+  group.classList.toggle('open', opening);
+  sub.classList.toggle('open', opening);
+  // persist
+  let openList = JSON.parse(localStorage.getItem('sb-open') || '[]');
+  if (opening) { if (!openList.includes(id)) openList.push(id); }
+  else          { openList = openList.filter(x => x !== id); }
+  localStorage.setItem('sb-open', JSON.stringify(openList));
+}
+
+function restoreGroups() {
+  const openList = JSON.parse(localStorage.getItem('sb-open') || '[]');
+  openList.forEach(id => {
+    const group = document.querySelector(`.sb-group[data-group="${id}"]`);
+    const sub   = document.getElementById('sub-' + id);
+    if (group && sub) { group.classList.add('open'); sub.classList.add('open'); }
+  });
+}
+
+// ── Active link detection ──
+function detectActive() {
+  const path = window.location.pathname;
+
+  // Find best-matching nav item (longest matching href wins)
+  let best = { el: null, score: -1 };
+
+  document.querySelectorAll('.sb-link, .sb-sublink').forEach(el => {
+    const href  = el.getAttribute('href');
+    if (!href) return;
+    const exact = el.dataset.exact === 'true';
+    let score   = -1;
+
+    if (exact) {
+      if (path === href) score = href.length;
+    } else {
+      if (path === href || path.startsWith(href)) score = href.length;
+    }
+    if (score > best.score) best = { el, score };
+  });
+
+  if (best.el) {
+    best.el.classList.add('sb-active');
+    // auto-open parent group
+    const group = best.el.closest('.sb-group');
+    if (group) {
+      const id  = group.dataset.group;
+      const sub = document.getElementById('sub-' + id);
+      group.classList.add('open', 'has-active');
+      if (sub) sub.classList.add('open');
+      // ensure stored as open
+      let openList = JSON.parse(localStorage.getItem('sb-open') || '[]');
+      if (!openList.includes(id)) { openList.push(id); localStorage.setItem('sb-open', JSON.stringify(openList)); }
+    }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  initCollapse();
+  restoreGroups();
+  detectActive();
+});
+
+document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeMobileMenu();
 });
 </script>

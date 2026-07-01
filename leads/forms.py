@@ -6,7 +6,7 @@ from accounts.models import User
 class LeadForm(forms.ModelForm):
     class Meta:
         model = Lead
-        fields = ["organization_name", "contact_person", "phone", "email", "status", "assigned_to", "notes"]
+        fields = ["organization_name", "contact_person", "phone", "email", "source", "status", "assigned_to", "notes"]
         widgets = {
             "notes": forms.Textarea(attrs={"rows": 3}),
         }

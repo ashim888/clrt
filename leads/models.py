@@ -12,10 +12,21 @@ class Lead(models.Model):
         ("won", "Won"),
         ("lost", "Lost"),
     ]
+    SOURCE_CHOICES = [
+        ("referral", "Referral"),
+        ("website", "Website"),
+        ("linkedin", "LinkedIn"),
+        ("cold_call", "Cold Call"),
+        ("social_media", "Social Media"),
+        ("event", "Event / Exhibition"),
+        ("partner", "Partner"),
+        ("other", "Other"),
+    ]
     organization_name = models.CharField(max_length=200)
     contact_person = models.CharField(max_length=100)
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
+    source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
     assigned_to = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
