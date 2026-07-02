@@ -5,17 +5,18 @@
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js"></script>
 {% endblock %}
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-5">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Calendar</h1>
-    <p class="text-sm text-gray-500 mt-0.5">Follow-ups, invoice due dates, and contract expiries</p>
+    <p class="text-sm text-gray-500 mt-0.5">Click any date to add an event</p>
   </div>
-  <div class="flex flex-wrap gap-2 text-xs">
-    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-blue-500 inline-block"></span> Lead Follow-up</span>
-    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-emerald-500 inline-block"></span> Client Follow-up</span>
-    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-amber-400 inline-block"></span> Invoice Due</span>
-    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-red-500 inline-block"></span> Invoice Overdue</span>
-    <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full bg-violet-500 inline-block"></span> Contract Expiry</span>
+  <div class="flex flex-wrap gap-x-4 gap-y-1 text-xs text-gray-500">
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-blue-500"></span>Lead Follow-up</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span>Client Follow-up</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span>Invoice Due</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-violet-500"></span>Contract Expiry</span>
+    <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-indigo-500"></span>My Events</span>
   </div>
 </div>
 
@@ -23,34 +24,303 @@
   <div id="calendar"></div>
 </div>
 
+<!-- Event modal -->
+<div id="ev-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:flex-start;justify-content:center;padding-top:7vh;">
+  <div style="background:#fff;border-radius:16px;width:100%;max-width:440px;box-shadow:0 16px 48px rgba(0,0,0,.22);overflow:hidden;">
+
+    <!-- Modal header -->
+    <div id="ev-header" style="padding:1rem 1.25rem .75rem;border-bottom:1px solid #f3f4f6;display:flex;align-items:center;justify-content:space-between;">
+      <h3 id="ev-title-label" style="font-size:1rem;font-weight:700;color:#111827;margin:0;">New Event</h3>
+      <button onclick="closeModal()" style="background:none;border:none;cursor:pointer;color:#9ca3af;font-size:1.3rem;line-height:1;padding:.2rem;">&times;</button>
+    </div>
+
+    <div style="padding:1rem 1.25rem;space-y:1rem;">
+
+      <!-- Title -->
+      <div style="margin-bottom:.9rem;">
+        <input id="ev-title" type="text" placeholder="Event title" required
+          style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:10px;padding:.6rem .85rem;font-size:.95rem;font-weight:500;color:#111827;outline:none;font-family:inherit;transition:border-color .15s;"
+          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'">
+        <p id="ev-title-err" style="display:none;color:#ef4444;font-size:.75rem;margin-top:.25rem;">Title is required.</p>
+      </div>
+
+      <!-- All-day toggle -->
+      <div style="display:flex;align-items:center;gap:.6rem;margin-bottom:.9rem;">
+        <label class="toggle-wrap" style="position:relative;display:inline-block;width:38px;height:22px;flex-shrink:0;">
+          <input type="checkbox" id="ev-allday" checked onchange="toggleAllDay()"
+            style="opacity:0;width:0;height:0;position:absolute;">
+          <span id="ev-allday-track" style="position:absolute;inset:0;border-radius:22px;background:#6366f1;cursor:pointer;transition:background .2s;">
+            <span id="ev-allday-thumb" style="position:absolute;left:3px;top:3px;width:16px;height:16px;border-radius:50%;background:#fff;transition:transform .2s;transform:translateX(16px);"></span>
+          </span>
+        </label>
+        <span style="font-size:.85rem;color:#374151;font-weight:500;">All day</span>
+      </div>
+
+      <!-- Date / time row -->
+      <div style="display:flex;gap:.6rem;margin-bottom:.9rem;">
+        <div style="flex:1;">
+          <label style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.3rem;">Start</label>
+          <input id="ev-start-date" type="date"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.45rem .65rem;font-size:.85rem;color:#111827;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'">
+          <input id="ev-start-time" type="time"
+            style="display:none;width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.45rem .65rem;font-size:.85rem;color:#111827;outline:none;margin-top:.4rem;font-family:inherit;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+        <div style="flex:1;">
+          <label style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.3rem;">End <span style="font-weight:400;text-transform:none;">(optional)</span></label>
+          <input id="ev-end-date" type="date"
+            style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.45rem .65rem;font-size:.85rem;color:#111827;outline:none;font-family:inherit;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'">
+          <input id="ev-end-time" type="time"
+            style="display:none;width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:8px;padding:.45rem .65rem;font-size:.85rem;color:#111827;outline:none;margin-top:.4rem;font-family:inherit;"
+            onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'">
+        </div>
+      </div>
+
+      <!-- Description -->
+      <div style="margin-bottom:.9rem;">
+        <textarea id="ev-desc" rows="2" placeholder="Add description (optional)"
+          style="width:100%;box-sizing:border-box;border:1.5px solid #d1d5db;border-radius:10px;padding:.55rem .8rem;font-size:.85rem;color:#374151;resize:vertical;outline:none;font-family:inherit;"
+          onfocus="this.style.borderColor='#6366f1'" onblur="this.style.borderColor='#d1d5db'"></textarea>
+      </div>
+
+      <!-- Color swatches -->
+      <div style="margin-bottom:1.1rem;">
+        <label style="font-size:.72rem;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.05em;display:block;margin-bottom:.5rem;">Colour</label>
+        <div id="ev-colors" style="display:flex;gap:.45rem;flex-wrap:wrap;">
+          {% for hex, name in color_choices %}
+          <button type="button" onclick="pickColor('{{ hex }}')" data-color="{{ hex }}"
+            style="width:26px;height:26px;border-radius:50%;background:{{ hex }};border:2px solid transparent;cursor:pointer;transition:transform .1s,border-color .1s;"
+            title="{{ name }}"></button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div style="display:flex;gap:.6rem;align-items:center;">
+        <button id="ev-save-btn" onclick="saveEvent()"
+          style="flex:1;padding:.6rem 1rem;border-radius:10px;border:none;background:#6366f1;color:#fff;font-size:.88rem;font-weight:700;cursor:pointer;transition:background .15s;">
+          Save Event
+        </button>
+        <button id="ev-delete-btn" onclick="deleteEvent()" style="display:none;
+          padding:.6rem 1rem;border-radius:10px;border:1.5px solid #fca5a5;background:#fff;color:#dc2626;font-size:.88rem;font-weight:600;cursor:pointer;">
+          Delete
+        </button>
+        <button onclick="closeModal()"
+          style="padding:.6rem 1rem;border-radius:10px;border:1.5px solid #e5e7eb;background:#fff;color:#6b7280;font-size:.88rem;font-weight:600;cursor:pointer;">
+          Cancel
+        </button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <script>
+const SAVE_URL    = '{% url "dashboard:calendar_event_save" %}';
+const DELETE_TPL  = '{% url "dashboard:calendar_event_delete" pk=0 %}'; // /calendar/events/0/delete/
+const EVENTS_URL  = '{% url "dashboard:calendar_events" %}';
+const CSRF        = '{{ csrf_token }}';
+const COLOR_CHOICES = [{% for hex, name in color_choices %}'{{ hex }}'{% if not forloop.last %},{% endif %}{% endfor %}];
+
+let _editPk = null;
+let _calRef = null;
+let _selectedColor = '#6366f1';
+
+// ── Calendar init ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', function() {
   const calendarEl = document.getElementById('calendar');
-  const calendar = new FullCalendar.Calendar(calendarEl, {
+  _calRef = new FullCalendar.Calendar(calendarEl, {
     initialView: 'dayGridMonth',
     headerToolbar: {
       left: 'prev,next today',
       center: 'title',
-      right: 'dayGridMonth,timeGridWeek,listWeek'
+      right: 'dayGridMonth,timeGridWeek,listWeek',
     },
     height: 'auto',
+    selectable: true,
+    selectMirror: true,
+    nowIndicator: true,
     eventSources: [{
-      url: '{% url "dashboard:calendar_events" %}',
-      method: 'GET',
-      extraParams: function() { return {}; },
-      failure: function() { console.error('Failed to load calendar events'); }
+      url: EVENTS_URL,
+      failure: function() { console.error('Failed to load events'); },
     }],
+
+    // Click on empty date cell
+    dateClick: function(info) {
+      openCreate(info.dateStr, info.dateStr, info.allDay !== false);
+    },
+
+    // Drag-select a date range
+    select: function(info) {
+      // FullCalendar's endStr for all-day is exclusive, so subtract 1 day for display
+      let endDate = info.endStr;
+      if (info.allDay && endDate) {
+        const d = new Date(endDate);
+        d.setDate(d.getDate() - 1);
+        endDate = d.toISOString().split('T')[0];
+      }
+      openCreate(info.startStr.split('T')[0], endDate.split('T')[0],
+                 info.allDay, info.startStr.includes('T') ? info.startStr.slice(11,16) : '',
+                 info.endStr && !info.allDay ? info.endStr.slice(11,16) : '');
+      _calRef.unselect();
+    },
+
+    // Click on existing event
     eventClick: function(info) {
-      if (info.event.url) {
+      const ep = info.event.extendedProps;
+      if (ep.type === 'custom') {
+        info.jsEvent.preventDefault();
+        openEdit(ep.pk, info.event.title, info.event.startStr, info.event.endStr,
+                 info.event.allDay, ep.description, info.event.backgroundColor);
+      } else if (info.event.url) {
         info.jsEvent.preventDefault();
         window.location.href = info.event.url;
       }
     },
+
     eventDidMount: function(info) {
-      info.el.title = info.event.extendedProps.type + ': ' + info.event.title;
+      const ep = info.event.extendedProps;
+      info.el.title = ep.description || (ep.type ? ep.type + ': ' + info.event.title : info.event.title);
     },
   });
-  calendar.render();
+  _calRef.render();
+  pickColor('#6366f1');
 });
+
+// ── Modal helpers ──────────────────────────────────────────────
+function openCreate(startDate, endDate, allDay, startTime, endTime) {
+  _editPk = null;
+  document.getElementById('ev-title-label').textContent = 'New Event';
+  document.getElementById('ev-title').value = '';
+  document.getElementById('ev-title-err').style.display = 'none';
+  document.getElementById('ev-desc').value = '';
+  document.getElementById('ev-start-date').value = startDate || '';
+  document.getElementById('ev-end-date').value = (endDate && endDate !== startDate) ? endDate : '';
+  document.getElementById('ev-start-time').value = startTime || '09:00';
+  document.getElementById('ev-end-time').value = endTime || '10:00';
+  document.getElementById('ev-allday').checked = allDay !== false;
+  document.getElementById('ev-delete-btn').style.display = 'none';
+  toggleAllDay();
+  pickColor('#6366f1');
+  showModal();
+  setTimeout(() => document.getElementById('ev-title').focus(), 80);
+}
+
+function openEdit(pk, title, startStr, endStr, allDay, description, color) {
+  _editPk = pk;
+  document.getElementById('ev-title-label').textContent = 'Edit Event';
+  document.getElementById('ev-title').value = title;
+  document.getElementById('ev-title-err').style.display = 'none';
+  document.getElementById('ev-desc').value = description || '';
+  document.getElementById('ev-start-date').value = startStr ? startStr.split('T')[0] : '';
+  document.getElementById('ev-end-date').value = endStr ? endStr.split('T')[0] : '';
+  document.getElementById('ev-start-time').value = startStr && startStr.includes('T') ? startStr.slice(11,16) : '09:00';
+  document.getElementById('ev-end-time').value = endStr && endStr.includes('T') ? endStr.slice(11,16) : '';
+  document.getElementById('ev-allday').checked = allDay;
+  document.getElementById('ev-delete-btn').style.display = 'inline-block';
+  toggleAllDay();
+  pickColor(color || '#6366f1');
+  showModal();
+  setTimeout(() => document.getElementById('ev-title').focus(), 80);
+}
+
+function showModal() {
+  document.getElementById('ev-modal').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('ev-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _editPk = null;
+}
+
+function toggleAllDay() {
+  const checked = document.getElementById('ev-allday').checked;
+  const track = document.getElementById('ev-allday-track');
+  const thumb = document.getElementById('ev-allday-thumb');
+  track.style.background = checked ? '#6366f1' : '#d1d5db';
+  thumb.style.transform = checked ? 'translateX(16px)' : 'translateX(0)';
+  ['ev-start-time','ev-end-time'].forEach(id => {
+    document.getElementById(id).style.display = checked ? 'none' : 'block';
+  });
+}
+
+function pickColor(hex) {
+  _selectedColor = hex;
+  document.querySelectorAll('#ev-colors button').forEach(btn => {
+    btn.style.borderColor = btn.dataset.color === hex ? '#1f2937' : 'transparent';
+    btn.style.transform   = btn.dataset.color === hex ? 'scale(1.25)' : 'scale(1)';
+  });
+  document.getElementById('ev-save-btn').style.background = hex;
+}
+
+// ── Save ───────────────────────────────────────────────────────
+async function saveEvent() {
+  const title = document.getElementById('ev-title').value.trim();
+  if (!title) {
+    document.getElementById('ev-title-err').style.display = 'block';
+    document.getElementById('ev-title').focus();
+    return;
+  }
+  document.getElementById('ev-title-err').style.display = 'none';
+
+  const allDay = document.getElementById('ev-allday').checked;
+  const startDate = document.getElementById('ev-start-date').value;
+  const startTime = document.getElementById('ev-start-time').value || '00:00';
+  const endDate = document.getElementById('ev-end-date').value;
+  const endTime = document.getElementById('ev-end-time').value || '00:00';
+
+  const startStr = allDay ? startDate : `${startDate}T${startTime}`;
+  const endStr   = endDate ? (allDay ? endDate : `${endDate}T${endTime}`) : '';
+
+  const payload = {
+    pk: _editPk,
+    title,
+    start: startStr,
+    end: endStr || null,
+    all_day: allDay,
+    description: document.getElementById('ev-desc').value.trim(),
+    color: _selectedColor,
+  };
+
+  const btn = document.getElementById('ev-save-btn');
+  btn.disabled = true;
+  btn.textContent = 'Saving…';
+
+  try {
+    const res = await fetch(SAVE_URL, {
+      method: 'POST',
+      headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/json'},
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+    if (!res.ok) { alert(data.error || 'Save failed.'); return; }
+    closeModal();
+    _calRef.refetchEvents();
+  } catch { alert('Network error. Please try again.'); }
+  finally { btn.disabled = false; btn.textContent = 'Save Event'; }
+}
+
+// ── Delete ─────────────────────────────────────────────────────
+async function deleteEvent() {
+  if (!_editPk || !confirm('Delete this event?')) return;
+  try {
+    const res = await fetch(DELETE_TPL.replace('/0/', '/' + _editPk + '/'), {
+      method: 'POST',
+      headers: {'X-CSRFToken': CSRF},
+    });
+    if (res.ok) { closeModal(); _calRef.refetchEvents(); }
+    else alert('Delete failed.');
+  } catch { alert('Network error.'); }
+}
+
+// Close on backdrop click / Escape
+document.getElementById('ev-modal').addEventListener('click', e => { if (e.target === document.getElementById('ev-modal')) closeModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+// Ctrl/Cmd+Enter saves
+document.addEventListener('keydown', e => { if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveEvent(); });
 </script>
 {% endblock %}

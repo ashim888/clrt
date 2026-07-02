@@ -17,11 +17,24 @@ User = get_user_model()
 
 
 @login_required
-@login_required
 def dashboard(request):
     today = timezone.now().date()
+    now_local = timezone.localtime(timezone.now())
     in_30_days = today + timezone.timedelta(days=30)
+    month_start = today.replace(day=1)
+    last_month_end = month_start - timezone.timedelta(days=1)
+    last_month_start = last_month_end.replace(day=1)
 
+    # ── Greeting ────────────────────────────────────────────────
+    hour = now_local.hour
+    if hour < 12:
+        greeting = "Good morning"
+    elif hour < 17:
+        greeting = "Good afternoon"
+    else:
+        greeting = "Good evening"
+
+    # ── Follow-ups ───────────────────────────────────────────────
     todays_followups = Activity.objects.filter(
         next_follow_up_date=today,
         status__in=["pending", "rescheduled"],
@@ -33,7 +46,6 @@ def dashboard(request):
         status__in=["pending", "rescheduled"],
     ).select_related("lead").order_by("next_follow_up_date")
 
-    # Client interaction follow-ups
     client_followups_today = ClientInteraction.objects.filter(
         next_follow_up_date=today,
         follow_up_done=False,
@@ -45,6 +57,26 @@ def dashboard(request):
         follow_up_done=False,
     ).select_related("client").order_by("next_follow_up_date")
 
+    # ── Today's merged agenda ────────────────────────────────────
+    agenda_today = []
+    for a in todays_followups:
+        agenda_today.append({
+            "kind": "lead", "pk": a.pk,
+            "name": a.lead.organization_name,
+            "url": f"/leads/{a.lead.pk}/",
+            "sub": a.get_type_display(),
+            "notes": a.notes,
+        })
+    for c in client_followups_today:
+        agenda_today.append({
+            "kind": "client", "pk": c.pk,
+            "name": c.client.organization_name,
+            "url": f"/clients/{c.client.pk}/",
+            "sub": c.get_type_display(),
+            "notes": c.notes,
+        })
+
+    # ── Contracts & Invoices ─────────────────────────────────────
     expiring_contracts = Contract.objects.filter(
         status="active",
         end_date__gte=today,
@@ -55,21 +87,93 @@ def dashboard(request):
         status__in=["pending", "overdue"]
     ).select_related("client").order_by("due_date")
 
+    pending_invoice_total = pending_invoices.aggregate(t=Sum("amount"))["t"] or 0
+
+    # ── Revenue ──────────────────────────────────────────────────
     revenue_month = Invoice.objects.filter(
         status="paid",
         generated_date__year=today.year,
         generated_date__month=today.month,
     ).aggregate(t=Sum("amount"))["t"] or 0
 
-    lead_stats = {
-        "total": Lead.objects.count(),
-        "new": Lead.objects.filter(status="new").count(),
-        "won": Lead.objects.filter(status="won").count(),
-        "lost": Lead.objects.filter(status="lost").count(),
-    }
+    revenue_last_month = Invoice.objects.filter(
+        status="paid",
+        generated_date__year=last_month_start.year,
+        generated_date__month=last_month_start.month,
+    ).aggregate(t=Sum("amount"))["t"] or 0
 
+    def _trend(cur, prev):
+        try:
+            cur, prev = float(cur or 0), float(prev or 0)
+            if prev == 0:
+                return None
+            return int((cur - prev) / prev * 100)
+        except Exception:
+            return None
+
+    revenue_trend = _trend(revenue_month, revenue_last_month)
+
+    # ── Won this month ───────────────────────────────────────────
+    won_qs = Lead.objects.filter(
+        status="won",
+        updated_at__year=today.year,
+        updated_at__month=today.month,
+    ).aggregate(count=Count("id"), value=Sum("deal_value"))
+    won_this_month = {"count": won_qs["count"] or 0, "value": won_qs["value"] or 0}
+
+    won_last = Lead.objects.filter(
+        status="won",
+        updated_at__year=last_month_start.year,
+        updated_at__month=last_month_start.month,
+    ).aggregate(value=Sum("deal_value"))["value"] or 0
+    won_trend = _trend(won_this_month["value"], won_last)
+
+    # ── Pipeline by stage ────────────────────────────────────────
+    OPEN_STAGES = [
+        ("new", "New"), ("contacted", "Contacted"),
+        ("demo", "Demo"), ("negotiation", "Negotiation"),
+    ]
+    STAGE_COLORS = {
+        "new": "#3b82f6", "contacted": "#6366f1",
+        "demo": "#8b5cf6", "negotiation": "#f59e0b",
+    }
+    stage_agg = {
+        s["status"]: s
+        for s in Lead.objects.filter(
+            status__in=[k for k, _ in OPEN_STAGES]
+        ).values("status").annotate(count=Count("id"), value=Sum("deal_value"))
+    }
+    pipeline_total = sum(float(v.get("value") or 0) for v in stage_agg.values())
+    max_val = max((float(v.get("value") or 0) for v in stage_agg.values()), default=1) or 1
+    pipeline_by_stage = []
+    for key, label in OPEN_STAGES:
+        d = stage_agg.get(key, {})
+        val = float(d.get("value") or 0)
+        pipeline_by_stage.append({
+            "key": key, "label": label,
+            "count": d.get("count", 0),
+            "value": val,
+            "pct": int(val / max_val * 100),
+            "color": STAGE_COLORS[key],
+        })
+
+    # ── Urgent count ─────────────────────────────────────────────
+    urgent_count = (
+        overdue_followups.count()
+        + client_followups_overdue.count()
+        + Invoice.objects.filter(status="overdue").count()
+    )
+
+    # ── Active clients ───────────────────────────────────────────
+    active_clients = Client.objects.filter(status="active").count()
+
+    # ── Recent activity feed ─────────────────────────────────────
+    recent_activities = Activity.objects.select_related(
+        "lead", "created_by"
+    ).order_by("-created_at")[:8]
+
+    # ── Monthly goal ─────────────────────────────────────────────
     from .models import UserGoal
-    month_start = today.replace(day=1)
     my_goal = None
     try:
         goal_obj = UserGoal.objects.get(user=request.user, month=month_start)
@@ -86,14 +190,30 @@ def dashboard(request):
 
     return render(request, "dashboard/dashboard.html", {
         "today": today,
+        "greeting": greeting,
+        # follow-ups (kept for modal JS)
         "todays_followups": todays_followups,
         "overdue_followups": overdue_followups,
         "client_followups_today": client_followups_today,
         "client_followups_overdue": client_followups_overdue,
+        # agenda
+        "agenda_today": agenda_today,
+        # alerts
         "expiring_contracts": expiring_contracts,
         "pending_invoices": pending_invoices,
+        "pending_invoice_total": pending_invoice_total,
+        # KPIs
         "revenue_month": revenue_month,
-        "lead_stats": lead_stats,
+        "revenue_trend": revenue_trend,
+        "won_this_month": won_this_month,
+        "won_trend": won_trend,
+        "pipeline_by_stage": pipeline_by_stage,
+        "pipeline_total": pipeline_total,
+        "urgent_count": urgent_count,
+        "active_clients": active_clients,
+        # feed
+        "recent_activities": recent_activities,
+        # goal
         "my_goal": my_goal,
     })
 
@@ -644,7 +764,10 @@ def audit_trail(request):
 
 @login_required
 def calendar_view(request):
-    return render(request, "dashboard/calendar.html")
+    from .models import CalendarEvent
+    return render(request, "dashboard/calendar.html", {
+        "color_choices": CalendarEvent.COLOR_CHOICES,
+    })
 
 
 @login_required
@@ -720,7 +843,105 @@ def calendar_events(request):
             "extendedProps": {"type": "Contract Expiry"},
         })
 
+    from .models import CalendarEvent
+    from datetime import datetime as _dt2, time as _time2, date as _date2
+    from django.utils import timezone as _tz2
+    ce_qs = CalendarEvent.objects.select_related('created_by')
+    if start:
+        start_aware = _tz2.make_aware(_dt2.combine(_date2.fromisoformat(start[:10]), _time2.min))
+        ce_qs = ce_qs.filter(start__gte=start_aware)
+    if end:
+        end_aware = _tz2.make_aware(_dt2.combine(_date2.fromisoformat(end[:10]), _time2.max))
+        ce_qs = ce_qs.filter(start__lte=end_aware)
+    from django.utils import timezone as _tz_local
+    for e in ce_qs:
+        local_start = _tz_local.localtime(e.start)
+        start_out = local_start.strftime('%Y-%m-%d') if e.all_day else local_start.isoformat()
+        end_out = None
+        if e.end:
+            local_end = _tz_local.localtime(e.end)
+            end_out = local_end.strftime('%Y-%m-%d') if e.all_day else local_end.isoformat()
+        events.append({
+            'id': f'custom-{e.pk}',
+            'title': e.title,
+            'start': start_out,
+            'end': end_out,
+            'allDay': e.all_day,
+            'color': e.color,
+            'extendedProps': {
+                'type': 'custom',
+                'pk': e.pk,
+                'description': e.description,
+                'created_by': str(e.created_by) if e.created_by else '',
+            },
+        })
+
     return _JR(events, safe=False)
+
+
+@login_required
+@require_POST
+def calendar_event_save(request):
+    from .models import CalendarEvent
+    from datetime import datetime as _dt, time as _time
+    from django.utils import timezone as _tz
+    from django.utils.dateparse import parse_date
+    from django.shortcuts import get_object_or_404
+    try:
+        data = json.loads(request.body)
+    except json.JSONDecodeError:
+        return JsonResponse({'error': 'Invalid JSON'}, status=400)
+
+    title = data.get('title', '').strip()
+    if not title:
+        return JsonResponse({'error': 'Title is required.'}, status=400)
+
+    all_day = bool(data.get('all_day', True))
+    start_str = data.get('start', '')
+    end_str = data.get('end', '')
+    color = data.get('color', '#6366f1')
+    description = data.get('description', '')
+    pk = data.get('pk')
+
+    try:
+        if all_day:
+            d = parse_date(start_str[:10])
+            start = _tz.make_aware(_dt.combine(d, _time.min))
+            end = _tz.make_aware(_dt.combine(parse_date(end_str[:10]), _time.min)) if end_str else None
+        else:
+            naive_start = _dt.fromisoformat(start_str)
+            start = _tz.make_aware(naive_start) if _tz.is_naive(naive_start) else naive_start
+            if end_str:
+                naive_end = _dt.fromisoformat(end_str)
+                end = _tz.make_aware(naive_end) if _tz.is_naive(naive_end) else naive_end
+            else:
+                end = None
+    except (ValueError, TypeError, AttributeError):
+        return JsonResponse({'error': 'Invalid date/time.'}, status=400)
+
+    if pk:
+        event = get_object_or_404(CalendarEvent, pk=pk)
+    else:
+        event = CalendarEvent(created_by=request.user)
+
+    event.title = title
+    event.start = start
+    event.end = end
+    event.all_day = all_day
+    event.color = color
+    event.description = description
+    event.save()
+    return JsonResponse({'ok': True, 'pk': event.pk})
+
+
+@login_required
+@require_POST
+def calendar_event_delete(request, pk):
+    from .models import CalendarEvent
+    from django.shortcuts import get_object_or_404
+    event = get_object_or_404(CalendarEvent, pk=pk)
+    event.delete()
+    return JsonResponse({'ok': True})
 
 
 # ── Quota / Goal Tracking ────────────────────────────────────────

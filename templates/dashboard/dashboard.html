@@ -1,280 +1,352 @@
 {% extends "base.html" %}
+{% load clrt_filters %}
 {% block title %}Dashboard{% endblock %}
 {% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
 
 {% block content %}
-<style>
-  /* Stat cards */
-  .stat-card { border-radius: .875rem; padding: 1.25rem 1.5rem; color: #fff; }
-  .stat-card .stat-label  { font-size: .72rem; font-weight: 500; opacity: .8; text-transform: uppercase; letter-spacing: .05em; }
-  .stat-card .stat-number { font-size: clamp(1.6rem, 5vw, 2.5rem); font-weight: 800; line-height: 1; margin: .25rem 0; }
-  .stat-card .stat-sub    { font-size: .75rem; opacity: .75; }
 
-  /* Section headers */
-  .section-header {
-    display: flex; align-items: center; justify-content: space-between;
-    padding: .875rem 1.25rem;
-    border-bottom: 1px solid rgba(0,0,0,.06);
-    border-radius: .875rem .875rem 0 0;
-  }
-  .section-header h2 { font-size: .9rem; font-weight: 700; display:flex; align-items:center; gap:.5rem; }
-  .section-header a  { font-size: .72rem; font-weight: 500; opacity: .8; text-decoration: underline; }
-
-  /* Alert sections */
-  .alert-section       { border-radius: .875rem; overflow: hidden; border: 1.5px solid; }
-  .alert-section.blue   { border-color: #93c5fd; background:#eff6ff; }
-  .alert-section.red    { border-color: #fca5a5; background:#fff5f5; }
-  .alert-section.amber  { border-color: #fcd34d; background:#fffbeb; }
-  .alert-section.orange { border-color: #fdba74; background:#fff7ed; }
-  .alert-section.gray   { border-color: #e5e7eb; background:#fff; }
-
-  .alert-section.blue   .section-header { background:#2563eb; color:#fff; }
-  .alert-section.red    .section-header { background:#dc2626; color:#fff; }
-  .alert-section.amber  .section-header { background:#d97706; color:#fff; }
-  .alert-section.orange .section-header { background:#ea580c; color:#fff; }
-  .alert-section.gray   .section-header { background:#f9fafb; color:#111827; }
-
-  /* Alert rows */
-  .alert-row { display:flex; align-items:center; justify-content:space-between; padding:.7rem 1.25rem; gap:.5rem; flex-wrap:wrap; }
-  .alert-section.blue   .alert-row { border-bottom:1px solid #bfdbfe; }
-  .alert-section.red    .alert-row { border-bottom:1px solid #fecaca; }
-  .alert-section.amber  .alert-row { border-bottom:1px solid #fde68a; }
-  .alert-section.orange .alert-row { border-bottom:1px solid #fed7aa; }
-  .alert-section.gray   .alert-row { border-bottom:1px solid #f3f4f6; }
-  .alert-row:last-child { border-bottom: none; }
-
-  .alert-section.blue   .alert-row:hover { background:#dbeafe; }
-  .alert-section.red    .alert-row:hover { background:#fee2e2; }
-  .alert-section.amber  .alert-row:hover { background:#fef3c7; }
-  .alert-section.orange .alert-row:hover { background:#ffedd5; }
-  .alert-section.gray   .alert-row:hover { background:#f9fafb; }
-
-  .alert-row .row-title { font-size:.85rem; font-weight:600; color:#111827; }
-  .alert-row .row-title:hover { text-decoration:underline; }
-  .alert-row .row-sub   { font-size:.72rem; color:#6b7280; margin-top:1px; }
-
-  .alert-pill {
-    font-size:.68rem; font-weight:700; letter-spacing:.04em;
-    padding:3px 10px; border-radius:999px; white-space:nowrap; text-transform:uppercase;
-  }
-  .pill-blue  { background:#2563eb; color:#fff; }
-  .pill-red   { background:#dc2626; color:#fff; }
-  .pill-amber { background:#d97706; color:#fff; }
-  .pill-orange { background:#ea580c; color:#fff; }
-  .pill-red-soft   { background:#fee2e2; color:#b91c1c; }
-  .pill-amber-soft { background:#fef3c7; color:#92400e; }
-
-  .empty-state { padding: 2.5rem 1rem; text-align:center; font-size:.85rem; }
-  .alert-section.blue   .empty-state { color:#3b82f6; }
-  .alert-section.red    .empty-state { color:#ef4444; }
-  .alert-section.amber  .empty-state { color:#f59e0b; }
-  .alert-section.orange .empty-state { color:#f97316; }
-  .alert-section.gray   .empty-state { color:#9ca3af; }
-</style>
-
-<div class="flex items-center justify-between mb-6">
+<!-- ── Header ─────────────────────────────────────────────────── -->
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
   <div>
-    <h1 class="text-2xl font-bold text-gray-900">Dashboard</h1>
-    <p class="text-gray-500 text-sm">{{ today|date:"l, F j, Y" }}</p>
+    <h1 class="text-2xl font-bold text-gray-900">{{ greeting }}, {{ request.user.first_name|default:request.user.username }}</h1>
+    <p class="text-sm text-gray-500 mt-0.5">{{ today|date:"l, F j, Y" }}</p>
+  </div>
+  <div class="flex flex-wrap gap-2">
+    <a href="{% url 'leads:lead_create' %}"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+      New Lead
+    </a>
+    <a href="{% url 'billing:invoice_create' %}"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      New Invoice
+    </a>
+    <a href="{% url 'dashboard:calendar' %}"
+      class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 text-sm font-semibold transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+      Calendar
+    </a>
   </div>
 </div>
 
+<!-- ── Goal bar ───────────────────────────────────────────────── -->
 {% if my_goal %}
-<div class="card p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
-  <div class="flex-1 min-w-0">
-    <div class="flex items-center justify-between mb-1.5">
-      <p class="text-sm font-semibold text-gray-700">Your {{ today|date:"F" }} Target</p>
-      <span class="text-sm font-bold {% if my_goal.pct >= 100 %}text-green-600{% elif my_goal.pct >= 60 %}text-amber-600{% else %}text-indigo-600{% endif %}">
-        {{ my_goal.pct }}%
-      </span>
-    </div>
-    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-      <div class="h-3 rounded-full transition-all
-        {% if my_goal.pct >= 100 %}bg-green-500{% elif my_goal.pct >= 60 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
-        style="width:{{ my_goal.pct }}%"></div>
-    </div>
-    <div class="flex items-center justify-between mt-1.5 text-xs text-gray-500">
-      <span>{{ my_goal.achieved|inr }} achieved</span>
-      <span>Target: {{ my_goal.target|inr }}</span>
-    </div>
+<div class="card p-4 mb-5">
+  <div class="flex items-center justify-between mb-1.5">
+    <p class="text-sm font-semibold text-gray-700">Your {{ today|date:"F" }} Target</p>
+    <span class="text-sm font-bold {% if my_goal.pct >= 100 %}text-green-600{% elif my_goal.pct >= 60 %}text-amber-600{% else %}text-indigo-600{% endif %}">
+      {{ my_goal.pct }}%{% if my_goal.pct >= 100 %} 🎉{% endif %}
+    </span>
   </div>
-  {% if my_goal.pct >= 100 %}
-  <div class="text-2xl flex-shrink-0">🎉</div>
-  {% endif %}
+  <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden">
+    <div class="h-2.5 rounded-full transition-all
+      {% if my_goal.pct >= 100 %}bg-green-500{% elif my_goal.pct >= 60 %}bg-amber-400{% else %}bg-indigo-500{% endif %}"
+      style="width:{{ my_goal.pct }}%"></div>
+  </div>
+  <div class="flex justify-between text-xs text-gray-400 mt-1.5">
+    <span>{{ my_goal.achieved|inr }} achieved</span>
+    <span>Target {{ my_goal.target|inr }}</span>
+  </div>
 </div>
 {% endif %}
 
-  <!-- Stats Row -->
-<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
-  <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);">
-    <p class="stat-label">Total Leads</p>
-    <p class="stat-number">{{ lead_stats.total }}</p>
-    <p class="stat-sub">{{ lead_stats.won }} won &middot; {{ lead_stats.new }} new</p>
-  </div>
-  <div class="stat-card {% if todays_followups %}{% else %}opacity-80{% endif %}"
-    style="background:{% if todays_followups %}linear-gradient(135deg,#0e7490,#06b6d4){% else %}linear-gradient(135deg,#6b7280,#9ca3af){% endif %}">
-    <p class="stat-label">Follow-ups Today</p>
-    <p class="stat-number">{{ todays_followups|length }}</p>
-    <p class="stat-sub">{% if todays_followups %}Needs your attention{% else %}All clear{% endif %}</p>
-  </div>
-  <div class="stat-card {% if overdue_followups %}{% else %}opacity-80{% endif %}"
-    style="background:{% if overdue_followups %}linear-gradient(135deg,#991b1b,#ef4444){% else %}linear-gradient(135deg,#6b7280,#9ca3af){% endif %}">
-    <p class="stat-label">Overdue Follow-ups</p>
-    <p class="stat-number">{{ overdue_followups|length }}</p>
-    <p class="stat-sub">{% if overdue_followups %}Action required{% else %}All clear{% endif %}</p>
-  </div>
-  <div class="stat-card" style="background:linear-gradient(135deg,#065f46,#10b981);">
-    <p class="stat-label">Revenue This Month</p>
-    <p class="stat-number" style="font-size:1.6rem;">{{ revenue_month|inr }}</p>
-    <p class="stat-sub">Paid invoices</p>
-  </div>
-</div>
+<!-- ── KPI strip ──────────────────────────────────────────────── -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
 
-<div class="grid lg:grid-cols-2 gap-6">
-
-  <!-- Today's Follow-ups -->
-  <div class="alert-section {% if todays_followups %}blue{% else %}gray{% endif %}">
-    <div class="section-header">
-      <h2>📅 Today's Follow-ups
-        {% if todays_followups %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ todays_followups|length }}</span>{% endif %}
-      </h2>
-      <a href="/leads/">View leads</a>
-    </div>
-    {% for a in todays_followups %}
-    <div class="alert-row" id="activity-row-{{ a.pk }}">
-      <div>
-        <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
-        <p class="row-sub">{{ a.get_type_display }}{% if a.notes %} · {{ a.notes|truncatechars:45 }}{% endif %}</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:.5rem;">
-        <span class="alert-pill pill-blue">Today</span>
-        <button onclick="openDoneModal({{ a.pk }}, '{{ csrf_token }}')"
-          style="font-size:.68rem;padding:3px 10px;border-radius:999px;border:none;background:#2563eb;color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.18);"
-          title="Update status">⚡ Update</button>
-      </div>
-    </div>
-    {% empty %}
-    <div class="empty-state">✅ No follow-ups scheduled today</div>
-    {% endfor %}
+  <!-- Pipeline -->
+  <div class="card p-5" style="border-top:3px solid #6366f1;">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Open Pipeline</p>
+    <p class="text-2xl font-extrabold text-gray-900 leading-tight">{{ pipeline_total|inr }}</p>
+    <p class="text-xs text-gray-500 mt-1">
+      {{ pipeline_by_stage|length }} active stage{{ pipeline_by_stage|length|pluralize }} ·
+      {% for s in pipeline_by_stage %}{{ s.count }}{% if not forloop.last %}+{% endif %}{% endfor %} leads
+    </p>
   </div>
 
-  <!-- Overdue Follow-ups -->
-  <div class="alert-section {% if overdue_followups %}red{% else %}gray{% endif %}">
-    <div class="section-header">
-      <h2>⚠️ Overdue Follow-ups
-        {% if overdue_followups %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ overdue_followups|length }}</span>{% endif %}
-      </h2>
-    </div>
-    {% for a in overdue_followups|slice:":8" %}
-    <div class="alert-row" id="activity-row-{{ a.pk }}">
-      <div>
-        <a href="{% url "leads:lead_detail" a.lead.pk %}" class="row-title">{{ a.lead.organization_name }}</a>
-        <p class="row-sub">Due {{ a.next_follow_up_date }} · {{ a.get_type_display }}</p>
-      </div>
-      <div style="display:flex;align-items:center;gap:.5rem;">
-        <span class="alert-pill pill-red">Overdue</span>
-        <button onclick="openDoneModal({{ a.pk }}, '{{ csrf_token }}')"
-          style="font-size:.68rem;padding:3px 10px;border-radius:999px;border:none;background:#dc2626;color:#fff;cursor:pointer;font-weight:700;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.18);"
-          title="Update status">⚡ Update</button>
-      </div>
-    </div>
-    {% empty %}
-    <div class="empty-state">✅ No overdue follow-ups</div>
-    {% endfor %}
+  <!-- Won this month -->
+  <div class="card p-5" style="border-top:3px solid #10b981;">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Won This Month</p>
+    <p class="text-2xl font-extrabold text-gray-900 leading-tight">{{ won_this_month.value|inr }}</p>
+    <p class="text-xs mt-1 flex items-center gap-1">
+      <span class="text-gray-500">{{ won_this_month.count }} deal{{ won_this_month.count|pluralize }}</span>
+      {% if won_trend is not None %}
+        {% if won_trend >= 0 %}
+          <span class="text-green-600 font-semibold">↑ {{ won_trend }}%</span>
+        {% else %}
+          <span class="text-red-500 font-semibold">↓ {{ won_trend|cut:"-" }}%</span>
+        {% endif %}
+        <span class="text-gray-400">vs last month</span>
+      {% endif %}
+    </p>
   </div>
 
-  <!-- Client Follow-ups Today -->
-  {% if client_followups_today %}
-  <div class="alert-section blue">
-    <div class="section-header">
-      <h2>🤝 Client Follow-ups — Today
-        <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ client_followups_today|length }}</span>
-      </h2>
-      <a href="/clients/" style="color:#fff;">All Clients →</a>
-    </div>
-    {% for item in client_followups_today %}
-    <div class="alert-row" id="cf-row-{{ item.pk }}">
-      <div>
-        <a href="{% url "clients:client_detail" item.client.pk %}" class="font-semibold text-blue-900 hover:underline text-sm">{{ item.client.organization_name }}</a>
-        <p class="text-xs text-blue-700 mt-0.5">{{ item.get_type_display }} · {{ item.notes|truncatechars:80 }}</p>
-      </div>
-      <button onclick="markClientFollowUpDone({{ item.pk }}, '{{ csrf_token }}')"
-        class="text-xs bg-blue-700 hover:bg-blue-800 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 transition-colors">
-        Done
-      </button>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- Client Follow-ups Overdue -->
-  {% if client_followups_overdue %}
-  <div class="alert-section red">
-    <div class="section-header">
-      <h2>⚠️ Client Follow-ups — Overdue
-        <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ client_followups_overdue|length }}</span>
-      </h2>
-    </div>
-    {% for item in client_followups_overdue %}
-    <div class="alert-row" id="cf-row-{{ item.pk }}">
-      <div>
-        <a href="{% url "clients:client_detail" item.client.pk %}" class="font-semibold text-red-900 hover:underline text-sm">{{ item.client.organization_name }}</a>
-        <p class="text-xs text-red-700 mt-0.5">{{ item.get_type_display }} · was due {{ item.next_follow_up_date }}</p>
-        <p class="text-xs text-red-600 mt-0.5">{{ item.notes|truncatechars:70 }}</p>
-      </div>
-      <button onclick="markClientFollowUpDone({{ item.pk }}, '{{ csrf_token }}')"
-        class="text-xs bg-red-700 hover:bg-red-800 text-white px-3 py-1.5 rounded-lg font-semibold flex-shrink-0 transition-colors">
-        Done
-      </button>
-    </div>
-    {% endfor %}
-  </div>
-  {% endif %}
-
-  <!-- Expiring Contracts -->
-  <div class="alert-section {% if expiring_contracts %}amber{% else %}gray{% endif %}">
-    <div class="section-header">
-      <h2>📃 Contracts Expiring Soon
-        {% if expiring_contracts %}<span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ expiring_contracts|length }}</span>{% endif %}
-      </h2>
-    </div>
-    {% for c in expiring_contracts %}
-    <div class="alert-row">
-      <div>
-        <a href="{% url "clients:contract_detail" c.pk %}" class="row-title">{{ c.contract_title }}</a>
-        <p class="row-sub">{{ c.client }} · expires {{ c.end_date }}</p>
-      </div>
-      <span class="alert-pill pill-amber">{{ c.days_until_expiry }}d left</span>
-    </div>
-    {% empty %}
-    <div class="empty-state">✅ No contracts expiring in 30 days</div>
-    {% endfor %}
+  <!-- Revenue -->
+  <div class="card p-5" style="border-top:3px solid #3b82f6;">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Revenue This Month</p>
+    <p class="text-2xl font-extrabold text-gray-900 leading-tight">{{ revenue_month|inr }}</p>
+    <p class="text-xs mt-1 flex items-center gap-1">
+      <span class="text-gray-500">Paid invoices</span>
+      {% if revenue_trend is not None %}
+        {% if revenue_trend >= 0 %}
+          <span class="text-green-600 font-semibold">↑ {{ revenue_trend }}%</span>
+        {% else %}
+          <span class="text-red-500 font-semibold">↓ {{ revenue_trend|cut:"-" }}%</span>
+        {% endif %}
+      {% endif %}
+    </p>
   </div>
 
-  <!-- Pending Invoices -->
-  <div class="alert-section {% if pending_invoices %}orange{% else %}gray{% endif %}">
-    <div class="section-header">
-      <h2>💳 Pending Invoices</h2>
-      <a href="/billing/?status=overdue" style="color:{% if pending_invoices %}rgba(255,255,255,.85){% else %}#ea580c{% endif %};">View overdue</a>
-    </div>
-    {% for inv in pending_invoices|slice:":8" %}
-    <div class="alert-row">
-      <div>
-        <a href="{% url "billing:invoice_detail" inv.pk %}" class="row-title">{{ inv.invoice_number }}</a>
-        <p class="row-sub">{{ inv.client }} · {{ inv.amount|inr }} · due {{ inv.due_date }}</p>
-      </div>
-      <span class="alert-pill {% if inv.status == "overdue" %}pill-orange{% else %}pill-amber-soft{% endif %}">
-        {{ inv.get_status_display }}
-      </span>
-    </div>
-    {% empty %}
-    <div class="empty-state">✅ No pending invoices</div>
-    {% endfor %}
+  <!-- Urgent -->
+  <div class="card p-5" style="border-top:3px solid {% if urgent_count %}#ef4444{% else %}#d1d5db{% endif %};">
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Urgent Items</p>
+    <p class="text-2xl font-extrabold {% if urgent_count %}text-red-600{% else %}text-gray-900{% endif %} leading-tight">{{ urgent_count }}</p>
+    <p class="text-xs text-gray-500 mt-1">
+      {{ overdue_followups.count }} overdue follow-up{{ overdue_followups.count|pluralize }} ·
+      {{ active_clients }} active client{{ active_clients|pluralize }}
+    </p>
   </div>
 
 </div>
 
-<!-- Activity Status Modal -->
+<!-- ── Main 2-col ─────────────────────────────────────────────── -->
+<div class="grid lg:grid-cols-5 gap-6">
+
+  <!-- LEFT: pipeline funnel + recent feed (col-span-3) -->
+  <div class="lg:col-span-3 flex flex-col gap-6">
+
+    <!-- Pipeline funnel -->
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+        <h2 class="text-sm font-bold text-gray-800">Pipeline by Stage</h2>
+        <a href="{% url 'leads:lead_list' %}" class="text-xs text-indigo-600 hover:underline font-medium">All leads →</a>
+      </div>
+      <div class="p-5 space-y-4">
+        {% for s in pipeline_by_stage %}
+        <div>
+          <div class="flex items-center justify-between mb-1.5">
+            <span class="text-sm font-semibold text-gray-700">{{ s.label }}</span>
+            <div class="flex items-center gap-3 text-xs text-gray-500">
+              <span class="font-medium text-gray-800">{{ s.value|inr }}</span>
+              <span class="w-16 text-right">{{ s.count }} lead{{ s.count|pluralize }}</span>
+            </div>
+          </div>
+          <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+            <div class="h-2 rounded-full transition-all duration-500"
+              style="width:{% if s.pct %}{{ s.pct }}{% else %}2{% endif %}%;background:{{ s.color }};"></div>
+          </div>
+        </div>
+        {% empty %}
+        <p class="text-sm text-gray-400 text-center py-4">No open leads in pipeline.</p>
+        {% endfor %}
+
+        {% if pipeline_total %}
+        <div class="pt-2 border-t border-gray-100 flex items-center justify-between text-xs text-gray-500">
+          <span>Total pipeline value</span>
+          <span class="font-bold text-gray-800 text-sm">{{ pipeline_total|inr }}</span>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Recent activity feed -->
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100">
+        <h2 class="text-sm font-bold text-gray-800">Recent Activity</h2>
+        <a href="{% url 'leads:lead_list' %}" class="text-xs text-indigo-600 hover:underline font-medium">View leads →</a>
+      </div>
+      <div class="divide-y divide-gray-50">
+        {% for a in recent_activities %}
+        <div class="flex items-start gap-3 px-5 py-3 hover:bg-gray-50 transition-colors">
+          <div class="flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm mt-0.5
+            {% if a.type == 'call' %}bg-blue-100 text-blue-600
+            {% elif a.type == 'meeting' %}bg-purple-100 text-purple-600
+            {% elif a.type == 'email' %}bg-amber-100 text-amber-600
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            {% if a.type == 'call' %}📞
+            {% elif a.type == 'meeting' %}🤝
+            {% elif a.type == 'email' %}✉️
+            {% else %}📝{% endif %}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <a href="{% url 'leads:lead_detail' a.lead.pk %}" class="text-sm font-semibold text-gray-800 hover:underline truncate">{{ a.lead.organization_name }}</a>
+              <span class="text-xs px-2 py-0.5 rounded-full font-medium
+                {% if a.status == 'completed' %}bg-green-100 text-green-700
+                {% elif a.status == 'cancelled' %}bg-red-100 text-red-700
+                {% elif a.status == 'rescheduled' %}bg-amber-100 text-amber-700
+                {% else %}bg-gray-100 text-gray-600{% endif %}">
+                {{ a.get_status_display }}
+              </span>
+            </div>
+            <p class="text-xs text-gray-500 mt-0.5 truncate">{{ a.get_type_display }}{% if a.notes %} · {{ a.notes|truncatechars:60 }}{% endif %}</p>
+          </div>
+          <span class="text-xs text-gray-400 flex-shrink-0 mt-1">{{ a.created_at|timesince|truncatewords:2 }} ago</span>
+        </div>
+        {% empty %}
+        <p class="text-sm text-gray-400 text-center py-8">No activity logged yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
+  </div>
+
+  <!-- RIGHT: agenda + alerts (col-span-2) -->
+  <div class="lg:col-span-2 flex flex-col gap-6">
+
+    <!-- Today's agenda -->
+    <div class="card overflow-hidden">
+      <div class="flex items-center justify-between px-5 py-3.5 border-b border-gray-100"
+        style="background:{% if agenda_today %}#1d4ed8{% else %}#f9fafb{% endif %};">
+        <h2 class="text-sm font-bold {% if agenda_today %}text-white{% else %}text-gray-800{% endif %} flex items-center gap-2">
+          📅 Today's Agenda
+          {% if agenda_today %}
+          <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ agenda_today|length }}</span>
+          {% endif %}
+        </h2>
+        {% if agenda_today %}
+        <a href="{% url 'leads:lead_list' %}" class="text-xs text-blue-200 hover:text-white font-medium">All →</a>
+        {% endif %}
+      </div>
+
+      <div class="divide-y divide-gray-50">
+        {% for item in agenda_today %}
+        <div class="flex items-center justify-between gap-2 px-4 py-3 hover:bg-gray-50 transition-colors"
+          {% if item.kind == 'lead' %}id="activity-row-{{ item.pk }}"{% else %}id="cf-row-{{ item.pk }}"{% endif %}>
+          <div class="flex items-center gap-2.5 min-w-0 flex-1">
+            <span class="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs
+              {% if item.kind == 'lead' %}bg-blue-100 text-blue-600{% else %}bg-emerald-100 text-emerald-600{% endif %}">
+              {% if item.kind == 'lead' %}L{% else %}C{% endif %}
+            </span>
+            <div class="min-w-0">
+              <a href="{{ item.url }}" class="text-sm font-semibold text-gray-800 hover:underline truncate block">{{ item.name }}</a>
+              <p class="text-xs text-gray-500 truncate">{{ item.sub }}{% if item.notes %} · {{ item.notes|truncatechars:35 }}{% endif %}</p>
+            </div>
+          </div>
+          {% if item.kind == 'lead' %}
+          <button onclick="openDoneModal({{ item.pk }}, '{{ csrf_token }}')"
+            class="flex-shrink-0 text-xs bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1.5 rounded-lg font-semibold transition-colors">
+            Update
+          </button>
+          {% else %}
+          <button onclick="markClientFollowUpDone({{ item.pk }}, '{{ csrf_token }}')"
+            class="flex-shrink-0 text-xs bg-emerald-600 hover:bg-emerald-700 text-white px-2.5 py-1.5 rounded-lg font-semibold transition-colors">
+            Done
+          </button>
+          {% endif %}
+        </div>
+        {% empty %}
+        <div class="py-8 text-center">
+          <p class="text-2xl mb-1">✅</p>
+          <p class="text-sm text-gray-400">Nothing scheduled for today</p>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Overdue follow-ups (compact) -->
+    {% if overdue_followups or client_followups_overdue %}
+    <div class="card overflow-hidden" style="border:1.5px solid #fecaca;">
+      <div class="px-5 py-3.5 border-b border-red-100" style="background:#dc2626;">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          ⚠️ Overdue Follow-ups
+          <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">
+            {{ overdue_followups.count|add:client_followups_overdue.count }}
+          </span>
+        </h2>
+      </div>
+      <div class="divide-y divide-red-50 bg-red-50">
+        {% for a in overdue_followups|slice:":5" %}
+        <div class="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-red-100 transition-colors"
+          id="activity-row-{{ a.pk }}">
+          <div class="min-w-0 flex-1">
+            <a href="{% url 'leads:lead_detail' a.lead.pk %}" class="text-sm font-semibold text-red-900 hover:underline block truncate">{{ a.lead.organization_name }}</a>
+            <p class="text-xs text-red-600">Due {{ a.next_follow_up_date }} · {{ a.get_type_display }}</p>
+          </div>
+          <button onclick="openDoneModal({{ a.pk }}, '{{ csrf_token }}')"
+            class="flex-shrink-0 text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg font-semibold transition-colors">
+            Update
+          </button>
+        </div>
+        {% endfor %}
+        {% for c in client_followups_overdue|slice:":3" %}
+        <div class="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-red-100 transition-colors"
+          id="cf-row-{{ c.pk }}">
+          <div class="min-w-0 flex-1">
+            <a href="{% url 'clients:client_detail' c.client.pk %}" class="text-sm font-semibold text-red-900 hover:underline block truncate">{{ c.client.organization_name }}</a>
+            <p class="text-xs text-red-600">Due {{ c.next_follow_up_date }} · {{ c.get_type_display }}</p>
+          </div>
+          <button onclick="markClientFollowUpDone({{ c.pk }}, '{{ csrf_token }}')"
+            class="flex-shrink-0 text-xs bg-red-600 hover:bg-red-700 text-white px-2.5 py-1.5 rounded-lg font-semibold transition-colors">
+            Done
+          </button>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Expiring contracts (compact) -->
+    {% if expiring_contracts %}
+    <div class="card overflow-hidden" style="border:1.5px solid #fde68a;">
+      <div class="px-5 py-3.5 border-b border-amber-100" style="background:#d97706;">
+        <h2 class="text-sm font-bold text-white flex items-center gap-2">
+          📃 Contracts Expiring Soon
+          <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ expiring_contracts|length }}</span>
+        </h2>
+      </div>
+      <div class="divide-y divide-amber-50 bg-amber-50">
+        {% for c in expiring_contracts %}
+        <div class="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-amber-100 transition-colors">
+          <div class="min-w-0 flex-1">
+            <a href="{% url 'clients:contract_detail' c.pk %}" class="text-sm font-semibold text-amber-900 hover:underline block truncate">{{ c.contract_title }}</a>
+            <p class="text-xs text-amber-700">{{ c.client }} · expires {{ c.end_date }}</p>
+          </div>
+          <span class="flex-shrink-0 text-xs bg-amber-200 text-amber-800 px-2.5 py-1 rounded-full font-bold">{{ c.days_until_expiry }}d</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Pending invoices (compact) -->
+    {% if pending_invoices %}
+    <div class="card overflow-hidden" style="border:1.5px solid #fed7aa;">
+      <div class="px-5 py-3.5 border-b border-orange-100" style="background:#ea580c;">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-bold text-white flex items-center gap-2">
+            💳 Pending Invoices
+            <span style="background:rgba(255,255,255,.25);border-radius:999px;padding:1px 9px;font-size:.72rem;">{{ pending_invoices|length }}</span>
+          </h2>
+          <span class="text-xs text-orange-200 font-semibold">{{ pending_invoice_total|inr }}</span>
+        </div>
+      </div>
+      <div class="divide-y divide-orange-50 bg-orange-50">
+        {% for inv in pending_invoices|slice:":5" %}
+        <div class="flex items-center justify-between gap-2 px-4 py-2.5 hover:bg-orange-100 transition-colors">
+          <div class="min-w-0 flex-1">
+            <a href="{% url 'billing:invoice_detail' inv.pk %}" class="text-sm font-semibold text-orange-900 hover:underline block truncate">{{ inv.invoice_number }} · {{ inv.client }}</a>
+            <p class="text-xs text-orange-700">{{ inv.amount|inr }} · due {{ inv.due_date }}</p>
+          </div>
+          <span class="flex-shrink-0 text-xs px-2.5 py-1 rounded-full font-bold
+            {% if inv.status == 'overdue' %}bg-red-200 text-red-800{% else %}bg-orange-200 text-orange-800{% endif %}">
+            {{ inv.get_status_display }}
+          </span>
+        </div>
+        {% endfor %}
+        {% if pending_invoices|length > 5 %}
+        <div class="px-4 py-2 text-center">
+          <a href="{% url 'billing:invoice_list' %}?status=overdue" class="text-xs text-orange-600 hover:underline font-medium">View all {{ pending_invoices|length }} →</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+
+<!-- ── Activity Status Modal ──────────────────────────────────── -->
 <div id="done-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.45);align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:14px;padding:1.6rem 1.8rem;max-width:460px;width:90%;box-shadow:0 8px 32px rgba(0,0,0,.22);">
     <h3 style="font-size:1rem;font-weight:700;color:#111827;margin:0 0 .3rem;">Update Activity Status</h3>
@@ -285,7 +357,6 @@
       <button data-status="cancelled"   onclick="dashPickStatus('cancelled')"   style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">❌ Cancelled</button>
       <button data-status="rescheduled" onclick="dashPickStatus('rescheduled')" style="padding:.5rem .7rem;border-radius:8px;border:2px solid #e5e7eb;background:#f9fafb;color:#374151;font-size:.8rem;font-weight:600;cursor:pointer;text-align:left;">📅 Rescheduled</button>
     </div>
-    <!-- Reschedule date — shown only when Rescheduled is selected -->
     <div id="done-reschedule-wrap" style="display:none;margin:.2rem 0 .6rem;padding:.6rem .75rem;background:#fffbeb;border:1.5px solid #fcd34d;border-radius:8px;">
       <label style="font-size:.75rem;font-weight:600;color:#92400e;display:block;margin-bottom:.3rem;">📅 Reschedule to <span style="color:#dc2626;font-weight:400;">*</span></label>
       <input type="date" id="done-reschedule-date"
@@ -299,10 +370,8 @@
         style="font-size:.78rem;color:#6b7280;border:1.5px dashed #d1d5db;border-radius:8px;padding:.4rem .6rem;background:#f9fafb;width:100%;display:block;box-sizing:border-box;cursor:pointer;">
     </div>
     <div style="display:flex;justify-content:flex-end;gap:.6rem;margin-top:.9rem;">
-      <button onclick="closeDoneModal()"
-        style="padding:.42rem 1.1rem;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;color:#374151;font-size:.82rem;font-weight:600;cursor:pointer;">Cancel</button>
-      <button onclick="confirmDone()"
-        style="padding:.42rem 1.2rem;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;">Save Status</button>
+      <button onclick="closeDoneModal()" style="padding:.42rem 1.1rem;border-radius:7px;border:1.5px solid #d1d5db;background:#f9fafb;color:#374151;font-size:.82rem;font-weight:600;cursor:pointer;">Cancel</button>
+      <button onclick="confirmDone()" style="padding:.42rem 1.2rem;border-radius:7px;border:none;background:#2563eb;color:#fff;font-size:.82rem;font-weight:700;cursor:pointer;">Save Status</button>
     </div>
   </div>
 </div>
@@ -315,21 +384,15 @@ const DASH_STATUS_COLORS = {
   rescheduled: {border:'#fcd34d', bg:'#fef3c7', color:'#92400e'},
 };
 
-let _doneActivityId = null;
-let _doneCsrf = null;
-let _dashSelectedStatus = 'completed';
+let _doneActivityId = null, _doneCsrf = null, _dashSelectedStatus = 'completed';
 
 function openDoneModal(activityId, csrf) {
-  _doneActivityId = activityId;
-  _doneCsrf = csrf;
-  _dashSelectedStatus = 'completed';
+  _doneActivityId = activityId; _doneCsrf = csrf; _dashSelectedStatus = 'completed';
   document.getElementById('done-note').value = '';
-  // Reset reschedule date
   const rw = document.getElementById('done-reschedule-wrap');
   const rd = document.getElementById('done-reschedule-date');
   if (rw) rw.style.display = 'none';
   if (rd) { rd.value = ''; rd.style.borderColor = '#fcd34d'; rd.min = new Date().toISOString().split('T')[0]; }
-  // Default highlight completed
   document.querySelectorAll('#dash-status-grid button').forEach(btn => {
     const c = DASH_STATUS_COLORS[btn.dataset.status];
     if (btn.dataset.status === 'completed') {
@@ -338,8 +401,7 @@ function openDoneModal(activityId, csrf) {
       btn.style.borderColor = '#e5e7eb'; btn.style.background = '#f9fafb'; btn.style.color = '#374151';
     }
   });
-  const modal = document.getElementById('done-modal');
-  modal.style.display = 'flex';
+  document.getElementById('done-modal').style.display = 'flex';
   setTimeout(() => document.getElementById('done-note').focus(), 80);
 }
 
@@ -353,12 +415,9 @@ function dashPickStatus(s) {
       btn.style.borderColor = '#e5e7eb'; btn.style.background = '#f9fafb'; btn.style.color = '#374151';
     }
   });
-  // Show reschedule date field only when Rescheduled is selected
   const rw = document.getElementById('done-reschedule-wrap');
   if (rw) rw.style.display = s === 'rescheduled' ? 'block' : 'none';
-  if (s === 'rescheduled') {
-    setTimeout(() => document.getElementById('done-reschedule-date').focus(), 50);
-  }
+  if (s === 'rescheduled') setTimeout(() => document.getElementById('done-reschedule-date').focus(), 50);
 }
 
 function closeDoneModal() {
@@ -375,21 +434,13 @@ function closeDoneModal() {
 async function confirmDone() {
   if (!_doneActivityId) return;
   const status = _dashSelectedStatus;
-
-  // Validate reschedule date before touching globals
   let rescheduleDate = '';
   if (status === 'rescheduled') {
     const rdInput = document.getElementById('done-reschedule-date');
     rescheduleDate = rdInput ? rdInput.value.trim() : '';
-    if (!rescheduleDate) {
-      if (rdInput) { rdInput.style.borderColor = '#dc2626'; rdInput.focus(); }
-      return;
-    }
+    if (!rescheduleDate) { if (rdInput) { rdInput.style.borderColor = '#dc2626'; rdInput.focus(); } return; }
   }
-
-  // Capture ALL values before closing modal — close clears file input and nulls globals
-  const activityId = _doneActivityId;
-  const csrf = _doneCsrf;
+  const activityId = _doneActivityId, csrf = _doneCsrf;
   const note = document.getElementById('done-note').value.trim();
   const fileInput = document.getElementById('done-attachment');
   const file = (fileInput && fileInput.files[0]) ? fileInput.files[0] : null;
@@ -402,46 +453,32 @@ async function confirmDone() {
     if (rescheduleDate) fd.append('reschedule_date', rescheduleDate);
     if (file) fd.append('attachment', file);
     const resp = await fetch('/leads/activity/' + activityId + '/update-status/', {
-      method: 'POST',
-      headers: {'X-CSRFToken': csrf},
-      body: fd,
+      method: 'POST', headers: {'X-CSRFToken': csrf}, body: fd,
     });
     const data = await resp.json();
     if (data.status !== 'pending' && row) {
       row.style.transition = 'opacity .4s, max-height .4s';
-      row.style.opacity = '0';
-      row.style.maxHeight = '0';
-      row.style.overflow = 'hidden';
+      row.style.opacity = '0'; row.style.maxHeight = '0'; row.style.overflow = 'hidden';
       setTimeout(() => row.remove(), 420);
     }
   } catch { alert('Could not update — please refresh.'); }
 }
 
-// Close modal on backdrop click
-document.getElementById('done-modal').addEventListener('click', function(e) {
-  if (e.target === this) closeDoneModal();
-});
-// Ctrl/Cmd+Enter submits
-document.getElementById('done-note').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirmDone();
-});
+document.getElementById('done-modal').addEventListener('click', function(e) { if (e.target === this) closeDoneModal(); });
+document.getElementById('done-note').addEventListener('keydown', function(e) { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) confirmDone(); });
 
 async function markClientFollowUpDone(id, csrf) {
   const row = document.getElementById('cf-row-' + id);
   try {
     const resp = await fetch('/clients/interactions/' + id + '/mark-done/', {
-      method: 'POST',
-      headers: {'X-CSRFToken': csrf},
+      method: 'POST', headers: {'X-CSRFToken': csrf},
     });
     if (resp.ok && row) {
       row.style.transition = 'opacity .35s, max-height .35s';
-      row.style.opacity = '0';
-      row.style.maxHeight = '0';
-      row.style.overflow = 'hidden';
+      row.style.opacity = '0'; row.style.maxHeight = '0'; row.style.overflow = 'hidden';
       setTimeout(() => row.remove(), 370);
     }
   } catch { alert('Could not update — please refresh.'); }
 }
 </script>
-
 {% endblock %}

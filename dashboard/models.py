@@ -142,6 +142,31 @@ class Notification(models.Model):
         cls.objects.create(user=user, title=title, body=body, link=link, type=type)
 
 
+class CalendarEvent(models.Model):
+    COLOR_CHOICES = [
+        ('#6366f1', 'Indigo'), ('#3b82f6', 'Blue'), ('#10b981', 'Green'),
+        ('#f59e0b', 'Amber'), ('#ef4444', 'Red'), ('#8b5cf6', 'Purple'),
+        ('#06b6d4', 'Cyan'), ('#f97316', 'Orange'), ('#ec4899', 'Pink'),
+    ]
+    title = models.CharField(max_length=200)
+    start = models.DateTimeField()
+    end = models.DateTimeField(null=True, blank=True)
+    all_day = models.BooleanField(default=True)
+    description = models.TextField(blank=True)
+    color = models.CharField(max_length=7, default='#6366f1')
+    created_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='calendar_events',
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['start']
+
+    def __str__(self):
+        return self.title
+
+
 class UserGoal(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals'

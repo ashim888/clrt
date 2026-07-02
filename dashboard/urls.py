@@ -23,4 +23,6 @@ urlpatterns = [
     path("audit/", views.audit_trail, name="audit_trail"),
     path("calendar/", views.calendar_view, name="calendar"),
     path("calendar/events/", views.calendar_events, name="calendar_events"),
+    path("calendar/events/save/", views.calendar_event_save, name="calendar_event_save"),
+    path("calendar/events/<int:pk>/delete/", views.calendar_event_delete, name="calendar_event_delete"),
 ]
