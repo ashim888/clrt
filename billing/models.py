@@ -35,6 +35,42 @@ class Invoice(models.Model):
         super().save(*args, **kwargs)
 
 
+class RecurringInvoice(models.Model):
+    RECURRENCE_CHOICES = [
+        ("monthly", "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("yearly", "Yearly"),
+    ]
+    client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="recurring_invoices")
+    description = models.TextField(blank=True)
+    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    recurrence = models.CharField(max_length=20, choices=RECURRENCE_CHOICES, default="monthly")
+    day_of_month = models.PositiveSmallIntegerField(default=1, help_text="Day of month to generate invoice (1–28)")
+    payment_due_days = models.PositiveSmallIntegerField(default=30, help_text="Days until invoice is due")
+    next_date = models.DateField(help_text="Next generation date")
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["next_date"]
+
+    def __str__(self):
+        return f"{self.client} — {self.get_recurrence_display()} {self.amount}"
+
+    def advance_next_date(self):
+        import calendar
+        months_delta = {"monthly": 1, "quarterly": 3, "yearly": 12}[self.recurrence]
+        y, m = self.next_date.year, self.next_date.month
+        m += months_delta
+        y += (m - 1) // 12
+        m = (m - 1) % 12 + 1
+        max_day = calendar.monthrange(y, m)[1]
+        day = min(self.day_of_month, max_day, 28)
+        from datetime import date as _date
+        self.next_date = _date(y, m, day)
+        self.save(update_fields=["next_date"])
+
+
 class Payment(models.Model):
     MODE_CHOICES = [
         ("cash", "Cash"),

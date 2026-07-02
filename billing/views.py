@@ -3,8 +3,9 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
-from .models import Invoice, Payment
-from .forms import InvoiceForm, PaymentForm
+from django.views.decorators.http import require_POST
+from .models import Invoice, Payment, RecurringInvoice
+from .forms import InvoiceForm, PaymentForm, RecurringInvoiceForm
 from clients.models import Client  # noqa
 
 _INV_SORT = {"date": "generated_date", "due": "due_date", "amount": "amount", "status": "status", "client": "client__organization_name"}
@@ -78,6 +79,47 @@ def invoice_edit(request, pk):
 
 
 @login_required
+def invoice_aging(request):
+    from django.utils import timezone
+    today = timezone.now().date()
+    invoices = (
+        Invoice.objects
+        .filter(status__in=["pending", "overdue"])
+        .select_related("client")
+        .order_by("due_date")
+    )
+    buckets = [
+        {"key": "current", "label": "Current", "subtitle": "not yet due", "color": "green", "items": []},
+        {"key": "1_30",    "label": "1–30 days", "subtitle": "overdue",  "color": "amber", "items": []},
+        {"key": "31_60",   "label": "31–60 days","subtitle": "overdue",  "color": "orange","items": []},
+        {"key": "61_90",   "label": "61–90 days","subtitle": "overdue",  "color": "red",   "items": []},
+        {"key": "90_plus", "label": "90+ days",  "subtitle": "overdue",  "color": "rose",  "items": []},
+    ]
+    for inv in invoices:
+        days = (today - inv.due_date).days
+        inv._days_overdue = max(days, 0)
+        if days <= 0:
+            buckets[0]["items"].append(inv)
+        elif days <= 30:
+            buckets[1]["items"].append(inv)
+        elif days <= 60:
+            buckets[2]["items"].append(inv)
+        elif days <= 90:
+            buckets[3]["items"].append(inv)
+        else:
+            buckets[4]["items"].append(inv)
+    for b in buckets:
+        b["total"] = sum(float(i.amount) for i in b["items"])
+        b["count"] = len(b["items"])
+    grand_total = sum(b["total"] for b in buckets)
+    return render(request, "billing/invoice_aging.html", {
+        "buckets": buckets,
+        "grand_total": grand_total,
+        "today": today,
+    })
+
+
+@login_required
 def mark_overdue(request):
     from django.utils import timezone
     updated = Invoice.objects.filter(
@@ -98,6 +140,52 @@ def invoice_print(request, pk):
         "paid_total": paid_total,
         "balance": invoice.amount - paid_total,
     })
+
+
+@login_required
+def recurring_invoice_list(request):
+    schedules = RecurringInvoice.objects.select_related("client").order_by("is_active", "next_date")
+    return render(request, "billing/recurring_list.html", {"schedules": schedules})
+
+
+@login_required
+def recurring_invoice_create(request):
+    if not (request.user.is_admin() or request.user.is_accounts()):
+        messages.error(request, "Access denied.")
+        return redirect("billing:recurring_list")
+    form = RecurringInvoiceForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Recurring invoice schedule created.")
+        return redirect("billing:recurring_list")
+    return render(request, "billing/recurring_form.html", {"form": form, "title": "New Recurring Schedule"})
+
+
+@login_required
+def recurring_invoice_edit(request, pk):
+    schedule = get_object_or_404(RecurringInvoice, pk=pk)
+    if not (request.user.is_admin() or request.user.is_accounts()):
+        messages.error(request, "Access denied.")
+        return redirect("billing:recurring_list")
+    form = RecurringInvoiceForm(request.POST or None, instance=schedule)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Schedule updated.")
+        return redirect("billing:recurring_list")
+    return render(request, "billing/recurring_form.html", {"form": form, "title": "Edit Schedule", "schedule": schedule})
+
+
+@login_required
+@require_POST
+def recurring_invoice_toggle(request, pk):
+    schedule = get_object_or_404(RecurringInvoice, pk=pk)
+    if not (request.user.is_admin() or request.user.is_accounts()):
+        messages.error(request, "Access denied.")
+        return redirect("billing:recurring_list")
+    schedule.is_active = not schedule.is_active
+    schedule.save(update_fields=["is_active"])
+    messages.success(request, f"Schedule {'activated' if schedule.is_active else 'paused'}.")
+    return redirect("billing:recurring_list")
 
 
 @login_required

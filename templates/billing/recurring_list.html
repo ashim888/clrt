@@ -1,0 +1,81 @@
+{% extends "base.html" %}
+{% block title %}Recurring Invoices{% endblock %}
+{% block nav_billing %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Recurring Invoices</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Auto-generated invoices on a schedule — run <code class="bg-gray-100 px-1 rounded text-xs">manage.py generate_recurring_invoices</code> daily via cron</p>
+  </div>
+  {% if user.is_admin or user.is_accounts %}
+  <a href="{% url "billing:recurring_create" %}" class="btn-primary self-start sm:self-auto">+ New Schedule</a>
+  {% endif %}
+</div>
+
+{% if schedules %}
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Client</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Recurrence</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Amount</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Day of Month</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Due Days</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Next Generation</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3"></th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for s in schedules %}
+      <tr class="hover:bg-gray-50 {% if not s.is_active %}opacity-50{% endif %}">
+        <td class="px-4 py-3 font-medium text-gray-900">{{ s.client.organization_name }}</td>
+        <td class="px-4 py-3 text-gray-600">{{ s.get_recurrence_display }}</td>
+        <td class="px-4 py-3 text-right font-semibold text-gray-900">{{ s.amount|inr }}</td>
+        <td class="px-4 py-3 text-center text-gray-500">{{ s.day_of_month }}</td>
+        <td class="px-4 py-3 text-center text-gray-500">{{ s.payment_due_days }}d</td>
+        <td class="px-4 py-3">
+          {% now "Y-m-d" as today_str %}
+          {% with nd=s.next_date|date:"Y-m-d" %}
+          <span class="{% if s.is_active and nd <= today_str %}text-red-600 font-semibold{% else %}text-gray-700{% endif %}">
+            {{ s.next_date|site_date }}
+          </span>
+          {% if s.is_active and nd <= today_str %}
+          <span class="ml-1 text-xs text-red-500">(due!)</span>
+          {% endif %}
+          {% endwith %}
+        </td>
+        <td class="px-4 py-3 text-center">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full {% if s.is_active %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">
+            {% if s.is_active %}Active{% else %}Paused{% endif %}
+          </span>
+        </td>
+        <td class="px-4 py-3">
+          <div class="flex items-center gap-2 justify-end">
+            {% if user.is_admin or user.is_accounts %}
+            <a href="{% url "billing:recurring_edit" s.pk %}" class="text-xs text-blue-600 hover:underline">Edit</a>
+            <form method="post" action="{% url "billing:recurring_toggle" s.pk %}">
+              {% csrf_token %}
+              <button type="submit" class="text-xs {% if s.is_active %}text-amber-600{% else %}text-green-600{% endif %} hover:underline">
+                {% if s.is_active %}Pause{% else %}Activate{% endif %}
+              </button>
+            </form>
+            {% endif %}
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+{% else %}
+<div class="card p-12 text-center text-gray-400">
+  <p class="text-lg font-semibold text-gray-300 mb-2">No recurring schedules yet</p>
+  <p class="text-sm mb-4">Set up monthly or quarterly invoices for retainer clients.</p>
+  {% if user.is_admin or user.is_accounts %}
+  <a href="{% url "billing:recurring_create" %}" class="btn-primary">+ Create First Schedule</a>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}

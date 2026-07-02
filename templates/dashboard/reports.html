@@ -5,10 +5,26 @@
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 {% endblock %}
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
   <h1 class="text-2xl font-bold text-gray-900">Reports & Analytics</h1>
-  <a href="{% url "dashboard:team_performance" %}" class="btn-secondary self-start sm:self-auto">Team Performance →</a>
+  <div class="flex flex-wrap gap-2 self-start sm:self-auto">
+    <a href="{% url "billing:invoice_aging" %}" class="btn-secondary">Aging Report →</a>
+    <a href="{% url "dashboard:team_performance" %}" class="btn-secondary">Team Performance →</a>
+  </div>
 </div>
+
+<!-- Date range filter -->
+<form method="get" class="flex flex-wrap items-center gap-2 mb-6 p-3 bg-gray-50 border border-gray-200 rounded-xl">
+  <span class="text-xs font-medium text-gray-500 mr-1">Date range:</span>
+  <input type="date" name="date_from" value="{{ date_from }}" class="input py-1.5 text-sm w-auto" placeholder="From">
+  <span class="text-gray-400 text-sm">→</span>
+  <input type="date" name="date_to" value="{{ date_to }}" class="input py-1.5 text-sm w-auto" placeholder="To">
+  <button type="submit" class="btn-secondary py-1.5 text-sm px-4">Apply</button>
+  {% if date_from or date_to %}
+  <a href="{% url "dashboard:reports" %}" class="btn-secondary py-1.5 text-sm px-4">Clear</a>
+  <span class="text-xs text-indigo-600 font-medium">Filtered view</span>
+  {% endif %}
+</form>
 
 <!-- Key metrics: Revenue & Billing -->
 <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Revenue & Billing</p>
@@ -112,6 +128,42 @@
     <div class="py-10 text-center text-gray-400 text-sm">No source data yet. Add lead sources when creating leads.</div>
     {% endif %}
   </div>
+</div>
+
+<!-- Conversion funnel -->
+<div class="card p-5 mb-6">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h2 class="font-semibold text-gray-900">Conversion Funnel</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Leads currently at each stage</p>
+    </div>
+    {% if total_leads %}
+    <span class="text-xs text-gray-400">{{ total_leads }} total leads</span>
+    {% endif %}
+  </div>
+  {% if total_leads %}
+  <div class="space-y-2">
+    {% for label in funnel_labels_display %}
+    <div class="flex items-center gap-3">
+      <span class="text-xs text-gray-500 w-24 flex-shrink-0 text-right">{{ label.label }}</span>
+      <div class="flex-1 h-7 bg-gray-100 rounded-lg overflow-hidden relative">
+        <div class="h-full rounded-lg transition-all" style="width:{{ label.pct }}%;background:{{ label.color }};min-width:{% if label.count > 0 %}2rem{% else %}0{% endif %};">
+        </div>
+        {% if label.count > 0 %}
+        <span class="absolute inset-y-0 left-2 flex items-center text-xs font-semibold" style="color:{% if label.pct > 20 %}#fff{% else %}{{ label.color }}{% endif %};">{{ label.count }}</span>
+        {% endif %}
+      </div>
+      {% if label.prev_count and label.count < label.prev_count %}
+      <span class="text-xs text-red-500 flex-shrink-0 w-12">–{{ label.dropped }}%</span>
+      {% else %}
+      <span class="w-12"></span>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="py-8 text-center text-gray-400 text-sm">No leads yet.</div>
+  {% endif %}
 </div>
 
 <!-- Client health + Lost reasons -->

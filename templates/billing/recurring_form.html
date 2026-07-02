@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_billing %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-8">
+  <a href="{% url "billing:recurring_list" %}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800 transition-colors">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Recurring Invoices
+  </a>
+  <span class="text-gray-300">/</span>
+  <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-8 items-start">
+  <div class="lg:col-span-1">
+    <div class="card p-6 sticky top-6">
+      <h2 class="text-base font-semibold text-gray-900 mb-3">How it works</h2>
+      <div class="space-y-3 text-sm text-gray-500">
+        <p>Set the recurrence, day of month, and the date to start. Each time the management command runs, it checks for schedules due and creates the corresponding invoice.</p>
+        <p class="text-xs bg-gray-50 p-2 rounded border border-gray-200 font-mono">python manage.py generate_recurring_invoices</p>
+        <p>Run this via a daily cron job or task scheduler to automate generation.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="lg:col-span-2">
+    <div class="card p-6">
+      <form method="post" class="space-y-5">
+        {% csrf_token %}
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.client.label }} <span class="text-red-500">*</span></label>
+          {{ form.client }}
+          {% if form.client.errors %}<p class="text-red-500 text-xs mt-1">{{ form.client.errors.0 }}</p>{% endif %}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.description.label }}</label>
+          {{ form.description }}
+        </div>
+        <div class="grid grid-cols-2 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.amount.label }} <span class="text-red-500">*</span></label>
+            {{ form.amount }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.recurrence.label }}</label>
+            {{ form.recurrence }}
+          </div>
+        </div>
+        <div class="grid grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.day_of_month.label }}</label>
+            {{ form.day_of_month }}
+            <p class="text-xs text-gray-400 mt-1">1–28 to be safe across months</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.payment_due_days.label }}</label>
+            {{ form.payment_due_days }}
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.next_date.label }} <span class="text-red-500">*</span></label>
+            {{ form.next_date }}
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          {{ form.is_active }}
+          <label class="text-sm font-medium text-gray-700">{{ form.is_active.label }}</label>
+        </div>
+        <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+          <button type="submit" class="btn-primary px-6 py-2.5">Save Schedule</button>
+          <a href="{% url "billing:recurring_list" %}" class="btn-secondary px-6 py-2.5">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

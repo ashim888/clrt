@@ -1,5 +1,5 @@
 from django import forms
-from .models import Invoice, Payment
+from .models import Invoice, Payment, RecurringInvoice
 from clients.models import Client, Contract
 from core.mixins import TailwindFormMixin
 import uuid
@@ -31,6 +31,20 @@ class PaymentForm(TailwindFormMixin, forms.ModelForm):
         widgets = {
             "payment_date": forms.DateInput(attrs={"type": "date"}),
             "notes": forms.Textarea(attrs={"rows": 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_tailwind()
+
+
+class RecurringInvoiceForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = RecurringInvoice
+        fields = ["client", "description", "amount", "recurrence", "day_of_month", "payment_due_days", "next_date", "is_active"]
+        widgets = {
+            "description": forms.Textarea(attrs={"rows": 2}),
+            "next_date": forms.DateInput(attrs={"type": "date"}),
         }
 
     def __init__(self, *args, **kwargs):

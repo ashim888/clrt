@@ -81,13 +81,33 @@ def dashboard(request):
 
 @login_required
 def reports(request):
+    from datetime import date as _date
     today = timezone.now().date()
+
+    # Date range filter
+    date_from_str = request.GET.get("date_from", "")
+    date_to_str = request.GET.get("date_to", "")
+    try:
+        date_from = _date.fromisoformat(date_from_str) if date_from_str else None
+    except ValueError:
+        date_from = None
+    try:
+        date_to = _date.fromisoformat(date_to_str) if date_to_str else None
+    except ValueError:
+        date_to = None
+
     twelve_months_ago = today.replace(day=1) - timezone.timedelta(days=365)
 
-    # Revenue by month (last 12 months)
+    # Revenue by month
+    rev_qs = Invoice.objects.filter(status="paid")
+    if date_from:
+        rev_qs = rev_qs.filter(generated_date__gte=date_from)
+    elif not date_from and not date_to:
+        rev_qs = rev_qs.filter(generated_date__gte=twelve_months_ago)
+    if date_to:
+        rev_qs = rev_qs.filter(generated_date__lte=date_to)
     revenue_qs = (
-        Invoice.objects
-        .filter(status="paid", generated_date__gte=twelve_months_ago)
+        rev_qs
         .annotate(month=TruncMonth("generated_date"))
         .values("month")
         .annotate(total=Sum("amount"))
@@ -96,36 +116,46 @@ def reports(request):
     revenue_labels = [r["month"].strftime("%b %Y") for r in revenue_qs]
     revenue_data = [float(r["total"]) for r in revenue_qs]
 
-    # Lead pipeline counts
+    # Lead pipeline counts (date-filtered if range supplied)
+    lead_qs = Lead.objects
+    if date_from:
+        lead_qs = lead_qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        lead_qs = lead_qs.filter(created_at__date__lte=date_to)
+
     status_order = ["new", "contacted", "demo", "negotiation", "won", "lost"]
     lead_status_map = dict(Lead.STATUS_CHOICES)
-    lead_pipeline = Lead.objects.values("status").annotate(count=Count("id"))
+    lead_pipeline = lead_qs.values("status").annotate(count=Count("id"))
     pipeline_counts = {row["status"]: row["count"] for row in lead_pipeline}
     pipeline_labels = [lead_status_map[s] for s in status_order]
     pipeline_data = [pipeline_counts.get(s, 0) for s in status_order]
 
     # Lead source breakdown
-    source_qs = Lead.objects.exclude(source="").values("source").annotate(count=Count("id"))
+    source_qs = lead_qs.exclude(source="").values("source").annotate(count=Count("id"))
     source_map = dict(Lead.SOURCE_CHOICES)
     source_labels = [source_map.get(r["source"], r["source"]) for r in source_qs]
     source_data = [r["count"] for r in source_qs]
 
-    # Client health distribution
+    # Client health distribution (not date-filtered — always all-time)
     client_status_qs = Client.objects.values("status").annotate(count=Count("id"))
     client_status_map = dict(Client.STATUS_CHOICES)
     client_labels = [client_status_map.get(r["status"], r["status"]) for r in client_status_qs]
     client_data = [r["count"] for r in client_status_qs]
 
     # Key metrics
-    total_revenue = Invoice.objects.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
+    inv_base = Invoice.objects
+    if date_from:
+        inv_base = inv_base.filter(generated_date__gte=date_from)
+    if date_to:
+        inv_base = inv_base.filter(generated_date__lte=date_to)
+    total_revenue = inv_base.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
     total_outstanding = Invoice.objects.filter(status__in=["pending", "overdue"]).aggregate(t=Sum("amount"))["t"] or 0
-    conversion_rate = 0
-    total_leads = Lead.objects.count()
-    won_leads = Lead.objects.filter(status="won").count()
-    if total_leads:
-        conversion_rate = round(won_leads / total_leads * 100, 1)
 
-    # Pipeline value metrics
+    total_leads = lead_qs.count()
+    won_leads = lead_qs.filter(status="won").count()
+    conversion_rate = round(won_leads / total_leads * 100, 1) if total_leads else 0
+
+    # Pipeline value metrics (always all-time for forecast accuracy)
     STAGE_PROB = {"new": 10, "contacted": 25, "demo": 50, "negotiation": 75, "won": 100, "lost": 0}
     active_stages = ["new", "contacted", "demo", "negotiation"]
     pipeline_value_qs = (
@@ -136,34 +166,41 @@ def reports(request):
     )
     pipeline_value_map = {row["status"]: float(row["total"]) for row in pipeline_value_qs}
     active_pipeline_value = sum(pipeline_value_map.values())
-    weighted_forecast = sum(
-        pipeline_value_map.get(s, 0) * STAGE_PROB[s] / 100
-        for s in active_stages
-    )
-    won_pipeline_value = Lead.objects.filter(
-        status="won", deal_value__isnull=False
-    ).aggregate(t=Sum("deal_value"))["t"] or 0
+    weighted_forecast = sum(pipeline_value_map.get(s, 0) * STAGE_PROB[s] / 100 for s in active_stages)
+    won_pipeline_value = Lead.objects.filter(status="won", deal_value__isnull=False).aggregate(t=Sum("deal_value"))["t"] or 0
 
-    # Pipeline value by stage (for chart)
     pv_labels = [lead_status_map[s] for s in status_order]
     pv_data = [pipeline_value_map.get(s, 0) for s in status_order]
-    # Won value
-    pv_data[status_order.index("won")] = float(
-        Lead.objects.filter(status="won", deal_value__isnull=False)
-        .aggregate(t=Sum("deal_value"))["t"] or 0
-    )
+    pv_data[status_order.index("won")] = float(won_pipeline_value)
 
     # Lost reason breakdown
-    lost_reasons_qs = (
-        Lead.objects.filter(status="lost")
-        .exclude(lost_reason="")
-        .values("lost_reason")
-        .annotate(count=Count("id"))
+    lost_qs = lead_qs.filter(status="lost")
+    lost_reasons = list(
+        lost_qs.exclude(lost_reason="")
+        .values("lost_reason").annotate(count=Count("id"))
         .order_by("-count")[:10]
     )
-    lost_reasons = list(lost_reasons_qs)
-    lost_total = Lead.objects.filter(status="lost").count()
-    lost_no_reason = Lead.objects.filter(status="lost", lost_reason="").count()
+    lost_total = lost_qs.count()
+    lost_no_reason = lost_qs.filter(lost_reason="").count()
+
+    # Conversion funnel
+    funnel_stages = ["new", "contacted", "demo", "negotiation", "won"]
+    funnel_colors = ["#93c5fd", "#a5b4fc", "#c4b5fd", "#fbbf24", "#34d399"]
+    funnel_counts = [pipeline_counts.get(s, 0) for s in funnel_stages]
+    funnel_labels = [lead_status_map[s] for s in funnel_stages]
+    funnel_max = max(funnel_counts) if funnel_counts else 1
+    funnel_display = []
+    for i, (stage, count, color) in enumerate(zip(funnel_stages, funnel_counts, funnel_colors)):
+        prev_count = funnel_counts[i - 1] if i > 0 else None
+        dropped = round((prev_count - count) / prev_count * 100) if prev_count and count < prev_count else 0
+        funnel_display.append({
+            "label": lead_status_map[stage],
+            "count": count,
+            "pct": round(count / funnel_max * 100) if funnel_max else 0,
+            "color": color,
+            "prev_count": prev_count,
+            "dropped": dropped,
+        })
 
     return render(request, "dashboard/reports.html", {
         "revenue_labels": json.dumps(revenue_labels),
@@ -176,6 +213,9 @@ def reports(request):
         "source_data": json.dumps(source_data),
         "client_labels": json.dumps(client_labels),
         "client_data": json.dumps(client_data),
+        "funnel_labels": json.dumps(funnel_labels),
+        "funnel_data": json.dumps(funnel_counts),
+        "funnel_labels_display": funnel_display,
         "total_revenue": total_revenue,
         "total_outstanding": total_outstanding,
         "total_leads": total_leads,
@@ -189,6 +229,8 @@ def reports(request):
         "lost_reasons": lost_reasons,
         "lost_total": lost_total,
         "lost_no_reason": lost_no_reason,
+        "date_from": date_from_str,
+        "date_to": date_to_str,
     })
 
 
