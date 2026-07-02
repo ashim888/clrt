@@ -25,4 +25,8 @@ urlpatterns = [
     path("calendar/events/", views.calendar_events, name="calendar_events"),
     path("calendar/events/save/", views.calendar_event_save, name="calendar_event_save"),
     path("calendar/events/<int:pk>/delete/", views.calendar_event_delete, name="calendar_event_delete"),
+    path("analytics/", views.analytics_dashboard, name="analytics"),
+    path("analytics/track/", views.analytics_track, name="analytics_track"),
+    path("subscription/", views.subscription_view, name="subscription"),
+    path("signup/", views.landing_signup, name="landing_signup"),
 ]

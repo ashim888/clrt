@@ -65,6 +65,12 @@ class SiteSettings(models.Model):
     razorpay_key_secret = models.CharField(max_length=100, blank=True)
     razorpay_enabled = models.BooleanField(default=False)
 
+    # — Analytics —
+    ga_measurement_id = models.CharField(
+        max_length=30, blank=True,
+        help_text='Google Analytics 4 Measurement ID (e.g. G-XXXXXXXXXX)',
+    )
+
     class Meta:
         verbose_name = 'Site Settings'
 
@@ -228,3 +234,115 @@ class AuditLog(models.Model):
 
     def __str__(self):
         return f"{self.user} {self.action} {self.model_name} #{self.object_id}"
+
+
+# ── Analytics ────────────────────────────────────────────────────
+
+class PageEvent(models.Model):
+    session_id = models.CharField(max_length=100, db_index=True)
+    event = models.CharField(max_length=60, db_index=True)
+    page = models.CharField(max_length=200)
+    referrer = models.CharField(max_length=500, blank=True)
+    user_agent = models.CharField(max_length=500, blank=True)
+    ip = models.GenericIPAddressField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.event} @ {self.page} [{self.timestamp:%Y-%m-%d %H:%M}]"
+
+
+# ── Plans & Subscriptions ────────────────────────────────────────
+
+class Plan(models.Model):
+    SLUG_CHOICES = [
+        ('starter', 'Starter'),
+        ('growth', 'Growth'),
+        ('enterprise', 'Enterprise'),
+    ]
+    name = models.CharField(max_length=50)
+    slug = models.CharField(max_length=20, unique=True, choices=SLUG_CHOICES)
+    tagline = models.CharField(max_length=120, blank=True)
+    price_monthly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    price_yearly = models.DecimalField(max_digits=10, decimal_places=2, default=0)
+    is_active = models.BooleanField(default=True)
+
+    # Hard limits (0 = unlimited)
+    max_leads = models.PositiveIntegerField(default=100)
+    max_clients = models.PositiveIntegerField(default=20)
+    max_users = models.PositiveIntegerField(default=2)
+    max_invoices = models.PositiveIntegerField(default=50)
+
+    # Feature flags
+    has_reports = models.BooleanField(default=False)
+    has_proposals = models.BooleanField(default=False)
+    has_razorpay = models.BooleanField(default=False)
+    has_client_portal = models.BooleanField(default=False)
+    has_web_capture = models.BooleanField(default=False)
+    has_quota_tracking = models.BooleanField(default=False)
+    has_audit_log = models.BooleanField(default=False)
+    has_calendar = models.BooleanField(default=True)
+    has_catalog = models.BooleanField(default=False)
+    has_custom_branding = models.BooleanField(default=False)
+
+    custom_features = models.JSONField(
+        default=list, blank=True,
+        help_text='List of feature strings shown on pricing page. Overrides auto-generated list when non-empty.',
+    )
+
+    class Meta:
+        ordering = ['price_monthly']
+
+    def __str__(self):
+        return self.name
+
+    def limit_label(self, field):
+        val = getattr(self, field, 0)
+        return 'Unlimited' if val == 0 else str(val)
+
+
+class Subscription(models.Model):
+    STATUS_CHOICES = [
+        ('trialing', 'Trial'),
+        ('active', 'Active'),
+        ('past_due', 'Past Due'),
+        ('cancelled', 'Cancelled'),
+        ('expired', 'Expired'),
+    ]
+    plan = models.ForeignKey(Plan, on_delete=models.PROTECT, related_name='subscriptions')
+    status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='trialing')
+    trial_ends = models.DateField(null=True, blank=True)
+    period_start = models.DateField(null=True, blank=True)
+    period_end = models.DateField(null=True, blank=True)
+    notes = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.plan.name} ({self.get_status_display()})"
+
+    @classmethod
+    def current(cls):
+        from django.utils import timezone
+        today = timezone.now().date()
+        sub = cls.objects.filter(
+            status__in=['active', 'trialing']
+        ).select_related('plan').first()
+        if sub and sub.status == 'trialing' and sub.trial_ends and sub.trial_ends < today:
+            sub.status = 'expired'
+            sub.save(update_fields=['status'])
+            return None
+        return sub
+
+    def is_live(self):
+        from django.utils import timezone
+        if self.status == 'active':
+            return True
+        if self.status == 'trialing' and self.trial_ends:
+            return self.trial_ends >= timezone.now().date()
+        return False

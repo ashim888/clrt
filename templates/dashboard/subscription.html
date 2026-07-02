@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% load clrt_filters %}
+{% block title %}Subscription & Plans{% endblock %}
+{% block content %}
+
+<div class="mb-6">
+  <h1 class="text-2xl font-bold text-gray-900">Subscription & Plans</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Your current plan and available upgrades.</p>
+</div>
+
+{% if current_sub %}
+<div class="card p-5 mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+  <div>
+    <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Current Plan</p>
+    <p class="text-xl font-extrabold text-gray-900">{{ current_sub.plan.name }}</p>
+    <p class="text-sm text-gray-500 mt-0.5">{{ current_sub.plan.tagline }}</p>
+  </div>
+  <div class="flex items-center gap-3">
+    <span class="px-3 py-1.5 rounded-full text-xs font-bold
+      {% if current_sub.status == 'active' %}bg-green-100 text-green-700
+      {% elif current_sub.status == 'trialing' %}bg-blue-100 text-blue-700
+      {% else %}bg-red-100 text-red-700{% endif %}">
+      {{ current_sub.get_status_display }}
+    </span>
+    {% if current_sub.trial_ends %}
+    <span class="text-xs text-gray-400">Trial ends {{ current_sub.trial_ends }}</span>
+    {% endif %}
+  </div>
+</div>
+{% else %}
+<div class="card p-5 mb-8 border border-red-200 bg-red-50">
+  <p class="text-sm font-semibold text-red-700">No active subscription. Please contact support to activate your plan.</p>
+</div>
+{% endif %}
+
+<!-- Plans grid -->
+<div class="grid md:grid-cols-3 gap-6">
+  {% for pd in plans_data %}
+  <div class="card overflow-hidden flex flex-col {% if pd.plan.slug == 'growth' %}ring-2 ring-indigo-500{% endif %}">
+
+    {% if pd.plan.slug == 'growth' %}
+    <div class="bg-indigo-600 text-white text-center text-xs font-bold py-1.5 tracking-wide uppercase">
+      Most Popular
+    </div>
+    {% endif %}
+
+    <div class="p-6 flex-1 flex flex-col">
+      <h2 class="text-lg font-extrabold text-gray-900">{{ pd.plan.name }}</h2>
+      <p class="text-sm text-gray-500 mt-1 mb-4">{{ pd.plan.tagline }}</p>
+
+      <div class="mb-5">
+        <span class="text-3xl font-black text-gray-900">{{ pd.plan.price_monthly|inr }}</span>
+        <span class="text-sm text-gray-400">/month</span>
+        {% if pd.plan.price_yearly %}
+        <p class="text-xs text-green-600 mt-0.5">{{ pd.plan.price_yearly|inr }}/year — save 2 months</p>
+        {% endif %}
+      </div>
+
+      <!-- Hard limits -->
+      <ul class="space-y-2 text-sm mb-4">
+        {% with pd.plan as p %}
+        <li class="flex items-center gap-2 text-gray-600">
+          <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {% if p.max_leads == 0 %}Unlimited{% else %}{{ p.max_leads }}{% endif %} leads
+        </li>
+        <li class="flex items-center gap-2 text-gray-600">
+          <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {% if p.max_clients == 0 %}Unlimited{% else %}{{ p.max_clients }}{% endif %} clients
+        </li>
+        <li class="flex items-center gap-2 text-gray-600">
+          <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {% if p.max_users == 0 %}Unlimited{% else %}{{ p.max_users }}{% endif %} team members
+        </li>
+        <li class="flex items-center gap-2 text-gray-600">
+          <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+          {% if p.max_invoices == 0 %}Unlimited{% else %}{{ p.max_invoices }}{% endif %} invoices
+        </li>
+        {% endwith %}
+      </ul>
+
+      <div class="border-t border-gray-100 pt-3 mb-5">
+        <ul class="space-y-1.5 text-sm flex-1">
+          {% for feature in pd.features %}
+          <li class="flex items-center gap-2 text-gray-600">
+            <svg class="w-4 h-4 text-indigo-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+            {{ feature }}
+          </li>
+          {% empty %}
+          <li class="text-gray-400 text-xs">No features listed — edit in admin.</li>
+          {% endfor %}
+        </ul>
+      </div>
+
+      {% if pd.is_current %}
+      <button disabled class="w-full py-2.5 rounded-xl bg-gray-100 text-gray-400 text-sm font-bold cursor-not-allowed mt-auto">
+        Current Plan
+      </button>
+      {% else %}
+      <a href="mailto:hello@clrt.io?subject=Upgrade to {{ pd.plan.name }}"
+        class="block text-center w-full py-2.5 rounded-xl mt-auto
+          {% if pd.plan.slug == 'growth' %}bg-indigo-600 hover:bg-indigo-700 text-white{% else %}border border-gray-200 hover:bg-gray-50 text-gray-700{% endif %}
+          text-sm font-bold transition-colors">
+        {% if pd.is_upgrade %}Upgrade to {{ pd.plan.name }}{% else %}Contact Sales{% endif %}
+      </a>
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<p class="text-xs text-gray-400 text-center mt-8">All prices in local currency. Contact us for custom enterprise pricing.</p>
+
+{% endblock %}

@@ -4,6 +4,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_exempt
 from django.db import models as _db_models
 from django.db.models import Sum, Count, Q, Avg
 from django.db.models.functions import TruncMonth
@@ -18,7 +19,9 @@ User = get_user_model()
 
 def dashboard(request):
     if not request.user.is_authenticated:
-        return render(request, "landing.html")
+        from .models import SiteSettings
+        cfg = SiteSettings.load()
+        return render(request, "landing.html", {"ga_id": cfg.ga_measurement_id})
     today = timezone.now().date()
     now_local = timezone.localtime(timezone.now())
     in_30_days = today + timezone.timedelta(days=30)
@@ -1058,3 +1061,168 @@ def tag_create(request):
         return JsonResponse({"id": tag.pk, "name": tag.name, "color": tag.color})
     except Exception as e:
         return JsonResponse({"error": str(e)}, status=400)
+
+
+# ── Analytics tracking ───────────────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def analytics_track(request):
+    try:
+        body = request.body
+        if not body:
+            return JsonResponse({"ok": False})
+        data = json.loads(body)
+    except Exception:
+        return JsonResponse({"ok": False})
+
+    from .models import PageEvent
+    ip = request.META.get("HTTP_X_FORWARDED_FOR", request.META.get("REMOTE_ADDR", ""))
+    if ip and "," in ip:
+        ip = ip.split(",")[0].strip()
+
+    PageEvent.objects.create(
+        session_id=str(data.get("session", ""))[:100],
+        event=str(data.get("event", ""))[:60],
+        page=str(data.get("page", ""))[:200],
+        referrer=str(data.get("referrer", ""))[:500],
+        user_agent=request.META.get("HTTP_USER_AGENT", "")[:500],
+        ip=ip or None,
+        metadata={k: v for k, v in data.items() if k not in ("session", "event", "page", "referrer")},
+    )
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def analytics_dashboard(request):
+    from .models import PageEvent
+    from django.db.models.functions import TruncDate
+    today = timezone.now().date()
+    week_ago = today - timezone.timedelta(days=6)
+
+    # Totals
+    total_sessions = PageEvent.objects.filter(
+        event="page_view"
+    ).values("session_id").distinct().count()
+
+    today_sessions = PageEvent.objects.filter(
+        event="page_view", timestamp__date=today
+    ).values("session_id").distinct().count()
+
+    # Event breakdown
+    event_counts = (
+        PageEvent.objects.values("event")
+        .annotate(n=Count("id"))
+        .order_by("-n")[:15]
+    )
+
+    # CTA clicks
+    cta_clicks = PageEvent.objects.filter(event="click").values("metadata").count()
+
+    # Daily sessions (last 7 days)
+    daily = (
+        PageEvent.objects.filter(event="page_view", timestamp__date__gte=week_ago)
+        .annotate(day=TruncDate("timestamp"))
+        .values("day")
+        .annotate(n=Count("session_id", distinct=True))
+        .order_by("day")
+    )
+    daily_labels = [str(r["day"]) for r in daily]
+    daily_values = [r["n"] for r in daily]
+
+    # Scroll depth funnel
+    scroll_events = ["scroll_25", "scroll_50", "scroll_75", "scroll_90"]
+    scroll_funnel = []
+    base = PageEvent.objects.filter(event="page_view").values("session_id").distinct().count() or 1
+    for evt in scroll_events:
+        n = PageEvent.objects.filter(event=evt).values("session_id").distinct().count()
+        scroll_funnel.append({"label": evt.replace("_", " ") + "%", "count": n, "pct": int(n / base * 100)})
+
+    # Top referrers
+    top_referrers = (
+        PageEvent.objects.filter(event="page_view")
+        .exclude(referrer="")
+        .values("referrer")
+        .annotate(n=Count("id"))
+        .order_by("-n")[:8]
+    )
+
+    # Recent events
+    recent = PageEvent.objects.select_related().order_by("-timestamp")[:30]
+
+    return render(request, "dashboard/analytics.html", {
+        "total_sessions": total_sessions,
+        "today_sessions": today_sessions,
+        "event_counts": event_counts,
+        "cta_clicks": cta_clicks,
+        "daily_labels": json.dumps(daily_labels),
+        "daily_values": json.dumps(daily_values),
+        "scroll_funnel": scroll_funnel,
+        "top_referrers": top_referrers,
+        "recent": recent,
+    })
+
+
+# ── Subscription ────────────────────────────────────────────────
+
+@csrf_exempt
+@require_POST
+def landing_signup(request):
+    try:
+        data = json.loads(request.body)
+    except Exception:
+        return JsonResponse({"error": "Invalid request."}, status=400)
+
+    name = data.get("name", "").strip()
+    email = data.get("email", "").strip()
+    company = data.get("company", "").strip()
+    phone = data.get("phone", "").strip()
+    plan_interest = data.get("plan", "").strip()
+
+    if not name or not email:
+        return JsonResponse({"error": "Name and email are required."}, status=400)
+
+    Lead.objects.create(
+        organization_name=company or name,
+        contact_person=name,
+        email=email,
+        phone=phone,
+        source="website",
+        notes=f"Plan interest: {plan_interest}" if plan_interest else "Signed up via landing page.",
+        status="new",
+    )
+
+    track_payload = {"session": data.get("session", ""), "event": "signup_submit", "page": "/"}
+    try:
+        from .models import PageEvent
+        PageEvent.objects.create(
+            session_id=str(track_payload.get("session", ""))[:100],
+            event="signup_submit",
+            page="/",
+            metadata={"plan": plan_interest},
+        )
+    except Exception:
+        pass
+
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def subscription_view(request):
+    from .models import Plan, Subscription
+    current_sub = Subscription.current()
+    plans = Plan.objects.filter(is_active=True)
+
+    plans_data = []
+    for plan in plans:
+        plans_data.append({
+            "plan": plan,
+            "features": plan.custom_features,
+            "is_current": current_sub and current_sub.plan_id == plan.pk,
+            "is_upgrade": current_sub and plan.price_monthly > current_sub.plan.price_monthly,
+        })
+
+    return render(request, "dashboard/subscription.html", {
+        "current_sub": current_sub,
+        "plans_data": plans_data,
+    })

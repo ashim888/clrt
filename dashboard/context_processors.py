@@ -18,3 +18,15 @@ def notifications(request):
         }
     except Exception:
         return {'unread_notification_count': 0, 'recent_notifications': []}
+
+
+def subscription(request):
+    try:
+        from dashboard.models import Subscription
+        sub = Subscription.current()
+        return {
+            'current_sub': sub,
+            'current_plan': sub.plan if sub else None,
+        }
+    except Exception:
+        return {'current_sub': None, 'current_plan': None}
