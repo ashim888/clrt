@@ -83,6 +83,25 @@ class ClientInteraction(models.Model):
         return ext in ("jpg", "jpeg", "png", "gif", "webp")
 
 
+class ContractTemplate(models.Model):
+    BILLING_CYCLE_CHOICES = [
+        ("monthly", "Monthly"),
+        ("quarterly", "Quarterly"),
+        ("yearly", "Yearly"),
+    ]
+    name = models.CharField(max_length=200)
+    billing_cycle = models.CharField(max_length=20, choices=BILLING_CYCLE_CHOICES, default="yearly")
+    default_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
+    notes = models.TextField(blank=True, help_text="Terms and conditions pre-filled on new contracts")
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['name']
+
+    def __str__(self):
+        return self.name
+
+
 class Contract(models.Model):
     BILLING_CYCLE_CHOICES = [
         ("monthly", "Monthly"),

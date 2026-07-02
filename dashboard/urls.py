@@ -13,4 +13,7 @@ urlpatterns = [
     path("notifications/<int:pk>/read/", views.notification_read, name="notification_read"),
     path("notifications/read-all/", views.notifications_read_all, name="notifications_read_all"),
     path("tags/create/", views.tag_create, name="tag_create"),
+    path("audit/", views.audit_trail, name="audit_trail"),
+    path("calendar/", views.calendar_view, name="calendar"),
+    path("calendar/events/", views.calendar_events, name="calendar_events"),
 ]

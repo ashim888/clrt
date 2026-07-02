@@ -43,6 +43,21 @@
     <form method="post" enctype="multipart/form-data" class="space-y-6">
       {% csrf_token %}
 
+      {% if contract_templates %}
+      <div class="card p-4 border border-indigo-100 bg-indigo-50">
+        <div class="flex items-center gap-3">
+          <span class="text-sm font-medium text-indigo-800">Load Template:</span>
+          <select id="template-picker" class="input py-1.5 text-sm flex-1 max-w-xs">
+            <option value="">— choose a template —</option>
+            {% for tmpl in contract_templates %}
+            <option value="{{ tmpl.pk }}" data-url="{% url "clients:contract_template_json" tmpl.pk %}">{{ tmpl.name }}</option>
+            {% endfor %}
+          </select>
+          <span class="text-xs text-indigo-500">Pre-fills billing cycle, value, and notes</span>
+        </div>
+      </div>
+      {% endif %}
+
       <div class="card p-6">
         <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Contract Info</h3>
         <div class="space-y-5">
@@ -113,4 +128,25 @@
     </form>
   </div>
 </div>
+<script>
+document.getElementById('template-picker')?.addEventListener('change', async function() {
+  const url = this.options[this.selectedIndex]?.dataset.url;
+  if (!url) return;
+  const resp = await fetch(url);
+  const data = await resp.json();
+  if (data.billing_cycle) {
+    const sel = document.querySelector('select[name="billing_cycle"]');
+    if (sel) sel.value = data.billing_cycle;
+  }
+  if (data.default_value) {
+    const inp = document.querySelector('input[name="contract_value"]');
+    if (inp) inp.value = data.default_value;
+  }
+  if (data.notes) {
+    const ta = document.querySelector('textarea[name="notes"]');
+    if (ta) ta.value = data.notes;
+  }
+  this.value = '';
+});
+</script>
 {% endblock %}

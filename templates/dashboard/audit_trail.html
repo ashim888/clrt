@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}Audit Trail{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Audit Trail</h1>
+    <p class="text-sm text-gray-500 mt-0.5">All recorded changes across leads and clients</p>
+  </div>
+</div>
+
+<form method="get" class="flex flex-wrap gap-2 mb-5">
+  <select name="model" class="input w-auto min-w-[130px]">
+    <option value="">All Models</option>
+    {% for m in model_choices %}
+    <option value="{{ m }}" {% if model == m %}selected{% endif %}>{{ m }}</option>
+    {% endfor %}
+  </select>
+  <select name="action" class="input w-auto min-w-[150px]">
+    <option value="">All Actions</option>
+    {% for val, label in action_choices %}
+    <option value="{{ val }}" {% if action_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn-secondary">Filter</button>
+  {% if model or action_filter %}<a href="{% url "dashboard:audit_trail" %}" class="btn-secondary">Clear</a>{% endif %}
+</form>
+
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">When</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">User</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Action</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Object</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Changes</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for log in logs %}
+      <tr class="hover:bg-gray-50 align-top">
+        <td class="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{{ log.timestamp|date:"M j, Y" }}<br>{{ log.timestamp|date:"H:i" }}</td>
+        <td class="px-4 py-3 text-gray-700">{{ log.user.get_full_name|default:log.user.username }}</td>
+        <td class="px-4 py-3">
+          <span class="text-xs font-semibold px-2 py-0.5 rounded-full
+            {% if log.action == 'created' %}bg-green-100 text-green-700
+            {% elif log.action == 'deleted' %}bg-red-100 text-red-700
+            {% elif log.action == 'status_changed' %}bg-blue-100 text-blue-700
+            {% else %}bg-gray-100 text-gray-600{% endif %}">
+            {{ log.get_action_display }}
+          </span>
+          <span class="text-xs text-gray-400 ml-1">{{ log.model_name }}</span>
+        </td>
+        <td class="px-4 py-3 text-gray-700 max-w-[200px] truncate" title="{{ log.object_repr }}">{{ log.object_repr|truncatechars:50 }}</td>
+        <td class="px-4 py-3 text-xs text-gray-500 max-w-xs">
+          {% if log.changes %}
+          {% for field, vals in log.changes.items %}
+          <div><span class="font-medium text-gray-600">{{ field }}</span>: {% if vals.0 %}<span class="line-through text-red-400">{{ vals.0|truncatechars:30 }}</span> → {% endif %}<span class="text-green-600">{{ vals.1|truncatechars:30 }}</span></div>
+          {% endfor %}
+          {% else %}—{% endif %}
+        </td>
+      </tr>
+      {% empty %}
+      <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">No audit entries yet. Changes to leads and clients will appear here.</td></tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% include "partials/pagination.html" with page_obj=page_obj %}
+</div>
+{% endblock %}

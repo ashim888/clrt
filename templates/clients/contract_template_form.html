@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex items-center gap-3 mb-8">
+  <a href="{% url "clients:contract_template_list" %}" class="inline-flex items-center gap-1 text-sm text-gray-500 hover:text-gray-800">
+    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+    Contract Templates
+  </a>
+  <span class="text-gray-300">/</span>
+  <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
+</div>
+
+<div class="max-w-2xl">
+  <div class="card p-6">
+    <form method="post" class="space-y-5">
+      {% csrf_token %}
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.name.label }} <span class="text-red-500">*</span></label>
+        {{ form.name }}
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.billing_cycle.label }}</label>
+          {{ form.billing_cycle }}
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.default_value.label }}</label>
+          {{ form.default_value }}
+        </div>
+      </div>
+      <div>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.notes.label }}</label>
+        {{ form.notes }}
+        <p class="text-xs text-gray-400 mt-1">This text will pre-fill the contract notes/terms field when the template is applied.</p>
+      </div>
+      <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
+        <button type="submit" class="btn-primary px-6 py-2.5">Save Template</button>
+        <a href="{% url "clients:contract_template_list" %}" class="btn-secondary px-6 py-2.5">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

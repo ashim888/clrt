@@ -391,4 +391,6 @@ function closeClientLightbox() {
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeClientLightbox(); });
 </script>
 
+{% include "partials/audit_log.html" with audit_logs=audit_logs %}
+
 {% endblock %}

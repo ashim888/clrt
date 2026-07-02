@@ -6,8 +6,8 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
-from .models import Client, Contract, ClientContact, ClientInteraction
-from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm
+from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate
+from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm, ContractTemplateForm
 
 
 def _can_edit(user):
@@ -81,6 +81,8 @@ def client_detail(request, pk):
             .select_related("created_by")
             .order_by("-created_at")
         )
+    from dashboard.models import AuditLog
+    audit_logs = AuditLog.objects.filter(model_name="Client", object_id=pk).select_related("user")[:20]
     return render(request, "clients/client_detail.html", {
         "client": client,
         "contracts": contracts,
@@ -88,6 +90,7 @@ def client_detail(request, pk):
         "interactions": interactions,
         "financial": financial,
         "lead_activities": lead_activities,
+        "audit_logs": audit_logs,
     })
 
 
@@ -100,6 +103,8 @@ def client_create(request):
     if form.is_valid():
         client = form.save()
         messages.success(request, f"Client \"{client.organization_name}\" created.")
+        from dashboard.audit import log_audit
+        log_audit(request.user, 'created', client)
         return redirect("clients:client_detail", pk=client.pk)
     from dashboard.models import Tag
     return render(request, "clients/client_form.html", {
@@ -116,7 +121,13 @@ def client_edit(request, pk):
         return redirect("clients:client_detail", pk=pk)
     form = ClientForm(request.POST or None, instance=client)
     if form.is_valid():
+        from dashboard.audit import log_audit, model_changes
+        old = Client.objects.get(pk=pk)
         form.save()
+        client.refresh_from_db()
+        diff = model_changes(old, client, ["organization_name", "phone", "email", "industry", "status", "website", "address", "notes"])
+        if diff:
+            log_audit(request.user, 'updated', client, diff)
         messages.success(request, "Client updated.")
         return redirect("clients:client_detail", pk=pk)
     from dashboard.models import Tag
@@ -181,6 +192,63 @@ def client_interaction_mark_done(request, pk):
     interaction.follow_up_done = True
     interaction.save(update_fields=["follow_up_done"])
     return JsonResponse({"ok": True})
+
+
+# ── Contract Templates ───────────────────────────────────────────────────────
+
+@login_required
+def contract_template_list(request):
+    templates = ContractTemplate.objects.all()
+    return render(request, "clients/contract_template_list.html", {"templates": templates})
+
+
+@login_required
+def contract_template_create(request):
+    if not _can_edit(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("clients:contract_template_list")
+    form = ContractTemplateForm(request.POST or None)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Template created.")
+        return redirect("clients:contract_template_list")
+    return render(request, "clients/contract_template_form.html", {"form": form, "title": "New Contract Template"})
+
+
+@login_required
+def contract_template_edit(request, pk):
+    tmpl = get_object_or_404(ContractTemplate, pk=pk)
+    if not _can_edit(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("clients:contract_template_list")
+    form = ContractTemplateForm(request.POST or None, instance=tmpl)
+    if form.is_valid():
+        form.save()
+        messages.success(request, "Template updated.")
+        return redirect("clients:contract_template_list")
+    return render(request, "clients/contract_template_form.html", {"form": form, "title": "Edit Template", "tmpl": tmpl})
+
+
+@login_required
+@require_POST
+def contract_template_delete(request, pk):
+    tmpl = get_object_or_404(ContractTemplate, pk=pk)
+    if not _can_edit(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("clients:contract_template_list")
+    tmpl.delete()
+    messages.success(request, "Template deleted.")
+    return redirect("clients:contract_template_list")
+
+
+@login_required
+def contract_template_json(request, pk):
+    tmpl = get_object_or_404(ContractTemplate, pk=pk)
+    return JsonResponse({
+        "billing_cycle": tmpl.billing_cycle,
+        "default_value": str(tmpl.default_value) if tmpl.default_value else "",
+        "notes": tmpl.notes,
+    })
 
 
 # ── Client Contacts ─────────────────────────────────────────────────────────
@@ -287,7 +355,10 @@ def contract_create(request, client_pk):
         contract.save()
         messages.success(request, "Contract created.")
         return redirect("clients:contract_detail", pk=contract.pk)
-    return render(request, "clients/contract_form.html", {"form": form, "client": client, "title": "Add Contract"})
+    return render(request, "clients/contract_form.html", {
+        "form": form, "client": client, "title": "Add Contract",
+        "contract_templates": ContractTemplate.objects.all(),
+    })
 
 
 @login_required

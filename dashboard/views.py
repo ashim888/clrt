@@ -349,6 +349,116 @@ def notification_list(request):
     return render(request, "dashboard/notifications.html", {"notifs": notifs})
 
 
+# ── Audit Trail ──────────────────────────────────────────────────
+
+@login_required
+def audit_trail(request):
+    if not (request.user.is_superuser or getattr(request.user, 'role', '') == 'admin'):
+        messages.error(request, "Access restricted to admins.")
+        return redirect("dashboard:dashboard")
+    from .models import AuditLog
+    logs = AuditLog.objects.select_related("user").all()
+    model = request.GET.get("model", "")
+    action = request.GET.get("action", "")
+    if model:
+        logs = logs.filter(model_name=model)
+    if action:
+        logs = logs.filter(action=action)
+    from django.core.paginator import Paginator
+    page_obj = Paginator(logs, 50).get_page(request.GET.get("page"))
+    return render(request, "dashboard/audit_trail.html", {
+        "page_obj": page_obj,
+        "logs": page_obj,
+        "model": model,
+        "action_filter": action,
+        "model_choices": ["Lead", "Client"],
+        "action_choices": AuditLog.ACTION_CHOICES,
+    })
+
+
+# ── Calendar ──────────────────────────────────────────────────────
+
+@login_required
+def calendar_view(request):
+    return render(request, "dashboard/calendar.html")
+
+
+@login_required
+def calendar_events(request):
+    from django.http import JsonResponse as _JR
+    start = request.GET.get("start", "")
+    end = request.GET.get("end", "")
+    events = []
+
+    from leads.models import Activity
+    from clients.models import ClientInteraction
+    import datetime
+
+    act_qs = Activity.objects.filter(next_follow_up_date__isnull=False).select_related("lead")
+    if start:
+        act_qs = act_qs.filter(next_follow_up_date__gte=start[:10])
+    if end:
+        act_qs = act_qs.filter(next_follow_up_date__lte=end[:10])
+    for a in act_qs:
+        events.append({
+            "id": f"lead-act-{a.pk}",
+            "title": f"{a.lead.organization_name} — {a.get_type_display()}",
+            "start": str(a.next_follow_up_date),
+            "url": f"/leads/{a.lead_id}/",
+            "color": "#3b82f6",
+            "extendedProps": {"type": "Lead Follow-up", "status": a.status},
+        })
+
+    ci_qs = ClientInteraction.objects.filter(next_follow_up_date__isnull=False, follow_up_done=False).select_related("client")
+    if start:
+        ci_qs = ci_qs.filter(next_follow_up_date__gte=start[:10])
+    if end:
+        ci_qs = ci_qs.filter(next_follow_up_date__lte=end[:10])
+    for ci in ci_qs:
+        events.append({
+            "id": f"client-ci-{ci.pk}",
+            "title": f"{ci.client.organization_name} — {ci.get_type_display()}",
+            "start": str(ci.next_follow_up_date),
+            "url": f"/clients/{ci.client_id}/",
+            "color": "#10b981",
+            "extendedProps": {"type": "Client Follow-up"},
+        })
+
+    from billing.models import Invoice
+    inv_qs = Invoice.objects.filter(status__in=["pending", "overdue"]).select_related("client")
+    if start:
+        inv_qs = inv_qs.filter(due_date__gte=start[:10])
+    if end:
+        inv_qs = inv_qs.filter(due_date__lte=end[:10])
+    for inv in inv_qs:
+        events.append({
+            "id": f"inv-{inv.pk}",
+            "title": f"Invoice due: {inv.client.organization_name}",
+            "start": str(inv.due_date),
+            "url": f"/billing/{inv.pk}/",
+            "color": "#f59e0b" if inv.status == "pending" else "#ef4444",
+            "extendedProps": {"type": "Invoice Due", "status": inv.status},
+        })
+
+    from clients.models import Contract
+    con_qs = Contract.objects.filter(status="active").select_related("client")
+    if start:
+        con_qs = con_qs.filter(end_date__gte=start[:10])
+    if end:
+        con_qs = con_qs.filter(end_date__lte=end[:10])
+    for con in con_qs:
+        events.append({
+            "id": f"con-{con.pk}",
+            "title": f"Contract ends: {con.client.organization_name}",
+            "start": str(con.end_date),
+            "url": f"/clients/contracts/{con.pk}/",
+            "color": "#8b5cf6",
+            "extendedProps": {"type": "Contract Expiry"},
+        })
+
+    return _JR(events, safe=False)
+
+
 # ── Tags ─────────────────────────────────────────────────────────
 
 @login_required

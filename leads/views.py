@@ -85,10 +85,13 @@ def lead_list(request):
 def lead_detail(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     activities = lead.activities.select_related("created_by")
+    from dashboard.models import AuditLog
+    audit_logs = AuditLog.objects.filter(model_name="Lead", object_id=pk).select_related("user")[:20]
     return render(request, "leads/lead_detail.html", {
         "lead": lead,
         "activities": activities,
         "status_choices": Lead.STATUS_CHOICES,
+        "audit_logs": audit_logs,
     })
 
 
@@ -101,6 +104,8 @@ def lead_create(request):
     if form.is_valid():
         lead = form.save()
         messages.success(request, f"Lead \"{lead.organization_name}\" created.")
+        from dashboard.audit import log_audit
+        log_audit(request.user, 'created', lead)
         if lead.assigned_to and lead.assigned_to != request.user:
             from django.urls import reverse as _rev
             from dashboard.models import Notification
@@ -126,7 +131,13 @@ def lead_edit(request, pk):
         return redirect("leads:lead_detail", pk=pk)
     form = LeadForm(request.POST or None, instance=lead)
     if form.is_valid():
+        from dashboard.audit import log_audit, model_changes
+        old = Lead.objects.get(pk=pk)
         form.save()
+        lead.refresh_from_db()
+        diff = model_changes(old, lead, ["organization_name", "contact_person", "phone", "email", "source", "deal_value", "status", "assigned_to", "notes"])
+        if diff:
+            log_audit(request.user, 'updated', lead, diff)
         messages.success(request, "Lead updated.")
         return redirect("leads:lead_detail", pk=pk)
     from dashboard.models import Tag
@@ -231,6 +242,7 @@ def lead_update_status(request, pk):
     if not _can_edit_leads(request.user):
         return JsonResponse({"error": "Permission denied"}, status=403)
     lead = get_object_or_404(Lead, pk=pk)
+    old_status = lead.status
     new_status = request.POST.get("status")
     valid = [s for s, _ in Lead.STATUS_CHOICES]
     if new_status not in valid:
@@ -241,6 +253,11 @@ def lead_update_status(request, pk):
         lead.lost_reason = request.POST.get("lost_reason", "").strip()
         update_fields.append("lost_reason")
     lead.save(update_fields=update_fields)
+    from dashboard.audit import log_audit
+    changes = {"status": [old_status, new_status]}
+    if new_status == "lost" and lead.lost_reason:
+        changes["lost_reason"] = ["", lead.lost_reason]
+    log_audit(request.user, 'status_changed', lead, changes)
 
     # Push in-app notification to the assigned user
     if new_status in ("won", "lost") and lead.assigned_to and lead.assigned_to != request.user:

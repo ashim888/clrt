@@ -135,3 +135,28 @@ class Notification(models.Model):
         if user is None:
             return
         cls.objects.create(user=user, title=title, body=body, link=link, type=type)
+
+
+class AuditLog(models.Model):
+    ACTION_CHOICES = [
+        ('created', 'Created'),
+        ('updated', 'Updated'),
+        ('deleted', 'Deleted'),
+        ('status_changed', 'Status Changed'),
+    ]
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='audit_logs',
+    )
+    action = models.CharField(max_length=20, choices=ACTION_CHOICES)
+    model_name = models.CharField(max_length=50)
+    object_id = models.PositiveIntegerField()
+    object_repr = models.CharField(max_length=200)
+    changes = models.JSONField(default=dict, blank=True)
+    timestamp = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-timestamp']
+
+    def __str__(self):
+        return f"{self.user} {self.action} {self.model_name} #{self.object_id}"

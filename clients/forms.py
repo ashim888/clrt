@@ -1,5 +1,5 @@
 from django import forms
-from .models import Client, Contract, ClientContact, ClientInteraction
+from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate
 from core.mixins import TailwindFormMixin
 
 
@@ -33,6 +33,17 @@ class ClientContactForm(forms.ModelForm):
     class Meta:
         model = ClientContact
         fields = ["name", "role", "email", "phone", "is_primary"]
+
+
+class ContractTemplateForm(TailwindFormMixin, forms.ModelForm):
+    class Meta:
+        model = ContractTemplate
+        fields = ["name", "billing_cycle", "default_value", "notes"]
+        widgets = {"notes": forms.Textarea(attrs={"rows": 6})}
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.apply_tailwind()
 
 
 class ClientInteractionForm(forms.ModelForm):
