@@ -26,6 +26,15 @@
       {% if client.website %}<a href="{{ client.website }}" target="_blank" rel="noopener" class="text-blue-600 hover:underline">{{ client.website|truncatechars:40 }}</a>{% endif %}
     </div>
     {% if client.linked_lead %}<p class="text-xs text-blue-600 mt-1">🔗 From lead: <a href="{% url "leads:lead_detail" client.linked_lead.pk %}" class="hover:underline">{{ client.linked_lead.organization_name }}</a></p>{% endif %}
+    {% with client_tags=client.tags.all %}
+    {% if client_tags %}
+    <div class="flex flex-wrap gap-1.5 mt-2">
+      {% for t in client_tags %}
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border" style="border-color:{{ t.color }};color:{{ t.color }};background:{{ t.color }}1a;">{{ t.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
   </div>
   <div class="flex flex-wrap gap-2 flex-shrink-0">
     <a href="{% url "clients:client_interaction_add" client.pk %}" class="btn-primary">+ Log Interaction</a>
@@ -319,7 +328,7 @@
               {% elif activity.status == 'rescheduled' %}bg-amber-100 text-amber-700{% endif %}">
               {% if activity.status == 'pending' %}⏳ Pending{% elif activity.status == 'completed' %}✅ Completed{% elif activity.status == 'cancelled' %}❌ Cancelled{% elif activity.status == 'rescheduled' %}📅 Rescheduled{% endif %}
             </span>
-            <span class="text-xs text-gray-400">{{ activity.created_at|date:"M d, Y" }}</span>
+            <span class="text-xs text-gray-400">{{ activity.created_at|site_date }}</span>
           </div>
           <p class="text-sm {% if activity.status == 'completed' or activity.status == 'cancelled' %}text-gray-400{% else %}text-gray-600{% endif %}">{{ activity.notes }}</p>
           {% if activity.resolution_note %}

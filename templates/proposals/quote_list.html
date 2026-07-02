@@ -49,18 +49,27 @@
 </div>
 
 <!-- Desktop table -->
+{% with bq="q="|add:q|add:"&status="|add:status %}
 <div class="hidden md:block card overflow-hidden">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b">
       <tr>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Number</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Title</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=title&order={% if sort == 'title' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Title {% if sort == 'title' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Recipient</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Valid Until</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=status&order={% if sort == 'status' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Status {% if sort == 'status' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=valid&order={% if sort == 'valid' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Valid Until {% if sort == 'valid' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
         <th class="px-4 py-3 text-right font-medium text-gray-500">Total</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Created</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=date&order={% if sort == 'date' and order == 'desc' %}asc{% else %}desc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Created {% if sort == 'date' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -79,7 +88,7 @@
         </td>
         <td class="px-4 py-3 {% if quote.is_expired %}text-red-500 font-medium{% else %}text-gray-500{% endif %}">{{ quote.valid_until }}</td>
         <td class="px-4 py-3 text-right font-semibold text-gray-900">{{ quote.total|inr }}</td>
-        <td class="px-4 py-3 text-gray-400">{{ quote.created_at|date:"M d, Y" }}</td>
+        <td class="px-4 py-3 text-gray-400">{{ quote.created_at|site_date }}</td>
       </tr>
       {% empty %}
       <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No proposals yet. <a href="{% url "proposals:quote_create" %}" class="text-blue-600 hover:underline">Create the first one.</a></td></tr>
@@ -87,5 +96,7 @@
     </tbody>
   </table>
   </div>
+  {% include "partials/pagination.html" with page_obj=page_obj %}
 </div>
+{% endwith %}
 {% endblock %}

@@ -17,4 +17,7 @@ urlpatterns = [
     path("<int:pk>/status/", views.lead_update_status, name="lead_update_status"),
     path("kanban/", views.lead_kanban, name="lead_kanban"),
     path("export/", views.lead_export_csv, name="lead_export_csv"),
+    path("bulk/", views.lead_bulk_action, name="lead_bulk_action"),
+    path("import/", views.lead_import, name="lead_import"),
+    path("check-duplicate/", views.lead_check_duplicate, name="lead_check_duplicate"),
 ]

@@ -72,7 +72,7 @@
     <div>
       <div class="lbl">Proposal Details</div>
       <div class="meta-row" style="flex-direction:column;gap:8px;margin:0;">
-        <div><div class="lbl">Date</div><div class="val">{{ quote.created_at|date:"M d, Y" }}</div></div>
+        <div><div class="lbl">Date</div><div class="val">{{ quote.created_at|site_date }}</div></div>
         <div><div class="lbl">Valid Until</div><div class="val">{{ quote.valid_until }}</div></div>
       </div>
     </div>

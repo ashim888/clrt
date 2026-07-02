@@ -114,16 +114,48 @@
   </div>
 </div>
 
-<!-- Client health -->
-<div class="card p-5 mb-4 max-w-sm">
-  <h2 class="font-semibold text-gray-900 mb-4">Client Health</h2>
-  {% if client_data != "[]" %}
-  <div style="height:180px;position:relative;">
-    <canvas id="clientChart"></canvas>
+<!-- Client health + Lost reasons -->
+<div class="grid lg:grid-cols-2 gap-6 mb-6">
+  <div class="card p-5">
+    <h2 class="font-semibold text-gray-900 mb-4">Client Health</h2>
+    {% if client_data != "[]" %}
+    <div style="height:180px;position:relative;">
+      <canvas id="clientChart"></canvas>
+    </div>
+    {% else %}
+    <div class="py-8 text-center text-gray-400 text-sm">No clients yet.</div>
+    {% endif %}
   </div>
-  {% else %}
-  <div class="py-8 text-center text-gray-400 text-sm">No clients yet.</div>
-  {% endif %}
+
+  <div class="card p-5">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="font-semibold text-gray-900">Lost Reasons</h2>
+      {% if lost_total %}<span class="text-xs text-gray-400">{{ lost_total }} lost lead{{ lost_total|pluralize }}</span>{% endif %}
+    </div>
+    {% if lost_reasons %}
+    <div class="space-y-2">
+      {% for row in lost_reasons %}
+      {% widthratio row.count lost_total 100 as pct %}
+      <div>
+        <div class="flex justify-between text-sm mb-0.5">
+          <span class="text-gray-700 truncate max-w-[220px]" title="{{ row.lost_reason }}">{{ row.lost_reason }}</span>
+          <span class="text-gray-400 ml-2 flex-shrink-0">{{ row.count }}</span>
+        </div>
+        <div class="h-1.5 bg-gray-100 rounded-full overflow-hidden">
+          <div class="h-full bg-red-400 rounded-full" style="width:{{ pct }}%"></div>
+        </div>
+      </div>
+      {% endfor %}
+      {% if lost_no_reason %}
+      <p class="text-xs text-gray-400 mt-3">+ {{ lost_no_reason }} lost with no reason recorded</p>
+      {% endif %}
+    </div>
+    {% elif lost_total %}
+    <div class="py-6 text-center text-gray-400 text-sm">{{ lost_total }} lost lead{{ lost_total|pluralize }} — no reasons captured yet.<br><span class="text-xs">Reasons are recorded when marking a lead lost.</span></div>
+    {% else %}
+    <div class="py-6 text-center text-gray-400 text-sm">No lost leads yet.</div>
+    {% endif %}
+  </div>
 </div>
 
 <script>

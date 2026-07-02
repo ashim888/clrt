@@ -1,16 +1,20 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from .models import Invoice, Payment
 from .forms import InvoiceForm, PaymentForm
 from clients.models import Client  # noqa
 
+_INV_SORT = {"date": "generated_date", "due": "due_date", "amount": "amount", "status": "status", "client": "client__organization_name"}
 
 @login_required
 def invoice_list(request):
     status = request.GET.get("status", "")
     q = request.GET.get("q", "")
+    sort = request.GET.get("sort", "date")
+    order = request.GET.get("order", "desc")
     invoices = Invoice.objects.select_related("client", "contract")
     if status:
         invoices = invoices.filter(status=status)
@@ -18,10 +22,17 @@ def invoice_list(request):
         invoices = invoices.filter(
             Q(client__organization_name__icontains=q) | Q(invoice_number__icontains=q)
         )
+    sort_field = _INV_SORT.get(sort, "generated_date")
+    invoices = invoices.order_by(f"{'-' if order == 'desc' else ''}{sort_field}")
+    paginator = Paginator(invoices, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
     return render(request, "billing/invoice_list.html", {
-        "invoices": invoices,
+        "invoices": page_obj,
+        "page_obj": page_obj,
         "status": status,
         "q": q,
+        "sort": sort,
+        "order": order,
         "status_choices": Invoice.STATUS_CHOICES,
     })
 

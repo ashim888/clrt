@@ -9,6 +9,7 @@ urlpatterns = [
     path("<int:pk>/", views.client_detail, name="client_detail"),
     path("<int:pk>/edit/", views.client_edit, name="client_edit"),
     path("export/", views.client_export_csv, name="client_export_csv"),
+    path("check-duplicate/", views.client_check_duplicate, name="client_check_duplicate"),
     path("interactions/<int:pk>/mark-done/", views.client_interaction_mark_done, name="client_interaction_mark_done"),
     # Contacts
     path("<int:client_pk>/contacts/add/", views.client_contact_add, name="client_contact_add"),

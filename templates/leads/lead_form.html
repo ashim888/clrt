@@ -109,11 +109,21 @@
                 class="input pl-10" placeholder="0" min="0" step="1">
             </div>
           </div>
+          <div class="col-span-2" id="lost-reason-row" style="{% if form.status.value != 'lost' %}display:none{% endif %}">
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Lost Reason</label>
+            <input type="text" name="lost_reason" value="{{ form.lost_reason.value|default:'' }}" class="input" placeholder="Price, competitor, timing…" maxlength="300">
+          </div>
           <div class="col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
             <textarea name="notes" rows="4" class="input" placeholder="Any relevant details, context, or initial observations…">{{ form.notes.value|default:"" }}</textarea>
           </div>
         </div>
+      </div>
+
+      <!-- Section: Tags -->
+      <div class="card p-6">
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-4">Tags</h3>
+        {% include "partials/tag_picker.html" %}
       </div>
 
       <!-- Actions -->
@@ -124,4 +134,47 @@
     </form>
   </div>
 </div>
+<script>
+document.querySelector('select[name="status"]')?.addEventListener('change', function() {
+  document.getElementById('lost-reason-row').style.display = this.value === 'lost' ? '' : 'none';
+});
+
+// Duplicate detection
+const _dupUrl = '{% url "leads:lead_check_duplicate" %}';
+const _excludePk = '{{ lead.pk|default:"" }}';
+let _dupTimer = null;
+
+function showDupWarning(matches) {
+  let el = document.getElementById('dup-warning');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'dup-warning';
+    el.className = 'rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800';
+    const orgInput = document.querySelector('input[name="organization_name"]');
+    orgInput.parentNode.insertAdjacentElement('afterend', el);
+  }
+  if (!matches.length) { el.remove(); return; }
+  el.innerHTML = '<p class="font-semibold mb-1">⚠ Possible duplicate' + (matches.length > 1 ? 's' : '') + ' found:</p>' +
+    matches.map(m => `<a href="/leads/${m.pk}/" target="_blank" class="block underline text-amber-900">${m.org} <span class="text-xs text-amber-600">(${m.status})</span></a>`).join('');
+}
+
+async function checkDup() {
+  const org = document.querySelector('input[name="organization_name"]')?.value.trim() || '';
+  const phone = document.querySelector('input[name="phone"]')?.value.trim() || '';
+  if (!org && !phone) { showDupWarning([]); return; }
+  const params = new URLSearchParams({ org, phone });
+  if (_excludePk) params.set('pk', _excludePk);
+  const resp = await fetch(_dupUrl + '?' + params.toString());
+  const data = await resp.json();
+  showDupWarning(data.duplicates || []);
+}
+
+function debounceCheck() {
+  clearTimeout(_dupTimer);
+  _dupTimer = setTimeout(checkDup, 500);
+}
+
+document.querySelector('input[name="organization_name"]')?.addEventListener('input', debounceCheck);
+document.querySelector('input[name="phone"]')?.addEventListener('input', debounceCheck);
+</script>
 {% endblock %}

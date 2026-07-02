@@ -62,6 +62,10 @@
           <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.notes.label }} <span class="text-xs font-normal text-gray-400">(internal)</span></label>
           {{ form.notes }}
         </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Tags</label>
+          {% include "partials/tag_picker.html" %}
+        </div>
         <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
           <button type="submit" class="btn-primary px-6 py-2.5">Save Client</button>
           <a href="{% if client %}{% url "clients:client_detail" client.pk %}{% else %}/clients/{% endif %}" class="btn-secondary px-6 py-2.5">Cancel</a>
@@ -70,4 +74,42 @@
     </div>
   </div>
 </div>
+<script>
+const _cDupUrl = '{% url "clients:client_check_duplicate" %}';
+const _cExcludePk = '{{ client.pk|default:"" }}';
+let _cDupTimer = null;
+
+function showClientDupWarning(matches) {
+  let el = document.getElementById('client-dup-warning');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'client-dup-warning';
+    el.className = 'rounded-lg border border-amber-300 bg-amber-50 p-3 text-sm text-amber-800 mb-2';
+    const orgInput = document.querySelector('input[name="organization_name"]');
+    orgInput.closest('div').insertAdjacentElement('afterend', el);
+  }
+  if (!matches.length) { el.remove(); return; }
+  el.innerHTML = '<p class="font-semibold mb-1">⚠ Possible duplicate' + (matches.length > 1 ? 's' : '') + ' found:</p>' +
+    matches.map(m => `<a href="/clients/${m.pk}/" target="_blank" class="block underline text-amber-900">${m.org} <span class="text-xs text-amber-600">(${m.status})</span></a>`).join('');
+}
+
+async function checkClientDup() {
+  const org = document.querySelector('input[name="organization_name"]')?.value.trim() || '';
+  const email = document.querySelector('input[name="email"]')?.value.trim() || '';
+  if (!org && !email) { showClientDupWarning([]); return; }
+  const params = new URLSearchParams({ org, email });
+  if (_cExcludePk) params.set('pk', _cExcludePk);
+  const resp = await fetch(_cDupUrl + '?' + params.toString());
+  const data = await resp.json();
+  showClientDupWarning(data.duplicates || []);
+}
+
+function debounceCDup() {
+  clearTimeout(_cDupTimer);
+  _cDupTimer = setTimeout(checkClientDup, 500);
+}
+
+document.querySelector('input[name="organization_name"]')?.addEventListener('input', debounceCDup);
+document.querySelector('input[name="email"]')?.addEventListener('input', debounceCDup);
+</script>
 {% endblock %}

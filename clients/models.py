@@ -20,6 +20,7 @@ class Client(models.Model):
     website = models.URLField(blank=True)
     industry = models.CharField(max_length=100, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    tags = models.ManyToManyField('dashboard.Tag', blank=True, related_name='clients')
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

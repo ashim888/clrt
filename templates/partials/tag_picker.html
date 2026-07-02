@@ -1,0 +1,83 @@
+{# Usage: {% include "partials/tag_picker.html" with selected_tags=obj.tags.all all_tags=all_tags %} #}
+{% load static %}
+<div id="tag-picker">
+  <div class="flex flex-wrap gap-1.5 mb-2" id="tag-pills">
+    {% for tag in all_tags %}
+    <label class="cursor-pointer">
+      <input type="checkbox" name="tags" value="{{ tag.pk }}"
+        {% if tag in selected_tags %}checked{% endif %}
+        class="sr-only tag-cb">
+      <span class="tag-pill inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all select-none"
+        style="border-color: {{ tag.color }}; color: {{ tag.color }}; background: {{ tag.color }}1a;"
+        data-color="{{ tag.color }}">
+        {{ tag.name }}
+      </span>
+    </label>
+    {% endfor %}
+  </div>
+
+  <!-- Create new tag inline -->
+  <div class="flex items-center gap-2 mt-1">
+    <input type="text" id="new-tag-name" placeholder="New tag name…" class="input text-xs py-1" style="max-width:160px;">
+    <select id="new-tag-color" class="input text-xs py-1" style="max-width:110px;">
+      <option value="#6366f1">Indigo</option>
+      <option value="#3b82f6">Blue</option>
+      <option value="#10b981">Green</option>
+      <option value="#f59e0b">Amber</option>
+      <option value="#ef4444">Red</option>
+      <option value="#8b5cf6">Purple</option>
+      <option value="#06b6d4">Cyan</option>
+      <option value="#f97316">Orange</option>
+      <option value="#64748b">Slate</option>
+      <option value="#ec4899">Pink</option>
+    </select>
+    <button type="button" onclick="createTag()" class="btn-secondary text-xs py-1 px-2">+ Add</button>
+  </div>
+</div>
+
+<style>
+.tag-pill { cursor: pointer; }
+.tag-cb:checked + .tag-pill { color: #fff !important; }
+</style>
+<script>
+document.querySelectorAll('.tag-cb').forEach(cb => {
+  applyTagStyle(cb);
+  cb.addEventListener('change', () => applyTagStyle(cb));
+});
+function applyTagStyle(cb) {
+  const pill = cb.nextElementSibling;
+  const color = pill.dataset.color;
+  if (cb.checked) {
+    pill.style.background = color;
+    pill.style.color = '#fff';
+    pill.style.borderColor = color;
+  } else {
+    pill.style.background = color + '1a';
+    pill.style.color = color;
+    pill.style.borderColor = color;
+  }
+}
+async function createTag() {
+  const name = document.getElementById('new-tag-name').value.trim();
+  const color = document.getElementById('new-tag-color').value;
+  if (!name) return;
+  const resp = await fetch('/tags/create/', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': '{{ csrf_token }}', 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, color }),
+  });
+  if (!resp.ok) { alert('Could not create tag'); return; }
+  const data = await resp.json();
+  // Append new pill
+  const label = document.createElement('label');
+  label.className = 'cursor-pointer';
+  label.innerHTML = `
+    <input type="checkbox" name="tags" value="${data.id}" checked class="sr-only tag-cb">
+    <span class="tag-pill inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border transition-all select-none"
+      style="background:${data.color}; color:#fff; border-color:${data.color};"
+      data-color="${data.color}">${data.name}</span>`;
+  label.querySelector('.tag-cb').addEventListener('change', function() { applyTagStyle(this); });
+  document.getElementById('tag-pills').appendChild(label);
+  document.getElementById('new-tag-name').value = '';
+}
+</script>

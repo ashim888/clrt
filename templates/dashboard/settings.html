@@ -1,0 +1,268 @@
+{% extends "base.html" %}
+{% block title %}System Settings{% endblock %}
+
+{% block content %}
+<div class="max-w-3xl mx-auto">
+
+  <div class="flex items-center justify-between mb-6">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">System Settings</h1>
+      <p class="text-sm text-gray-500 mt-0.5">Changes apply system-wide for all users immediately.</p>
+    </div>
+  </div>
+
+  <form method="post" id="settings-form">
+    {% csrf_token %}
+
+    <!-- ── CURRENCY & NUMBERS ── -->
+    <div class="card mb-4 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-currency">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">💰</span>
+          <div>
+            <p class="font-semibold text-gray-900">Currency &amp; Numbers</p>
+            <p class="text-xs text-gray-400 mt-0.5">Symbol, comma style for all money values</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-currency" class="acc-body border-t border-gray-100 px-5 py-5 space-y-5">
+
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Currency Symbol</label>
+            <select name="currency_symbol" class="input" id="id_currency_symbol">
+              {% for val, label in form.currency_symbol.field.choices %}
+              <option value="{{ val }}" {% if form.currency_symbol.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Number Format</label>
+            <select name="number_format" class="input" id="id_number_format">
+              {% for val, label in form.number_format.field.choices %}
+              <option value="{{ val }}" {% if form.number_format.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- live preview -->
+        <div class="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 flex items-center gap-4 text-sm">
+          <span class="text-blue-400 text-lg">👁</span>
+          <div>
+            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Preview</span>
+            <p class="font-semibold text-gray-800 mt-0.5" id="currency-preview">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DATE & TIME ── -->
+    <div class="card mb-4 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-date">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">📅</span>
+          <div>
+            <p class="font-semibold text-gray-900">Date &amp; Time</p>
+            <p class="text-xs text-gray-400 mt-0.5">Date format across all pages, fiscal year</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-date" class="acc-body border-t border-gray-100 px-5 py-5 space-y-5 hidden">
+
+        <div class="grid sm:grid-cols-2 gap-5">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Date Format</label>
+            <select name="date_format" class="input" id="id_date_format">
+              {% for val, label in form.date_format.field.choices %}
+              <option value="{{ val }}" {% if form.date_format.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Fiscal Year Start</label>
+            <select name="fiscal_year_start" class="input">
+              {% for val, label in form.fiscal_year_start.field.choices %}
+              <option value="{{ val }}" {% if form.fiscal_year_start.value == val %}selected{% endif %}>{{ label }}</option>
+              {% endfor %}
+            </select>
+            <p class="text-xs text-gray-400 mt-1">Used in reports to group financial periods</p>
+          </div>
+        </div>
+
+        <div class="rounded-lg bg-blue-50 border border-blue-100 px-4 py-3 flex items-center gap-4 text-sm">
+          <span class="text-blue-400 text-lg">👁</span>
+          <div>
+            <span class="text-xs font-semibold text-blue-600 uppercase tracking-wider">Preview</span>
+            <p class="font-semibold text-gray-800 mt-0.5" id="date-preview">—</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── BUSINESS IDENTITY ── -->
+    <div class="card mb-4 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-business">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">🏢</span>
+          <div>
+            <p class="font-semibold text-gray-900">Business Identity</p>
+            <p class="text-xs text-gray-400 mt-0.5">Shown on invoices, proposals, and print views</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-business" class="acc-body border-t border-gray-100 px-5 py-5 space-y-4 hidden">
+        <div class="grid sm:grid-cols-2 gap-4">
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Business Name <span class="text-red-500">*</span></label>
+            <input type="text" name="business_name" value="{{ form.business_name.value|default:'' }}" class="input" required>
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tagline</label>
+            <input type="text" name="business_tagline" value="{{ form.business_tagline.value|default:'' }}" class="input" placeholder="e.g. Trusted partner for growth">
+          </div>
+          <div class="sm:col-span-2">
+            <label class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+            <textarea name="business_address" class="input" rows="3" placeholder="Street, City, State, PIN">{{ form.business_address.value|default:'' }}</textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+            <input type="text" name="business_phone" value="{{ form.business_phone.value|default:'' }}" class="input" placeholder="+977-...">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <input type="email" name="business_email" value="{{ form.business_email.value|default:'' }}" class="input" placeholder="info@example.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Website</label>
+            <input type="url" name="business_website" value="{{ form.business_website.value|default:'' }}" class="input" placeholder="https://example.com">
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Tax / GST / PAN Number</label>
+            <input type="text" name="tax_number" value="{{ form.tax_number.value|default:'' }}" class="input" placeholder="Shown on invoices">
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── DOCUMENT DEFAULTS ── -->
+    <div class="card mb-6 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-docs">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">📄</span>
+          <div>
+            <p class="font-semibold text-gray-900">Invoice &amp; Quote Defaults</p>
+            <p class="text-xs text-gray-400 mt-0.5">Prefixes, tax rate, payment terms template</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-docs" class="acc-body border-t border-gray-100 px-5 py-5 space-y-4 hidden">
+        <div class="grid sm:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Prefix</label>
+            <input type="text" name="invoice_prefix" value="{{ form.invoice_prefix.value|default:'INV' }}" class="input" placeholder="INV">
+            <p class="text-xs text-gray-400 mt-1">e.g. INV → INV-2025-0001</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Quote Prefix</label>
+            <input type="text" name="quote_prefix" value="{{ form.quote_prefix.value|default:'Q' }}" class="input" placeholder="Q">
+            <p class="text-xs text-gray-400 mt-1">e.g. Q → Q-2025-0001</p>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">Default Tax Rate (%)</label>
+            <input type="number" name="default_tax_rate" value="{{ form.default_tax_rate.value|default:'0' }}" class="input" min="0" max="100" step="0.01">
+          </div>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Default Payment Terms</label>
+          <textarea name="default_payment_terms" class="input" rows="3">{{ form.default_payment_terms.value|default:'' }}</textarea>
+          <p class="text-xs text-gray-400 mt-1">Pre-filled on new invoices and proposals</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Save bar -->
+    <div class="sticky bottom-0 bg-white border-t border-gray-200 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex items-center justify-between shadow-lg">
+      <p class="text-xs text-gray-400">Changes take effect immediately for all users.</p>
+      <button type="submit" class="btn-primary">Save Settings</button>
+    </div>
+
+  </form>
+</div>
+
+<style>
+  .acc-body { transition: none; }
+  .acc-body.hidden { display: none; }
+  .acc-toggle.open .acc-chev { transform: rotate(180deg); }
+</style>
+
+<script>
+// Accordion
+document.querySelectorAll('.acc-toggle').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const body = document.getElementById(btn.dataset.target);
+    const isOpen = !body.classList.contains('hidden');
+    body.classList.toggle('hidden', isOpen);
+    btn.classList.toggle('open', !isOpen);
+  });
+  // Open first section by default
+  if (btn.dataset.target === 'sec-currency') {
+    btn.classList.add('open');
+  }
+});
+
+// Currency preview
+const AMOUNTS = [150000, 2500000];
+function fmtIndian(n) {
+  n = Math.round(n);
+  let s = String(Math.abs(n));
+  let result = s.length <= 3 ? s : s.slice(-3);
+  s = s.length > 3 ? s.slice(0, -3) : '';
+  while (s.length > 0) {
+    result = s.slice(-2) + ',' + result;
+    s = s.slice(0, -2);
+  }
+  return (n < 0 ? '-' : '') + result;
+}
+function fmtWestern(n) { return Math.round(n).toLocaleString('en-US'); }
+
+function updateCurrencyPreview() {
+  const sym  = document.getElementById('id_currency_symbol').value;
+  const fmt  = document.getElementById('id_number_format').value;
+  const fn   = fmt === 'indian' ? fmtIndian : fmtWestern;
+  document.getElementById('currency-preview').textContent =
+    AMOUNTS.map(a => sym + ' ' + fn(a)).join('   ·   ');
+}
+document.getElementById('id_currency_symbol').addEventListener('change', updateCurrencyPreview);
+document.getElementById('id_number_format').addEventListener('change', updateCurrencyPreview);
+updateCurrencyPreview();
+
+// Date preview
+const TODAY = new Date();
+function fmtDate(fmt) {
+  const d = TODAY;
+  const pad = n => String(n).padStart(2,'0');
+  const MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const MONTHS_LONG  = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const map = {
+    'j': d.getDate(),
+    'd': pad(d.getDate()),
+    'm': pad(d.getMonth()+1),
+    'Y': d.getFullYear(),
+    'M': MONTHS_SHORT[d.getMonth()],
+    'F': MONTHS_LONG[d.getMonth()],
+  };
+  return fmt.replace(/[jdmYMF]/g, k => map[k] ?? k);
+}
+function updateDatePreview() {
+  const fmt = document.getElementById('id_date_format').value;
+  document.getElementById('date-preview').textContent = 'Today shown as: ' + fmtDate(fmt);
+}
+document.getElementById('id_date_format').addEventListener('change', updateDatePreview);
+updateDatePreview();
+</script>
+{% endblock %}

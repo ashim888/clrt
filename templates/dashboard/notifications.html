@@ -1,0 +1,49 @@
+{% extends "base.html" %}
+{% block title %}Notifications{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto">
+  <div class="flex items-center justify-between mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Notifications</h1>
+    {% if unread_notification_count %}
+    <a href="{% url 'dashboard:notifications_read_all' %}" class="btn-secondary text-sm">Mark all as read</a>
+    {% endif %}
+  </div>
+
+  {% if notifs %}
+  <div class="card divide-y divide-gray-100 overflow-hidden">
+    {% for n in notifs %}
+    <a href="{% url 'dashboard:notification_read' n.pk %}"
+      class="flex items-start gap-4 px-5 py-4 hover:bg-gray-50 transition-colors {% if not n.is_read %}bg-blue-50{% endif %}">
+      <!-- type icon -->
+      <div class="mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center text-sm
+        {% if n.type == 'lead' %}bg-blue-100 text-blue-600
+        {% elif n.type == 'followup' %}bg-amber-100 text-amber-600
+        {% elif n.type == 'invoice' %}bg-green-100 text-green-600
+        {% elif n.type == 'contract' %}bg-purple-100 text-purple-600
+        {% else %}bg-gray-100 text-gray-500{% endif %}">
+        {% if n.type == 'lead' %}🤝
+        {% elif n.type == 'followup' %}📅
+        {% elif n.type == 'invoice' %}🧾
+        {% elif n.type == 'contract' %}📋
+        {% else %}ℹ️{% endif %}
+      </div>
+      <div class="min-w-0 flex-1">
+        <p class="text-sm font-semibold text-gray-900">{{ n.title }}</p>
+        {% if n.body %}<p class="text-xs text-gray-500 mt-0.5">{{ n.body }}</p>{% endif %}
+        <p class="text-xs text-gray-400 mt-1">{{ n.created_at|timesince }} ago</p>
+      </div>
+      {% if not n.is_read %}
+      <span class="flex-shrink-0 mt-2 w-2 h-2 rounded-full bg-blue-500"></span>
+      {% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card p-12 text-center text-gray-400">
+    <p class="text-4xl mb-3">🔔</p>
+    <p class="font-medium text-gray-600">No notifications yet</p>
+    <p class="text-sm mt-1">You'll see lead updates, assignments, and reminders here.</p>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

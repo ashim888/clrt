@@ -44,6 +44,7 @@
     <a href="{% url "leads:lead_kanban" %}" class="btn-secondary">🗂 Kanban</a>
     <a href="{% url "leads:lead_export_csv" %}" class="btn-secondary">⬇ Export CSV</a>
     {% if user.role in "admin,sales" or user.is_superuser %}
+    <a href="{% url "leads:lead_import" %}" class="btn-secondary">⬆ Import CSV</a>
     <a href="{% url "leads:lead_create" %}" class="btn-primary">+ Add Lead</a>
     {% endif %}
   </div>
@@ -64,9 +65,17 @@
     <option value="{{ val }}" {% if source == val %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+  {% if all_tags %}
+  <select name="tag" class="input w-auto min-w-[120px]">
+    <option value="">All Tags</option>
+    {% for t in all_tags %}
+    <option value="{{ t.pk }}" {% if tag == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
   <div class="flex gap-2">
     <button type="submit" class="btn-secondary">Filter</button>
-    {% if q or status or source %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
+    {% if q or status or source or tag %}<a href="/leads/" class="btn-secondary">Clear</a>{% endif %}
   </div>
 </form>
 
@@ -111,36 +120,70 @@
 </div>
 
 <!-- Desktop: Table -->
+{% with base_qs="q="|add:q|add:"&status="|add:status|add:"&source="|add:source|add:"&tag="|add:tag %}
 <div class="hidden md:block card overflow-visible">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
+        <th class="px-4 py-3 w-8"><input type="checkbox" id="select-all" class="rounded border-gray-300 cursor-pointer"></th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap w-10">#</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Organization</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">
+          <a href="?{{ base_qs }}&sort=org&order={% if sort == 'org' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">
+            Organization {% if sort == 'org' %}<span>{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+          </a>
+        </th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Contact</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">
+          <a href="?{{ base_qs }}&sort=status&order={% if sort == 'status' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">
+            Status {% if sort == 'status' %}<span>{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+          </a>
+        </th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Latest Activity</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Next Follow-up</th>
-        <th class="px-4 py-3 text-right font-medium text-gray-500 whitespace-nowrap">Deal Value</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">
+          <a href="?{{ base_qs }}&sort=followup&order={% if sort == 'followup' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">
+            Next Follow-up {% if sort == 'followup' %}<span>{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+          </a>
+        </th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500 whitespace-nowrap">
+          <a href="?{{ base_qs }}&sort=value&order={% if sort == 'value' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center justify-end gap-1 hover:text-gray-700">
+            Deal Value {% if sort == 'value' %}<span>{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+          </a>
+        </th>
         <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Assigned To</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">Activities</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 whitespace-nowrap">
+          <a href="?{{ base_qs }}&sort=created&order={% if sort == 'created' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">
+            Added {% if sort == 'created' %}<span>{% if order == 'asc' %}↑{% else %}↓{% endif %}</span>{% endif %}
+          </a>
+        </th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
       {% for lead in leads %}
       {% with latest=lead.all_activities.0 %}
-      <tr class="hover:bg-blue-50 cursor-pointer transition-colors" onclick="location.href='{% url "leads:lead_detail" lead.pk %}'">
+      <tr class="hover:bg-blue-50 cursor-pointer transition-colors lead-row" onclick="location.href='{% url "leads:lead_detail" lead.pk %}'">
 
-        <td class="px-4 py-3 text-gray-400 text-xs font-medium">{{ forloop.counter }}</td>
+        <td class="px-4 py-3 w-8" onclick="event.stopPropagation()">
+          <input type="checkbox" class="lead-cb rounded border-gray-300 cursor-pointer" value="{{ lead.pk }}">
+        </td>
+        <td class="px-4 py-3 text-gray-400 text-xs font-medium">{{ page_obj.start_index|add:forloop.counter0 }}</td>
 
         <td class="px-4 py-3">
           <div class="font-semibold text-gray-900">{{ lead.organization_name }}</div>
           {% if lead.source %}
           <div class="text-xs text-gray-400 mt-0.5">{{ lead.get_source_display }}</div>
           {% else %}
-          <div class="text-xs text-gray-400 mt-0.5">Added {{ lead.created_at|date:"M d, Y" }}</div>
+          <div class="text-xs text-gray-400 mt-0.5">Added {{ lead.created_at|site_date }}</div>
           {% endif %}
+          {% with lead_tags=lead.tags.all %}
+          {% if lead_tags %}
+          <div class="flex flex-wrap gap-1 mt-1">
+            {% for t in lead_tags %}
+            <span class="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-medium border" style="border-color:{{ t.color }};color:{{ t.color }};background:{{ t.color }}1a;">{{ t.name }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endwith %}
         </td>
 
         <td class="px-4 py-3">
@@ -185,11 +228,11 @@
             {% now "Y-m-d" as today_str %}
             {% with fu=lead.next_followup_max|date:"Y-m-d" %}
               {% if fu < today_str %}
-                <span class="followup-overdue text-xs">⚠ Overdue<br><span class="font-normal">{{ lead.next_followup_max|date:"M d, Y" }}</span></span>
+                <span class="followup-overdue text-xs">⚠ Overdue<br><span class="font-normal">{{ lead.next_followup_max|site_date }}</span></span>
               {% elif fu == today_str %}
-                <span class="followup-today text-xs">📅 Today<br><span class="font-normal">{{ lead.next_followup_max|date:"M d, Y" }}</span></span>
+                <span class="followup-today text-xs">📅 Today<br><span class="font-normal">{{ lead.next_followup_max|site_date }}</span></span>
               {% else %}
-                <span class="followup-soon text-xs">{{ lead.next_followup_max|date:"M d, Y" }}</span>
+                <span class="followup-soon text-xs">{{ lead.next_followup_max|site_date }}</span>
               {% endif %}
             {% endwith %}
           {% else %}
@@ -223,6 +266,35 @@
     </tbody>
   </table>
   </div>
+  {% include "partials/pagination.html" with page_obj=page_obj %}
+</div>
+{% endwith %}
+
+<!-- Bulk action bar -->
+<div id="bulk-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 hidden">
+  <div class="bg-gray-900 text-white rounded-2xl shadow-2xl flex items-center gap-3 px-5 py-3 text-sm">
+    <span id="bulk-count" class="font-semibold text-indigo-300 mr-1">0 selected</span>
+    <button type="button" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-red-600 hover:bg-red-700 text-white transition-colors" onclick="bulkAction('delete')">Delete</button>
+    <span class="text-gray-600">|</span>
+    <span class="text-gray-400 text-xs">Status:</span>
+    {% for val, label in status_choices %}
+    <button type="button" class="px-2.5 py-1 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 transition-colors" onclick="bulkAction('status', '{{ val }}')">{{ label }}</button>
+    {% endfor %}
+    <button type="button" class="ml-2 text-gray-500 hover:text-white" onclick="clearSelection()">✕</button>
+  </div>
+</div>
+
+<!-- Lost-reason modal -->
+<div id="lost-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.45)">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-sm p-6">
+    <h3 class="font-semibold text-gray-900 mb-1">Mark as Lost</h3>
+    <p class="text-sm text-gray-500 mb-4">What was the reason? (optional — helps track patterns)</p>
+    <input id="lost-reason-input" type="text" class="input mb-4" placeholder="e.g. Price too high, chose competitor…" maxlength="300">
+    <div class="flex gap-2 justify-end">
+      <button type="button" class="btn-secondary" id="lost-cancel">Cancel</button>
+      <button type="button" class="btn-danger" id="lost-confirm">Mark Lost</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -235,32 +307,121 @@ const STATUS_BG = {
   lost:        ['#fee2e2','#b91c1c'],
 };
 const CSRF = '{{ csrf_token }}';
+let _pendingLost = null; // { sel, url, prev }
+
+async function submitStatus(url, status, lostReason) {
+  const body = new URLSearchParams({ status });
+  if (lostReason) body.set('lost_reason', lostReason);
+  const resp = await fetch(url, {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  const data = await resp.json();
+  if (!resp.ok) throw new Error(data.error || 'Update failed');
+  return data;
+}
+
+function applyStatusStyle(sel, status) {
+  sel.dataset.current = status;
+  const c = STATUS_BG[status];
+  if (c) { sel.style.backgroundColor = c[0]; sel.style.color = c[1]; }
+}
 
 document.querySelectorAll('.status-select').forEach(sel => {
   sel.addEventListener('change', async function() {
     const newStatus = this.value;
     const url = this.dataset.url;
-    // Update visual immediately
-    this.dataset.current = newStatus;
-    if (STATUS_BG[newStatus]) {
-      this.style.backgroundColor = STATUS_BG[newStatus][0];
-      this.style.color = STATUS_BG[newStatus][1];
+    const prev = this.dataset.current;
+
+    if (newStatus === 'lost') {
+      _pendingLost = { sel: this, url, prev };
+      document.getElementById('lost-reason-input').value = '';
+      document.getElementById('lost-modal').classList.remove('hidden');
+      return;
     }
+
+    applyStatusStyle(this, newStatus);
     try {
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded'},
-        body: 'status=' + encodeURIComponent(newStatus),
-      });
-      const data = await resp.json();
-      if (!resp.ok) {
-        alert(data.error || 'Update failed');
-      } else if (data.redirect) {
-        window.location.href = data.redirect;
-      }
-    } catch { alert('Network error — please refresh.'); }
+      const data = await submitStatus(url, newStatus, '');
+      if (data.redirect) window.location.href = data.redirect;
+    } catch (e) {
+      alert(e.message);
+      applyStatusStyle(this, prev);
+      this.value = prev;
+    }
   });
 });
+
+document.getElementById('lost-cancel').addEventListener('click', () => {
+  if (_pendingLost) {
+    _pendingLost.sel.value = _pendingLost.prev;
+    applyStatusStyle(_pendingLost.sel, _pendingLost.prev);
+    _pendingLost = null;
+  }
+  document.getElementById('lost-modal').classList.add('hidden');
+});
+
+document.getElementById('lost-confirm').addEventListener('click', async () => {
+  if (!_pendingLost) return;
+  const reason = document.getElementById('lost-reason-input').value.trim();
+  const { sel, url, prev } = _pendingLost;
+  applyStatusStyle(sel, 'lost');
+  document.getElementById('lost-modal').classList.add('hidden');
+  _pendingLost = null;
+  try {
+    await submitStatus(url, 'lost', reason);
+  } catch (e) {
+    alert(e.message);
+    applyStatusStyle(sel, prev);
+    sel.value = prev;
+  }
+});
+
+document.getElementById('lost-modal').addEventListener('click', e => {
+  if (e.target === e.currentTarget) document.getElementById('lost-cancel').click();
+});
+
+// ── Bulk selection ─────────────────────────────────────────────
+const bulkBar = document.getElementById('bulk-bar');
+const bulkCount = document.getElementById('bulk-count');
+
+function getChecked() {
+  return [...document.querySelectorAll('.lead-cb:checked')].map(cb => cb.value);
+}
+function updateBulkBar() {
+  const ids = getChecked();
+  bulkBar.classList.toggle('hidden', ids.length === 0);
+  bulkCount.textContent = ids.length + ' selected';
+}
+function clearSelection() {
+  document.querySelectorAll('.lead-cb').forEach(cb => cb.checked = false);
+  document.getElementById('select-all').checked = false;
+  updateBulkBar();
+}
+
+document.getElementById('select-all').addEventListener('change', function() {
+  document.querySelectorAll('.lead-cb').forEach(cb => cb.checked = this.checked);
+  updateBulkBar();
+});
+document.querySelectorAll('.lead-cb').forEach(cb => cb.addEventListener('change', updateBulkBar));
+
+async function bulkAction(action, value) {
+  const ids = getChecked();
+  if (!ids.length) return;
+  if (action === 'delete' && !confirm(`Delete ${ids.length} lead(s)? This cannot be undone.`)) return;
+  const body = new URLSearchParams({ action });
+  ids.forEach(id => body.append('ids', id));
+  if (value) body.set('value', value);
+  const resp = await fetch('{% url "leads:lead_bulk_action" %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  const data = await resp.json();
+  if (data.ok) location.reload();
+  else alert(data.error || 'Action failed');
+}
 </script>
 
 {% endblock %}

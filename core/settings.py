@@ -24,6 +24,7 @@ INSTALLED_APPS = [
     "billing",
     "dashboard",
     "proposals",
+    "catalog",
 ]
 
 MIDDLEWARE = [
@@ -48,6 +49,8 @@ TEMPLATES = [{
             "django.template.context_processors.request",
             "django.contrib.auth.context_processors.auth",
             "django.contrib.messages.context_processors.messages",
+            "dashboard.context_processors.site_settings",
+            "dashboard.context_processors.notifications",
         ],
         "builtins": ["dashboard.templatetags.clrt_filters"],
     },

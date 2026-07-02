@@ -2,6 +2,7 @@ import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
@@ -13,11 +14,16 @@ def _can_edit(user):
     return user.is_admin() or user.is_accounts()
 
 
+_CLIENT_SORT = {"name": "organization_name", "status": "status", "billed": "total_billed", "created": "created_at"}
+
 @login_required
 def client_list(request):
     q = request.GET.get("q", "")
     status = request.GET.get("status", "")
-    clients = Client.objects.prefetch_related("contacts").annotate(
+    tag = request.GET.get("tag", "")
+    sort = request.GET.get("sort", "name")
+    order = request.GET.get("order", "asc")
+    clients = Client.objects.prefetch_related("contacts", "tags").annotate(
         total_billed=Sum("invoices__amount"),
         total_paid=Sum("invoices__amount", filter=Q(invoices__status="paid")),
     )
@@ -30,11 +36,23 @@ def client_list(request):
         )
     if status:
         clients = clients.filter(status=status)
+    if tag:
+        clients = clients.filter(tags__pk=tag)
+    sort_field = _CLIENT_SORT.get(sort, "organization_name")
+    clients = clients.order_by(f"{'-' if order == 'desc' else ''}{sort_field}")
+    paginator = Paginator(clients, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+    from dashboard.models import Tag
     return render(request, "clients/client_list.html", {
-        "clients": clients,
+        "clients": page_obj,
+        "page_obj": page_obj,
         "q": q,
         "status": status,
+        "tag": tag,
+        "sort": sort,
+        "order": order,
         "status_choices": Client.STATUS_CHOICES,
+        "all_tags": Tag.objects.all(),
     })
 
 
@@ -83,7 +101,11 @@ def client_create(request):
         client = form.save()
         messages.success(request, f"Client \"{client.organization_name}\" created.")
         return redirect("clients:client_detail", pk=client.pk)
-    return render(request, "clients/client_form.html", {"form": form, "title": "Add Client"})
+    from dashboard.models import Tag
+    return render(request, "clients/client_form.html", {
+        "form": form, "title": "Add Client",
+        "all_tags": Tag.objects.all(), "selected_tags": [],
+    })
 
 
 @login_required
@@ -97,7 +119,31 @@ def client_edit(request, pk):
         form.save()
         messages.success(request, "Client updated.")
         return redirect("clients:client_detail", pk=pk)
-    return render(request, "clients/client_form.html", {"form": form, "title": "Edit Client", "client": client})
+    from dashboard.models import Tag
+    return render(request, "clients/client_form.html", {
+        "form": form, "title": "Edit Client", "client": client,
+        "all_tags": Tag.objects.all(), "selected_tags": client.tags.all(),
+    })
+
+
+@login_required
+def client_check_duplicate(request):
+    org = request.GET.get("org", "").strip()
+    email = request.GET.get("email", "").strip()
+    exclude_pk = request.GET.get("pk")
+    if not org and not email:
+        return JsonResponse({"duplicates": []})
+    qs = Client.objects
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+    matches = []
+    if org:
+        for c in qs.filter(organization_name__iexact=org)[:3]:
+            matches.append({"pk": c.pk, "org": c.organization_name, "status": c.get_status_display()})
+    if email and not matches:
+        for c in qs.filter(email__iexact=email)[:3]:
+            matches.append({"pk": c.pk, "org": c.organization_name, "status": c.get_status_display()})
+    return JsonResponse({"duplicates": matches})
 
 
 @login_required

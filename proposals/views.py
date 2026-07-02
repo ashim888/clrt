@@ -1,6 +1,7 @@
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.db.models import Q
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
@@ -29,10 +30,14 @@ def _save_line_items(quote, post):
         )
 
 
+_QUOTE_SORT = {"date": "created_at", "status": "status", "title": "title", "valid": "valid_until"}
+
 @login_required
 def quote_list(request):
     q = request.GET.get("q", "")
     status = request.GET.get("status", "")
+    sort = request.GET.get("sort", "date")
+    order = request.GET.get("order", "desc")
     quotes = Quote.objects.select_related("lead", "client", "created_by")
     if q:
         quotes = quotes.filter(
@@ -43,10 +48,17 @@ def quote_list(request):
         )
     if status:
         quotes = quotes.filter(status=status)
+    sort_field = _QUOTE_SORT.get(sort, "created_at")
+    quotes = quotes.order_by(f"{'-' if order == 'desc' else ''}{sort_field}")
+    paginator = Paginator(quotes, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
     return render(request, "proposals/quote_list.html", {
-        "quotes": quotes,
+        "quotes": page_obj,
+        "page_obj": page_obj,
         "q": q,
         "status": status,
+        "sort": sort,
+        "order": order,
         "status_choices": Quote.STATUS_CHOICES,
     })
 

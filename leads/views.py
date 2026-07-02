@@ -2,11 +2,21 @@ import csv
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
+from django.core.paginator import Paginator
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 from django.db.models import Q, Count, Max, Prefetch
 from .models import Lead, Activity
 from .forms import LeadForm, ActivityForm
+
+LEAD_SORT_FIELDS = {
+    "org": "organization_name",
+    "contact": "contact_person",
+    "status": "status",
+    "value": "deal_value",
+    "created": "created_at",
+    "followup": "next_followup_max",
+}
 
 
 def _can_edit_leads(user):
@@ -17,17 +27,25 @@ def _can_edit_leads(user):
 def lead_list(request):
     q = request.GET.get("q", "")
     status = request.GET.get("status", "")
+    source = request.GET.get("source", "")
+    sort = request.GET.get("sort", "created")
+    order = request.GET.get("order", "desc")
+
+    tag = request.GET.get("tag", "")
+
     latest_activity_qs = Activity.objects.select_related("created_by").order_by("-created_at")
     leads = (
         Lead.objects
         .select_related("assigned_to")
-        .prefetch_related(Prefetch("activities", queryset=latest_activity_qs, to_attr="all_activities"))
+        .prefetch_related(
+            Prefetch("activities", queryset=latest_activity_qs, to_attr="all_activities"),
+            "tags",
+        )
         .annotate(
             activity_count=Count("activities"),
             next_followup_max=Max("activities__next_follow_up_date"),
         )
     )
-    source = request.GET.get("source", "")
     if q:
         leads = leads.filter(
             Q(organization_name__icontains=q) |
@@ -38,14 +56,28 @@ def lead_list(request):
         leads = leads.filter(status=status)
     if source:
         leads = leads.filter(source=source)
-    leads = leads.order_by("-created_at")
+    if tag:
+        leads = leads.filter(tags__pk=tag)
+
+    sort_field = LEAD_SORT_FIELDS.get(sort, "created_at")
+    leads = leads.order_by(f"{'-' if order == 'desc' else ''}{sort_field}")
+
+    paginator = Paginator(leads, 25)
+    page_obj = paginator.get_page(request.GET.get("page"))
+
+    from dashboard.models import Tag
     return render(request, "leads/lead_list.html", {
-        "leads": leads,
+        "leads": page_obj,
+        "page_obj": page_obj,
         "q": q,
         "status": status,
         "source": source,
+        "tag": tag,
+        "sort": sort,
+        "order": order,
         "status_choices": Lead.STATUS_CHOICES,
         "source_choices": Lead.SOURCE_CHOICES,
+        "all_tags": Tag.objects.all(),
     })
 
 
@@ -69,8 +101,21 @@ def lead_create(request):
     if form.is_valid():
         lead = form.save()
         messages.success(request, f"Lead \"{lead.organization_name}\" created.")
+        if lead.assigned_to and lead.assigned_to != request.user:
+            from django.urls import reverse as _rev
+            from dashboard.models import Notification
+            Notification.push(
+                lead.assigned_to,
+                title=f"New lead assigned: {lead.organization_name}",
+                link=_rev("leads:lead_detail", args=[lead.pk]),
+                type="lead",
+            )
         return redirect("leads:lead_detail", pk=lead.pk)
-    return render(request, "leads/lead_form.html", {"form": form, "title": "Add Lead"})
+    from dashboard.models import Tag
+    return render(request, "leads/lead_form.html", {
+        "form": form, "title": "Add Lead",
+        "all_tags": Tag.objects.all(), "selected_tags": [],
+    })
 
 
 @login_required
@@ -84,7 +129,11 @@ def lead_edit(request, pk):
         form.save()
         messages.success(request, "Lead updated.")
         return redirect("leads:lead_detail", pk=pk)
-    return render(request, "leads/lead_form.html", {"form": form, "title": "Edit Lead", "lead": lead})
+    from dashboard.models import Tag
+    return render(request, "leads/lead_form.html", {
+        "form": form, "title": "Edit Lead", "lead": lead,
+        "all_tags": Tag.objects.all(), "selected_tags": lead.tags.all(),
+    })
 
 
 @login_required
@@ -187,13 +236,75 @@ def lead_update_status(request, pk):
     if new_status not in valid:
         return JsonResponse({"error": "Invalid status"}, status=400)
     lead.status = new_status
-    lead.save(update_fields=["status", "updated_at"])
+    update_fields = ["status", "updated_at"]
+    if new_status == "lost":
+        lead.lost_reason = request.POST.get("lost_reason", "").strip()
+        update_fields.append("lost_reason")
+    lead.save(update_fields=update_fields)
+
+    # Push in-app notification to the assigned user
+    if new_status in ("won", "lost") and lead.assigned_to and lead.assigned_to != request.user:
+        from django.urls import reverse as _rev
+        from dashboard.models import Notification
+        verb = "Won" if new_status == "won" else "Lost"
+        Notification.push(
+            lead.assigned_to,
+            title=f"Lead {verb}: {lead.organization_name}",
+            body=lead.lost_reason if new_status == "lost" else "",
+            link=_rev("leads:lead_detail", args=[lead.pk]),
+            type="lead",
+        )
+
     response = {"status": new_status, "label": lead.get_status_display()}
-    # If just marked Won and not yet a client, signal frontend to redirect
     if new_status == "won" and not hasattr(lead, "client"):
         from django.urls import reverse
         response["redirect"] = reverse("leads:convert_to_client", args=[lead.pk])
     return JsonResponse(response)
+
+
+@login_required
+def lead_check_duplicate(request):
+    org = request.GET.get("org", "").strip()
+    phone = request.GET.get("phone", "").strip()
+    exclude_pk = request.GET.get("pk")
+    if not org and not phone:
+        return JsonResponse({"duplicates": []})
+    qs = Lead.objects
+    if exclude_pk:
+        qs = qs.exclude(pk=exclude_pk)
+    matches = []
+    if org:
+        for lead in qs.filter(organization_name__iexact=org)[:3]:
+            matches.append({"pk": lead.pk, "org": lead.organization_name, "status": lead.get_status_display()})
+    if phone and not matches:
+        for lead in qs.filter(phone=phone)[:3]:
+            matches.append({"pk": lead.pk, "org": lead.organization_name, "status": lead.get_status_display()})
+    return JsonResponse({"duplicates": matches})
+
+
+@login_required
+@require_POST
+def lead_bulk_action(request):
+    if not _can_edit_leads(request.user):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    ids = request.POST.getlist("ids")
+    action = request.POST.get("action")
+    if not ids or not action:
+        return JsonResponse({"error": "Missing ids or action"}, status=400)
+    qs = Lead.objects.filter(pk__in=ids)
+    if action == "delete":
+        if not request.user.is_admin():
+            return JsonResponse({"error": "Only admins can delete leads"}, status=403)
+        qs.delete()
+    elif action == "status":
+        value = request.POST.get("value")
+        valid = [s for s, _ in Lead.STATUS_CHOICES]
+        if value not in valid:
+            return JsonResponse({"error": "Invalid status"}, status=400)
+        qs.update(status=value)
+    else:
+        return JsonResponse({"error": "Unknown action"}, status=400)
+    return JsonResponse({"ok": True})
 
 
 @login_required
@@ -238,6 +349,116 @@ def lead_kanban(request):
         "pipeline_total": pipeline_total,
         "weighted_total": weighted_total,
     })
+
+
+@login_required
+def lead_import(request):
+    if not _can_edit_leads(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("leads:lead_list")
+
+    VALID_SOURCES = {s for s, _ in Lead.SOURCE_CHOICES}
+    VALID_STATUSES = {s for s, _ in Lead.STATUS_CHOICES}
+    REQUIRED_COLS = {"organization_name", "contact_person", "phone"}
+
+    # Step 2 — confirm import (data stored in session)
+    if request.method == "POST" and request.POST.get("action") == "import":
+        import json as _json
+        rows = request.session.pop("lead_import_rows", [])
+        if not rows:
+            messages.error(request, "Session expired — please re-upload the file.")
+            return redirect("leads:lead_import")
+        skipped = 0
+        created = 0
+        for row in rows:
+            if row.get("_dup"):
+                skipped += 1
+                continue
+            dv = None
+            if row.get("deal_value"):
+                try:
+                    dv = float(str(row["deal_value"]).replace(",", ""))
+                except ValueError:
+                    pass
+            Lead.objects.create(
+                organization_name=row["organization_name"],
+                contact_person=row.get("contact_person", ""),
+                phone=row.get("phone", ""),
+                email=row.get("email", ""),
+                source=row.get("source", "") if row.get("source", "") in VALID_SOURCES else "",
+                deal_value=dv,
+                status=row.get("status", "new") if row.get("status", "new") in VALID_STATUSES else "new",
+                notes=row.get("notes", ""),
+            )
+            created += 1
+        messages.success(request, f"Imported {created} lead(s). {skipped} duplicate(s) skipped.")
+        return redirect("leads:lead_list")
+
+    # Step 1 — parse uploaded file
+    if request.method == "POST" and request.FILES.get("csv_file"):
+        import io
+        f = request.FILES["csv_file"]
+        try:
+            text = f.read().decode("utf-8-sig")
+        except UnicodeDecodeError:
+            f.seek(0)
+            text = f.read().decode("latin-1")
+        reader = csv.DictReader(io.StringIO(text))
+        cols = [c.strip().lower().replace(" ", "_") for c in (reader.fieldnames or [])]
+        missing = REQUIRED_COLS - set(cols)
+        if missing:
+            messages.error(request, f"CSV is missing required columns: {', '.join(sorted(missing))}")
+            return redirect("leads:lead_import")
+
+        existing_names = set(
+            Lead.objects.values_list("organization_name__iexact", flat=True)
+        )
+        existing_phones = set(Lead.objects.values_list("phone", flat=True))
+
+        rows = []
+        for raw in reader:
+            norm = {c.strip().lower().replace(" ", "_"): (v or "").strip() for c, v in raw.items()}
+            org = norm.get("organization_name", "")
+            phone = norm.get("phone", "")
+            if not org:
+                continue
+            is_dup = org.lower() in existing_names or (phone and phone in existing_phones)
+            norm["_dup"] = is_dup
+            rows.append(norm)
+
+        if not rows:
+            messages.error(request, "No valid rows found in the file.")
+            return redirect("leads:lead_import")
+
+        request.session["lead_import_rows"] = rows
+        return render(request, "leads/lead_import.html", {
+            "rows": rows,
+            "cols": cols,
+            "preview": True,
+            "new_count": sum(1 for r in rows if not r["_dup"]),
+            "dup_count": sum(1 for r in rows if r["_dup"]),
+        })
+
+    if request.GET.get("sample"):
+        response = HttpResponse(content_type="text/csv")
+        response["Content-Disposition"] = 'attachment; filename="leads_sample.csv"'
+        writer = csv.writer(response)
+        writer.writerow(["organization_name", "contact_person", "phone", "email", "source", "deal_value", "status", "notes"])
+        writer.writerow(["Acme Corp", "Jane Doe", "9800000001", "jane@acme.com", "referral", "50000", "new", "Met at conference"])
+        writer.writerow(["Beta Ltd", "John Smith", "9800000002", "john@beta.com", "website", "", "contacted", ""])
+        return response
+
+    COLUMNS = [
+        ("organization_name", True),
+        ("contact_person", True),
+        ("phone", True),
+        ("email", False),
+        ("source", False),
+        ("deal_value", False),
+        ("status", False),
+        ("notes", False),
+    ]
+    return render(request, "leads/lead_import.html", {"preview": False, "columns": COLUMNS})
 
 
 @login_required

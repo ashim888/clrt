@@ -52,16 +52,28 @@
 </div>
 
 <!-- Desktop: Table -->
+{% with bq="q="|add:q|add:"&status="|add:status %}
 <div class="hidden md:block card overflow-hidden">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Invoice #</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Client</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Amount</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Due Date</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=client&order={% if sort == 'client' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Client {% if sort == 'client' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=amount&order={% if sort == 'amount' and order == 'desc' %}asc{% else %}desc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Amount {% if sort == 'amount' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=due&order={% if sort == 'due' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Due Date {% if sort == 'due' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=status&order={% if sort == 'status' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Status {% if sort == 'status' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=date&order={% if sort == 'date' and order == 'desc' %}asc{% else %}desc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Date {% if sort == 'date' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -70,7 +82,7 @@
         <td class="px-4 py-3 font-medium text-blue-600">{{ inv.invoice_number }}</td>
         <td class="px-4 py-3 text-gray-700">{{ inv.client }}</td>
         <td class="px-4 py-3 font-medium">{{ inv.amount|inr }}</td>
-        <td class="px-4 py-3 text-gray-500 {% if inv.is_overdue %}text-red-600 font-medium{% endif %}">{{ inv.due_date }}</td>
+        <td class="px-4 py-3 {% if inv.is_overdue %}text-red-600 font-medium{% else %}text-gray-500{% endif %}">{{ inv.due_date }}</td>
         <td class="px-4 py-3">
           <span class="badge
             {% if inv.status == "paid" %}bg-green-100 text-green-700
@@ -78,12 +90,15 @@
             {% elif inv.status == "pending" %}bg-yellow-100 text-yellow-800
             {% else %}bg-gray-100 text-gray-600{% endif %}">{{ inv.get_status_display }}</span>
         </td>
+        <td class="px-4 py-3 text-gray-400 text-xs">{{ inv.generated_date }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="5" class="px-4 py-10 text-center text-gray-400">No invoices found.</td></tr>
+      <tr><td colspan="6" class="px-4 py-10 text-center text-gray-400">No invoices found.</td></tr>
       {% endfor %}
     </tbody>
   </table>
   </div>
+  {% include "partials/pagination.html" with page_obj=page_obj %}
 </div>
+{% endwith %}
 {% endblock %}

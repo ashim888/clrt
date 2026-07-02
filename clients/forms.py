@@ -6,7 +6,7 @@ from core.mixins import TailwindFormMixin
 class ClientForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Client
-        fields = ["organization_name", "phone", "email", "address", "website", "industry", "status", "notes"]
+        fields = ["organization_name", "phone", "email", "address", "website", "industry", "status", "tags", "notes"]
         widgets = {
             "address": forms.Textarea(attrs={"rows": 2}),
             "notes": forms.Textarea(attrs={"rows": 3}),

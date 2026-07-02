@@ -18,7 +18,7 @@
       <div><span class="text-gray-500">Username</span><p class="font-medium">{{ user.username }}</p></div>
       <div><span class="text-gray-500">Email</span><p class="font-medium">{{ user.email|default:"—" }}</p></div>
       <div><span class="text-gray-500">Role</span><p class="font-medium">{{ user.get_role_display }}</p></div>
-      <div><span class="text-gray-500">Joined</span><p class="font-medium">{{ user.date_joined|date:"M d, Y" }}</p></div>
+      <div><span class="text-gray-500">Joined</span><p class="font-medium">{{ user.date_joined|site_date }}</p></div>
     </div>
   </div>
 </div>

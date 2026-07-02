@@ -143,8 +143,9 @@
             </tbody>
           </table>
         </div>
-        <div class="px-5 py-3 border-t border-gray-100">
+        <div class="px-5 py-3 border-t border-gray-100 flex items-center gap-4">
           <button type="button" onclick="addRow()" class="text-sm text-blue-600 hover:text-blue-800 font-medium">+ Add line item</button>
+          <button type="button" onclick="openCatalog()" class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">📦 Add from Catalog</button>
         </div>
       </div>
     </div>
@@ -214,5 +215,93 @@ document.querySelectorAll('.line-item-row').forEach(row => {
   updateRowTotal(row);
 });
 updateGrandTotal();
+
+// ── Catalog picker ──────────────────────────────────────────────
+function openCatalog() {
+  document.getElementById('cat-modal').classList.remove('hidden');
+  document.getElementById('cat-search').value = '';
+  document.getElementById('cat-results').innerHTML = '';
+  document.getElementById('cat-search').focus();
+  loadCatalog('');
+}
+function closeCatalog() {
+  document.getElementById('cat-modal').classList.add('hidden');
+}
+
+let catTimer = null;
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('cat-search').addEventListener('input', function() {
+    clearTimeout(catTimer);
+    catTimer = setTimeout(() => loadCatalog(this.value.trim()), 220);
+  });
+});
+
+async function loadCatalog(q) {
+  const res = await fetch('/catalog/api/search/?q=' + encodeURIComponent(q));
+  const data = await res.json();
+  const box = document.getElementById('cat-results');
+  if (!data.services.length) {
+    box.innerHTML = '<p class="text-center text-gray-400 text-sm py-6">No services found.</p>';
+    return;
+  }
+  box.innerHTML = data.services.map(s => `
+    <div class="flex items-center justify-between gap-3 px-3 py-2.5 rounded-lg hover:bg-indigo-50 cursor-pointer transition-colors cat-item"
+         data-name="${s.name}" data-desc="${s.description}" data-price="${s.default_price}">
+      <div class="min-w-0">
+        <p class="font-medium text-gray-900 text-sm truncate">${s.name}</p>
+        ${s.category ? `<p class="text-xs text-gray-400">${s.category} · ${s.unit}</p>` : `<p class="text-xs text-gray-400">${s.unit}</p>`}
+      </div>
+      <span class="text-sm font-semibold text-gray-700 whitespace-nowrap flex-shrink-0">
+        ${s.default_price > 0 ? formatCurrency(s.default_price) : '—'}
+      </span>
+    </div>`).join('');
+  box.querySelectorAll('.cat-item').forEach(el => {
+    el.addEventListener('click', () => insertFromCatalog(el.dataset));
+  });
+}
+
+function formatCurrency(n) {
+  return 'Rs. ' + Math.round(n).toLocaleString('en-IN');
+}
+
+function insertFromCatalog(d) {
+  const tbody = document.getElementById('line-items-body');
+  // Find the first empty description row; otherwise append
+  let targetRow = null;
+  tbody.querySelectorAll('.line-item-row').forEach(row => {
+    const descInput = row.querySelector('[name="item_description[]"]');
+    if (!targetRow && descInput && !descInput.value.trim()) targetRow = row;
+  });
+  if (targetRow) {
+    targetRow.querySelector('[name="item_description[]"]').value = d.desc || d.name;
+    targetRow.querySelector('[name="item_quantity[]"]').value = 1;
+    targetRow.querySelector('[name="item_unit_price[]"]').value = d.price;
+    updateRowTotal(targetRow);
+  } else {
+    tbody.insertAdjacentHTML('beforeend', rowHtml());
+    const newRow = tbody.lastElementChild;
+    newRow.querySelector('[name="item_description[]"]').value = d.desc || d.name;
+    newRow.querySelector('[name="item_quantity[]"]').value = 1;
+    newRow.querySelector('[name="item_unit_price[]"]').value = d.price;
+    bindRow(newRow);
+    updateRowTotal(newRow);
+  }
+  updateGrandTotal();
+  closeCatalog();
+}
 </script>
+
+<!-- Catalog Modal -->
+<div id="cat-modal" class="fixed inset-0 z-50 hidden flex items-center justify-center p-4" style="background:rgba(0,0,0,.5)" onclick="if(event.target===this)closeCatalog()">
+  <div class="bg-white rounded-xl shadow-2xl w-full max-w-md flex flex-col" style="max-height:80vh;">
+    <div class="px-5 pt-5 pb-3 border-b border-gray-100 flex items-center justify-between">
+      <h3 class="font-semibold text-gray-900">Add from Catalog</h3>
+      <button type="button" onclick="closeCatalog()" class="text-gray-400 hover:text-gray-600 text-xl leading-none">×</button>
+    </div>
+    <div class="px-4 pt-3 pb-2">
+      <input id="cat-search" type="text" class="input" placeholder="Search services…" autocomplete="off">
+    </div>
+    <div id="cat-results" class="overflow-y-auto px-2 pb-3 flex-1 space-y-0.5" style="min-height:120px;"></div>
+  </div>
+</div>
 {% endblock %}

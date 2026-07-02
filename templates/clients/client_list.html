@@ -20,9 +20,17 @@
     <option value="{{ val }}" {% if status == val %}selected{% endif %}>{{ label }}</option>
     {% endfor %}
   </select>
+  {% if all_tags %}
+  <select name="tag" class="input w-auto min-w-[120px]">
+    <option value="">All Tags</option>
+    {% for t in all_tags %}
+    <option value="{{ t.pk }}" {% if tag == t.pk|stringformat:"s" %}selected{% endif %}>{{ t.name }}</option>
+    {% endfor %}
+  </select>
+  {% endif %}
   <div class="flex gap-2">
     <button type="submit" class="btn-secondary">Filter</button>
-    {% if q or status %}<a href="/clients/" class="btn-secondary">Clear</a>{% endif %}
+    {% if q or status or tag %}<a href="/clients/" class="btn-secondary">Clear</a>{% endif %}
   </div>
 </form>
 
@@ -61,18 +69,27 @@
 </div>
 
 <!-- Desktop: Table -->
+{% with bq="q="|add:q|add:"&status="|add:status %}
 <div class="hidden md:block card overflow-hidden">
   <div style="overflow-x:auto;">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Organization</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=name&order={% if sort == 'name' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Organization {% if sort == 'name' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=status&order={% if sort == 'status' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Status {% if sort == 'status' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Primary Contact</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Industry</th>
-        <th class="px-4 py-3 text-right font-medium text-gray-500">Total Billed</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=billed&order={% if sort == 'billed' and order == 'desc' %}asc{% else %}desc{% endif %}" class="flex items-center justify-end gap-1 hover:text-gray-700">Total Billed {% if sort == 'billed' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
         <th class="px-4 py-3 text-right font-medium text-gray-500">Collected</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Since</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">
+          <a href="?{{ bq }}&sort=created&order={% if sort == 'created' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Since {% if sort == 'created' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
+        </th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -81,6 +98,15 @@
         <td class="px-4 py-3">
           <p class="font-medium text-gray-900">{{ client.organization_name }}</p>
           {% if client.email %}<p class="text-xs text-gray-400">{{ client.email }}</p>{% endif %}
+          {% with client_tags=client.tags.all %}
+          {% if client_tags %}
+          <div class="flex flex-wrap gap-1 mt-1">
+            {% for t in client_tags %}
+            <span class="inline-flex items-center px-1.5 py-0 rounded-full text-xs font-medium border" style="border-color:{{ t.color }};color:{{ t.color }};background:{{ t.color }}1a;">{{ t.name }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+          {% endwith %}
         </td>
         <td class="px-4 py-3">
           <span class="text-xs px-2 py-0.5 rounded-full font-semibold
@@ -107,5 +133,7 @@
     </tbody>
   </table>
   </div>
+  {% include "partials/pagination.html" with page_obj=page_obj %}
 </div>
+{% endwith %}
 {% endblock %}

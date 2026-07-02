@@ -59,6 +59,15 @@
       <p class="text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-full px-2.5 py-0.5">💰 {{ lead.deal_value|inr }}</p>
       {% endif %}
     </div>
+    {% with lead_tags=lead.tags.all %}
+    {% if lead_tags %}
+    <div class="flex flex-wrap gap-1.5 mt-2">
+      {% for t in lead_tags %}
+      <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border" style="border-color:{{ t.color }};color:{{ t.color }};background:{{ t.color }}1a;">{{ t.name }}</span>
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
   </div>
   <div class="flex flex-wrap gap-2 flex-shrink-0">
     {% if lead.is_won %}
@@ -97,6 +106,12 @@
   <!-- Lead Info -->
   <div class="card p-5 space-y-3">
     <h3 class="font-semibold text-gray-900">Lead Details</h3>
+    {% if lead.status == "lost" %}
+    <div class="rounded-lg bg-red-50 border border-red-200 p-3">
+      <p class="text-xs font-semibold text-red-500 uppercase tracking-wider mb-0.5">Lost Reason</p>
+      <p class="text-sm text-red-800">{{ lead.lost_reason|default:"No reason recorded" }}</p>
+    </div>
+    {% endif %}
     {% if lead.notes %}
     <div>
       <p class="text-xs text-gray-400 mb-0.5">Notes</p>
@@ -109,7 +124,7 @@
     </div>
     <div>
       <p class="text-xs text-gray-400 mb-0.5">Created</p>
-      <p class="text-sm">{{ lead.created_at|date:"M d, Y" }}</p>
+      <p class="text-sm">{{ lead.created_at|site_date }}</p>
     </div>
   </div>
 

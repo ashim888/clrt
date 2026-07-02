@@ -1,6 +1,9 @@
 import json
-from django.shortcuts import render
+from django.shortcuts import render, redirect
+from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
 from django.db.models import Sum, Count, Q
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
@@ -150,6 +153,18 @@ def reports(request):
         .aggregate(t=Sum("deal_value"))["t"] or 0
     )
 
+    # Lost reason breakdown
+    lost_reasons_qs = (
+        Lead.objects.filter(status="lost")
+        .exclude(lost_reason="")
+        .values("lost_reason")
+        .annotate(count=Count("id"))
+        .order_by("-count")[:10]
+    )
+    lost_reasons = list(lost_reasons_qs)
+    lost_total = Lead.objects.filter(status="lost").count()
+    lost_no_reason = Lead.objects.filter(status="lost", lost_reason="").count()
+
     return render(request, "dashboard/reports.html", {
         "revenue_labels": json.dumps(revenue_labels),
         "revenue_data": json.dumps(revenue_data),
@@ -171,6 +186,9 @@ def reports(request):
         "active_pipeline_value": active_pipeline_value,
         "weighted_forecast": weighted_forecast,
         "won_pipeline_value": won_pipeline_value,
+        "lost_reasons": lost_reasons,
+        "lost_total": lost_total,
+        "lost_no_reason": lost_no_reason,
     })
 
 
@@ -240,3 +258,68 @@ def team_performance(request):
         "stats": stats,
         "month": month_start.strftime("%B %Y"),
     })
+
+
+@login_required
+def site_settings_view(request):
+    if not (request.user.is_superuser or getattr(request.user, 'role', '') == 'admin'):
+        messages.error(request, "Only admins can change system settings.")
+        return redirect("dashboard:dashboard")
+    from .models import SiteSettings
+    from .forms import SiteSettingsForm
+    obj = SiteSettings.load()
+    if request.method == "POST":
+        form = SiteSettingsForm(request.POST, instance=obj)
+        if form.is_valid():
+            form.save()
+            messages.success(request, "Settings saved.")
+            return redirect("dashboard:settings")
+    else:
+        form = SiteSettingsForm(instance=obj)
+    return render(request, "dashboard/settings.html", {"form": form, "obj": obj})
+
+
+# ── Notifications ────────────────────────────────────────────────
+
+@login_required
+def notification_read(request, pk):
+    from .models import Notification
+    notif = Notification.objects.filter(pk=pk, user=request.user).first()
+    if notif:
+        notif.is_read = True
+        notif.save(update_fields=["is_read"])
+        if notif.link:
+            return redirect(notif.link)
+    return redirect("dashboard:dashboard")
+
+
+@login_required
+def notifications_read_all(request):
+    from .models import Notification
+    Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+    return redirect(request.META.get("HTTP_REFERER", "dashboard:dashboard"))
+
+
+@login_required
+def notification_list(request):
+    from .models import Notification
+    notifs = Notification.objects.filter(user=request.user)
+    return render(request, "dashboard/notifications.html", {"notifs": notifs})
+
+
+# ── Tags ─────────────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def tag_create(request):
+    from .models import Tag
+    try:
+        data = json.loads(request.body)
+        name = data.get("name", "").strip()[:50]
+        color = data.get("color", "#6366f1")
+        if not name:
+            return JsonResponse({"error": "Name required"}, status=400)
+        tag, _ = Tag.objects.get_or_create(name=name, defaults={"color": color})
+        return JsonResponse({"id": tag.pk, "name": tag.name, "color": tag.color})
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=400)
