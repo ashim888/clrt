@@ -16,4 +16,6 @@ urlpatterns = [
     path("recurring/<int:pk>/toggle/", views.recurring_invoice_toggle, name="recurring_toggle"),
     path("<int:invoice_pk>/payment/add/", views.payment_add, name="payment_add"),
     path("<int:pk>/print/", views.invoice_print, name="invoice_print"),
+    path("<int:pk>/pay/create-order/", views.razorpay_create_order, name="razorpay_create_order"),
+    path("<int:pk>/pay/verify/", views.razorpay_verify_payment, name="razorpay_verify"),
 ]

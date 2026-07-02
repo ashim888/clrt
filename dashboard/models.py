@@ -60,6 +60,11 @@ class SiteSettings(models.Model):
         default='Payment due within 30 days of invoice date.'
     )
 
+    # — Payment Gateway —
+    razorpay_key_id = models.CharField(max_length=100, blank=True)
+    razorpay_key_secret = models.CharField(max_length=100, blank=True)
+    razorpay_enabled = models.BooleanField(default=False)
+
     class Meta:
         verbose_name = 'Site Settings'
 

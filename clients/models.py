@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from leads.models import Lead
@@ -22,6 +23,7 @@ class Client(models.Model):
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
     tags = models.ManyToManyField('dashboard.Tag', blank=True, related_name='clients')
     notes = models.TextField(blank=True)
+    portal_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

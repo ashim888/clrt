@@ -18,6 +18,9 @@
   <div class="flex flex-wrap gap-2">
     {% if invoice.status != "paid" %}
     <a href="{% url "billing:payment_add" invoice.pk %}" class="btn-primary">+ Record Payment</a>
+    {% if razorpay_enabled %}
+    <button type="button" id="rzp-btn" onclick="startRazorpayPayment()" class="btn-secondary font-semibold text-blue-700 border-blue-300 hover:bg-blue-50">💳 Pay Now</button>
+    {% endif %}
     {% endif %}
     <a href="{% url "billing:invoice_print" invoice.pk %}" target="_blank" class="btn-secondary">🖨 Print / PDF</a>
     <a href="{% url "billing:invoice_edit" invoice.pk %}" class="btn-secondary">Edit</a>
@@ -56,4 +59,70 @@
     </div>
   </div>
 </div>
+
+{% if razorpay_enabled and invoice.status != "paid" %}
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<script>
+const CREATE_ORDER_URL = "{% url 'billing:razorpay_create_order' invoice.pk %}";
+const VERIFY_URL = "{% url 'billing:razorpay_verify' invoice.pk %}";
+const CSRF_TOKEN = "{{ csrf_token }}";
+
+async function startRazorpayPayment() {
+  const btn = document.getElementById('rzp-btn');
+  btn.disabled = true;
+  btn.textContent = 'Loading…';
+  try {
+    const res = await fetch(CREATE_ORDER_URL, {
+      method: 'POST',
+      headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/json'},
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      alert(err.error || 'Failed to create payment order.');
+      btn.disabled = false;
+      btn.textContent = '💳 Pay Now';
+      return;
+    }
+    const data = await res.json();
+    const options = {
+      key: data.key_id,
+      amount: data.amount,
+      currency: data.currency,
+      name: data.client_name,
+      description: 'Invoice ' + data.invoice_number,
+      order_id: data.order_id,
+      prefill: {name: data.client_name, email: data.client_email, contact: data.client_phone},
+      theme: {color: '#4f46e5'},
+      handler: async function(response) {
+        const form = new URLSearchParams({
+          razorpay_order_id: response.razorpay_order_id,
+          razorpay_payment_id: response.razorpay_payment_id,
+          razorpay_signature: response.razorpay_signature,
+        });
+        const vRes = await fetch(VERIFY_URL, {
+          method: 'POST',
+          headers: {'X-CSRFToken': CSRF_TOKEN, 'Content-Type': 'application/x-www-form-urlencoded'},
+          body: form.toString(),
+        });
+        const vData = await vRes.json();
+        if (vData.ok) {
+          window.location.href = vData.redirect;
+        } else {
+          alert(vData.error || 'Payment verification failed.');
+          btn.disabled = false;
+          btn.textContent = '💳 Pay Now';
+        }
+      },
+      modal: {ondismiss: function() { btn.disabled = false; btn.textContent = '💳 Pay Now'; }},
+    };
+    const rzp = new Razorpay(options);
+    rzp.open();
+  } catch (e) {
+    alert('Network error. Please try again.');
+    btn.disabled = false;
+    btn.textContent = '💳 Pay Now';
+  }
+}
+</script>
+{% endif %}
 {% endblock %}

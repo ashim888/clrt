@@ -194,6 +194,45 @@ def client_interaction_mark_done(request, pk):
     return JsonResponse({"ok": True})
 
 
+# ── Client Portal ────────────────────────────────────────────────────────────
+
+def portal_home(request, token):
+    """Public token-based client portal — no login required."""
+    client = get_object_or_404(Client, portal_token=token)
+    invoices = client.invoices.order_by("-generated_date")
+    contracts = client.contracts.all()
+    interactions = client.interactions.order_by("-created_at")[:10]
+    financial = invoices.aggregate(
+        total_billed=Sum("amount"),
+        total_paid=Sum("amount", filter=Q(status="paid")),
+        total_pending=Sum("amount", filter=Q(status__in=["pending", "overdue"])),
+    )
+    for k in financial:
+        if financial[k] is None:
+            financial[k] = 0
+    return render(request, "portal/home.html", {
+        "client": client,
+        "invoices": invoices,
+        "contracts": contracts,
+        "interactions": interactions,
+        "financial": financial,
+    })
+
+
+@login_required
+@require_POST
+def portal_regenerate_token(request, pk):
+    import uuid as _uuid
+    client = get_object_or_404(Client, pk=pk)
+    if not _can_edit(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("clients:client_detail", pk=pk)
+    client.portal_token = _uuid.uuid4()
+    client.save(update_fields=["portal_token"])
+    messages.success(request, "Portal link regenerated. The old link is now invalid.")
+    return redirect("clients:client_detail", pk=pk)
+
+
 # ── Contract Templates ───────────────────────────────────────────────────────
 
 @login_required

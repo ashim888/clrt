@@ -185,6 +185,36 @@
       </div>
     </div>
 
+    <!-- ── PAYMENT GATEWAY ── -->
+    <div class="card mb-4 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-razorpay">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">💳</span>
+          <div>
+            <p class="font-semibold text-gray-900">Payment Gateway (Razorpay)</p>
+            <p class="text-xs text-gray-400 mt-0.5">Enable online payments on invoices via Razorpay</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-razorpay" class="acc-body hidden border-t border-gray-100 px-5 py-5 space-y-4">
+        <div class="flex items-center gap-3">
+          {{ form.razorpay_enabled }}
+          <label class="text-sm font-medium text-gray-700">Enable Razorpay "Pay Now" button on invoices</label>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Razorpay Key ID</label>
+          {{ form.razorpay_key_id }}
+          <p class="text-xs text-gray-400 mt-1">From Razorpay Dashboard → Settings → API Keys (starts with <code>rzp_</code>)</p>
+        </div>
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Razorpay Key Secret</label>
+          {{ form.razorpay_key_secret }}
+          <p class="text-xs text-gray-400 mt-1">Keep this secret — never share it publicly.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Save bar -->
     <div class="sticky bottom-0 bg-white border-t border-gray-200 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex items-center justify-between shadow-lg">
       <p class="text-xs text-gray-400">Changes take effect immediately for all users.</p>

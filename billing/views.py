@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib import messages
 from django.core.paginator import Paginator
 from django.db.models import Q, Sum
+from django.http import JsonResponse
 from django.views.decorators.http import require_POST
 from .models import Invoice, Payment, RecurringInvoice
 from .forms import InvoiceForm, PaymentForm, RecurringInvoiceForm
@@ -43,11 +44,14 @@ def invoice_detail(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     payments = invoice.payments.all()
     paid_total = payments.aggregate(t=Sum("amount_paid"))["t"] or 0
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
     return render(request, "billing/invoice_detail.html", {
         "invoice": invoice,
         "payments": payments,
         "paid_total": paid_total,
         "balance": invoice.amount - paid_total,
+        "razorpay_enabled": cfg.razorpay_enabled and bool(cfg.razorpay_key_id),
     })
 
 
@@ -186,6 +190,68 @@ def recurring_invoice_toggle(request, pk):
     schedule.save(update_fields=["is_active"])
     messages.success(request, f"Schedule {'activated' if schedule.is_active else 'paused'}.")
     return redirect("billing:recurring_list")
+
+
+@login_required
+@require_POST
+def razorpay_create_order(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
+    if not cfg.razorpay_enabled or not cfg.razorpay_key_id or not cfg.razorpay_key_secret:
+        return JsonResponse({"error": "Payment gateway not configured."}, status=400)
+    import razorpay
+    client = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
+    amount_paise = int(float(invoice.amount) * 100)
+    order = client.order.create({
+        "amount": amount_paise,
+        "currency": "INR",
+        "receipt": invoice.invoice_number,
+        "notes": {"invoice_id": str(invoice.pk)},
+    })
+    return JsonResponse({
+        "order_id": order["id"],
+        "amount": amount_paise,
+        "currency": "INR",
+        "key_id": cfg.razorpay_key_id,
+        "invoice_number": invoice.invoice_number,
+        "invoice_pk": invoice.pk,
+        "client_name": invoice.client.organization_name,
+        "client_email": invoice.client.email,
+        "client_phone": invoice.client.phone,
+    })
+
+
+@require_POST
+def razorpay_verify_payment(request, pk):
+    invoice = get_object_or_404(Invoice, pk=pk)
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
+    if not cfg.razorpay_enabled:
+        return JsonResponse({"error": "Not enabled."}, status=400)
+    import razorpay
+    rp_client = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
+    params = {
+        "razorpay_order_id": request.POST.get("razorpay_order_id", ""),
+        "razorpay_payment_id": request.POST.get("razorpay_payment_id", ""),
+        "razorpay_signature": request.POST.get("razorpay_signature", ""),
+    }
+    try:
+        rp_client.utility.verify_payment_signature(params)
+    except Exception:
+        return JsonResponse({"error": "Signature mismatch — payment not verified."}, status=400)
+    from django.utils import timezone
+    Payment.objects.create(
+        invoice=invoice,
+        amount_paid=invoice.amount,
+        payment_date=timezone.now().date(),
+        payment_mode="online",
+        reference=params["razorpay_payment_id"],
+        notes=f"Paid via Razorpay. Order: {params['razorpay_order_id']}",
+    )
+    invoice.status = "paid"
+    invoice.save(update_fields=["status"])
+    return JsonResponse({"ok": True, "redirect": f"/billing/{invoice.pk}/"})
 
 
 @login_required

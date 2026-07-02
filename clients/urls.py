@@ -23,6 +23,9 @@ urlpatterns = [
     path("<int:client_pk>/contracts/add/", views.contract_create, name="contract_create"),
     path("contracts/<int:pk>/", views.contract_detail, name="contract_detail"),
     path("contracts/<int:pk>/edit/", views.contract_edit, name="contract_edit"),
+    # Portal
+    path("portal/<uuid:token>/", views.portal_home, name="portal_home"),
+    path("<int:pk>/portal/regenerate/", views.portal_regenerate_token, name="portal_regenerate_token"),
     # Contract Templates
     path("contract-templates/", views.contract_template_list, name="contract_template_list"),
     path("contract-templates/add/", views.contract_template_create, name="contract_template_create"),
