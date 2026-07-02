@@ -222,6 +222,7 @@ def razorpay_create_order(request, pk):
     })
 
 
+@login_required
 @require_POST
 def razorpay_verify_payment(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)

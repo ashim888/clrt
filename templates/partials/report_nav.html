@@ -1,0 +1,22 @@
+<div class="flex flex-wrap gap-2 mb-6 text-sm">
+  <a href="{% url 'dashboard:reports' %}"
+    class="px-3 py-1.5 rounded-lg font-medium border {% if active_report == 'overview' %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+    Overview
+  </a>
+  <a href="{% url 'dashboard:report_leads' %}"
+    class="px-3 py-1.5 rounded-lg font-medium border {% if active_report == 'leads' %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+    Leads Pipeline
+  </a>
+  <a href="{% url 'dashboard:report_clients' %}"
+    class="px-3 py-1.5 rounded-lg font-medium border {% if active_report == 'clients' %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+    Client Health
+  </a>
+  <a href="{% url 'dashboard:report_billing' %}"
+    class="px-3 py-1.5 rounded-lg font-medium border {% if active_report == 'billing' %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+    Billing &amp; Revenue
+  </a>
+  <a href="{% url 'dashboard:team_performance' %}"
+    class="px-3 py-1.5 rounded-lg font-medium border {% if active_report == 'team' %}bg-gray-900 text-white border-gray-900{% else %}bg-white text-gray-600 border-gray-200 hover:border-gray-400{% endif %}">
+    Team Performance
+  </a>
+</div>

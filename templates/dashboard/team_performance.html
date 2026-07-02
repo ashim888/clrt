@@ -1,14 +1,17 @@
 {% extends "base.html" %}
+{% load clrt_filters %}
 {% block title %}Team Performance{% endblock %}
 {% block nav_reports %}bg-gray-800 text-white{% endblock %}
 {% block content %}
-<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
   <div>
     <h1 class="text-2xl font-bold text-gray-900">Team Performance</h1>
     <p class="text-sm text-gray-500 mt-0.5">{{ month }} — activity and conversion by team member</p>
   </div>
-  <a href="{% url "dashboard:reports" %}" class="btn-secondary self-start sm:self-auto">← Reports</a>
+  <a href="{% url "dashboard:quota_list" %}" class="btn-secondary self-start sm:self-auto text-sm">⚙ Manage Quotas</a>
 </div>
+
+{% include "partials/report_nav.html" with active_report="team" %}
 
 <!-- Mobile cards -->
 <div class="space-y-3 md:hidden">
@@ -63,9 +66,10 @@
         <th class="px-4 py-3 text-center font-medium text-gray-500">Leads Assigned</th>
         <th class="px-4 py-3 text-center font-medium text-gray-500">Won</th>
         <th class="px-4 py-3 text-center font-medium text-gray-500">Conversion</th>
-        <th class="px-4 py-3 text-center font-medium text-gray-500">Activities This Month</th>
-        <th class="px-4 py-3 text-center font-medium text-gray-500">Client Touches This Month</th>
-        <th class="px-4 py-3 text-right font-medium text-gray-500">Revenue (Won Leads)</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Activities</th>
+        <th class="px-4 py-3 text-center font-medium text-gray-500">Client Touches</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Won Value</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 w-36">Quota ({{ month|truncatewords:1 }})</th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
@@ -78,7 +82,7 @@
             </div>
             <div>
               <p class="font-medium text-gray-900">{{ s.user.get_full_name|default:s.user.username }}</p>
-              <p class="text-xs text-gray-400">{{ s.user.email }}</p>
+              <p class="text-xs text-gray-400">{{ s.user.get_role_display }}</p>
             </div>
           </div>
         </td>
@@ -92,12 +96,29 @@
         </td>
         <td class="px-4 py-3 text-center text-gray-700">{{ s.activities_this_month }}</td>
         <td class="px-4 py-3 text-center text-gray-700">{{ s.interactions_this_month }}</td>
-        <td class="px-4 py-3 text-right font-semibold text-gray-900">
-          {% if s.revenue %}{{ s.revenue|inr }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+        <td class="px-4 py-3 text-right font-semibold {% if s.deal_value_won %}text-green-700{% else %}text-gray-300{% endif %}">
+          {% if s.deal_value_won %}{{ s.deal_value_won|inr }}{% else %}—{% endif %}
+        </td>
+        <td class="px-4 py-3">
+          {% if s.quota_target %}
+          <div class="flex items-center gap-2">
+            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden min-w-0">
+              <div class="h-2 rounded-full {% if s.quota_pct >= 100 %}bg-green-500{% elif s.quota_pct >= 60 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
+                style="width:{{ s.quota_pct }}%"></div>
+            </div>
+            <span class="text-xs font-bold tabular-nums flex-shrink-0
+              {% if s.quota_pct >= 100 %}text-green-600{% elif s.quota_pct >= 60 %}text-amber-600{% else %}text-gray-500{% endif %}">
+              {{ s.quota_pct }}%
+            </span>
+          </div>
+          <p class="text-xs text-gray-400 mt-0.5">of {{ s.quota_target|inr }}</p>
+          {% else %}
+          <span class="text-xs text-gray-300">No target</span>
+          {% endif %}
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No team members found.</td></tr>
+      <tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">No team members found.</td></tr>
       {% endfor %}
     </tbody>
   </table>

@@ -4,7 +4,8 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
 from django.views.decorators.http import require_POST
-from django.db.models import Sum, Count, Q
+from django.db import models as _db_models
+from django.db.models import Sum, Count, Q, Avg
 from django.db.models.functions import TruncMonth
 from django.utils import timezone
 from django.contrib.auth import get_user_model
@@ -15,6 +16,7 @@ from billing.models import Invoice
 User = get_user_model()
 
 
+@login_required
 @login_required
 def dashboard(request):
     today = timezone.now().date()
@@ -285,6 +287,9 @@ def team_performance(request):
     today = timezone.localdate()
     month_start = today.replace(day=1)
 
+    from .models import UserGoal
+    goals = {g.user_id: g for g in UserGoal.objects.filter(month=month_start)}
+
     users = User.objects.filter(is_active=True).order_by("first_name", "username")
     stats = []
     for user in users:
@@ -292,15 +297,25 @@ def team_performance(request):
         leads_won = Lead.objects.filter(assigned_to=user, status="won").count()
         conversion = round(leads_won / leads_assigned * 100) if leads_assigned else 0
         activities_this_month = Activity.objects.filter(
-            assigned_to=user, created_at__date__gte=month_start
+            created_by=user, created_at__date__gte=month_start
         ).count()
         interactions_this_month = ClientInteraction.objects.filter(
             created_by=user, created_at__date__gte=month_start
         ).count()
+        deal_value_won = (
+            Lead.objects
+            .filter(assigned_to=user, status="won", deal_value__isnull=False)
+            .aggregate(t=Sum("deal_value"))["t"] or 0
+        )
         revenue = (
             Invoice.objects
-            .filter(client__in=Lead.objects.filter(assigned_to=user, status="won").values("linked_client"))
-            .aggregate(total=Sum("total_amount"))["total"] or 0
+            .filter(client__linked_lead__assigned_to=user, status="paid")
+            .aggregate(total=Sum("amount"))["total"] or 0
+        )
+        goal = goals.get(user.pk)
+        quota_pct = (
+            min(int(float(deal_value_won) / float(goal.target) * 100), 100)
+            if goal and goal.target else None
         )
         stats.append({
             "user": user,
@@ -309,13 +324,245 @@ def team_performance(request):
             "conversion": conversion,
             "activities_this_month": activities_this_month,
             "interactions_this_month": interactions_this_month,
+            "deal_value_won": deal_value_won,
             "revenue": revenue,
+            "quota_target": goal.target if goal else None,
+            "quota_pct": quota_pct,
         })
-    # Sort by won leads descending
     stats.sort(key=lambda x: x["leads_won"], reverse=True)
     return render(request, "dashboard/team_performance.html", {
         "stats": stats,
         "month": month_start.strftime("%B %Y"),
+    })
+
+
+@login_required
+def report_leads(request):
+    from datetime import date as _date
+    today = timezone.now().date()
+    date_from_str = request.GET.get("date_from", "")
+    date_to_str = request.GET.get("date_to", "")
+    try:
+        date_from = _date.fromisoformat(date_from_str) if date_from_str else None
+    except ValueError:
+        date_from = None
+    try:
+        date_to = _date.fromisoformat(date_to_str) if date_to_str else None
+    except ValueError:
+        date_to = None
+
+    qs = Lead.objects
+    if date_from:
+        qs = qs.filter(created_at__date__gte=date_from)
+    if date_to:
+        qs = qs.filter(created_at__date__lte=date_to)
+
+    # Stage breakdown
+    STATUS_ORDER = ["new", "contacted", "demo", "negotiation", "won", "lost"]
+    status_map = dict(Lead.STATUS_CHOICES)
+    STAGE_PROB = {"new": 10, "contacted": 25, "demo": 50, "negotiation": 75, "won": 100, "lost": 0}
+    stage_rows = []
+    for s in STATUS_ORDER:
+        stage_qs = qs.filter(status=s)
+        count = stage_qs.count()
+        dv = stage_qs.filter(deal_value__isnull=False).aggregate(
+            total=Sum("deal_value"), avg=Avg("deal_value")
+        )
+        stage_rows.append({
+            "status": s, "label": status_map[s], "count": count,
+            "total_value": dv["total"] or 0,
+            "avg_value": dv["avg"] or 0,
+            "prob": STAGE_PROB[s],
+        })
+    total_leads = qs.count()
+    won_count = qs.filter(status="won").count()
+    lost_count = qs.filter(status="lost").count()
+    active_count = qs.exclude(status__in=["won", "lost"]).count()
+    conversion_rate = round(won_count / total_leads * 100, 1) if total_leads else 0
+
+    # Source breakdown
+    source_map = dict(Lead.SOURCE_CHOICES)
+    source_rows = []
+    for src, label in Lead.SOURCE_CHOICES:
+        src_qs = qs.filter(source=src)
+        count = src_qs.count()
+        if not count:
+            continue
+        won = src_qs.filter(status="won").count()
+        source_rows.append({
+            "source": src, "label": label, "count": count,
+            "won": won, "rate": round(won / count * 100) if count else 0,
+        })
+    source_rows.sort(key=lambda x: x["count"], reverse=True)
+
+    # Assigned-to breakdown
+    assigned_rows = []
+    for user in User.objects.filter(is_active=True).order_by("first_name"):
+        u_qs = qs.filter(assigned_to=user)
+        count = u_qs.count()
+        if not count:
+            continue
+        won = u_qs.filter(status="won").count()
+        pipeline = u_qs.filter(status__in=["new","contacted","demo","negotiation"],
+                               deal_value__isnull=False).aggregate(t=Sum("deal_value"))["t"] or 0
+        won_val = u_qs.filter(status="won", deal_value__isnull=False).aggregate(t=Sum("deal_value"))["t"] or 0
+        assigned_rows.append({
+            "user": user, "count": count, "won": won,
+            "rate": round(won / count * 100) if count else 0,
+            "pipeline": pipeline, "won_value": won_val,
+        })
+    assigned_rows.sort(key=lambda x: x["count"], reverse=True)
+
+    # Lost reasons
+    lost_reasons = list(
+        qs.filter(status="lost").exclude(lost_reason="")
+        .values("lost_reason").annotate(count=Count("id"))
+        .order_by("-count")[:10]
+    )
+
+    return render(request, "dashboard/report_leads.html", {
+        "stage_rows": stage_rows,
+        "source_rows": source_rows,
+        "assigned_rows": assigned_rows,
+        "lost_reasons": lost_reasons,
+        "total_leads": total_leads,
+        "won_count": won_count,
+        "lost_count": lost_count,
+        "active_count": active_count,
+        "conversion_rate": conversion_rate,
+        "date_from": date_from_str,
+        "date_to": date_to_str,
+        "today": today,
+    })
+
+
+@login_required
+def report_clients(request):
+    today = timezone.now().date()
+
+    # Status summary
+    status_map = dict(Client.STATUS_CHOICES)
+    total_clients = Client.objects.count()
+    status_counts = {
+        r["status"]: r["count"]
+        for r in Client.objects.values("status").annotate(count=Count("id"))
+    }
+
+    # Industry breakdown
+    industry_rows = list(
+        Client.objects.exclude(industry="")
+        .values("industry").annotate(count=Count("id"))
+        .order_by("-count")[:12]
+    )
+
+    # Top clients by revenue
+    from billing.models import Invoice as _Inv
+    top_clients = list(
+        _Inv.objects.values("client", "client__organization_name")
+        .annotate(
+            total_billed=Sum("amount"),
+            total_paid=Sum("amount", filter=Q(status="paid")),
+            total_outstanding=Sum("amount", filter=Q(status__in=["pending","overdue"])),
+        )
+        .order_by("-total_billed")[:10]
+    )
+
+    # Contract expiry
+    from clients.models import Contract
+    expiring_30 = Contract.objects.filter(status="active", end_date__gte=today,
+        end_date__lte=today + timezone.timedelta(days=30)).select_related("client").order_by("end_date")
+    expiring_60 = Contract.objects.filter(status="active", end_date__gt=today + timezone.timedelta(days=30),
+        end_date__lte=today + timezone.timedelta(days=60)).select_related("client").order_by("end_date")
+    expiring_90 = Contract.objects.filter(status="active", end_date__gt=today + timezone.timedelta(days=60),
+        end_date__lte=today + timezone.timedelta(days=90)).select_related("client").order_by("end_date")
+
+    # New clients per month (last 6 months)
+    six_months_ago = (today.replace(day=1) - timezone.timedelta(days=1)).replace(day=1)
+    six_months_ago = six_months_ago.replace(month=max(1, six_months_ago.month - 4))
+    new_by_month = list(
+        Client.objects.filter(created_at__date__gte=six_months_ago)
+        .annotate(month=TruncMonth("created_at"))
+        .values("month").annotate(count=Count("id"))
+        .order_by("month")
+    )
+
+    return render(request, "dashboard/report_clients.html", {
+        "total_clients": total_clients,
+        "status_counts": status_counts,
+        "status_map": status_map,
+        "industry_rows": industry_rows,
+        "top_clients": top_clients,
+        "expiring_30": expiring_30,
+        "expiring_60": expiring_60,
+        "expiring_90": expiring_90,
+        "new_by_month": new_by_month,
+        "today": today,
+    })
+
+
+@login_required
+def report_billing(request):
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    twelve_months_ago = (today.replace(day=1) - timezone.timedelta(days=365))
+
+    from billing.models import Invoice as _Inv, Payment as _Pay
+
+    # Summary
+    total_collected = _Inv.objects.filter(status="paid").aggregate(t=Sum("amount"))["t"] or 0
+    this_month = _Inv.objects.filter(
+        status="paid", generated_date__gte=month_start
+    ).aggregate(t=Sum("amount"))["t"] or 0
+    outstanding = _Inv.objects.filter(status__in=["pending","overdue"]).aggregate(t=Sum("amount"))["t"] or 0
+    overdue_amt = _Inv.objects.filter(status="overdue").aggregate(t=Sum("amount"))["t"] or 0
+    overdue_count = _Inv.objects.filter(status="overdue").count()
+
+    # Status breakdown
+    status_rows = list(
+        _Inv.objects.values("status").annotate(count=Count("id"), total=Sum("amount"))
+        .order_by("-total")
+    )
+    inv_status_map = dict(_Inv.STATUS_CHOICES)
+    for r in status_rows:
+        r["label"] = inv_status_map.get(r["status"], r["status"])
+
+    # Top debtors
+    top_debtors = list(
+        _Inv.objects.filter(status__in=["pending","overdue"])
+        .values("client", "client__organization_name")
+        .annotate(owed=Sum("amount"))
+        .order_by("-owed")[:10]
+    )
+
+    # Payment mode breakdown
+    mode_rows = list(
+        _Pay.objects.values("payment_mode")
+        .annotate(count=Count("id"), total=Sum("amount_paid"))
+        .order_by("-total")
+    )
+    mode_map = dict(_Pay.MODE_CHOICES)
+    for r in mode_rows:
+        r["label"] = mode_map.get(r["payment_mode"], r["payment_mode"])
+
+    # Monthly revenue trend (last 12 months)
+    monthly = list(
+        _Inv.objects.filter(status="paid", generated_date__gte=twelve_months_ago)
+        .annotate(month=TruncMonth("generated_date"))
+        .values("month").annotate(total=Sum("amount"))
+        .order_by("month")
+    )
+
+    return render(request, "dashboard/report_billing.html", {
+        "total_collected": total_collected,
+        "this_month": this_month,
+        "outstanding": outstanding,
+        "overdue_amt": overdue_amt,
+        "overdue_count": overdue_count,
+        "status_rows": status_rows,
+        "top_debtors": top_debtors,
+        "mode_rows": mode_rows,
+        "monthly": monthly,
+        "today": today,
     })
 
 

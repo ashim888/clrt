@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% load clrt_filters %}
+{% block title %}Client Health Report{% endblock %}
+{% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+  <h1 class="text-2xl font-bold text-gray-900">Client Health Report</h1>
+  <p class="text-sm text-gray-500 mt-0.5">Status distribution, top accounts, and contract pipeline</p>
+</div>
+
+{% include "partials/report_nav.html" with active_report="clients" %}
+
+<!-- Status summary -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+  {% with active=status_counts.active|default:0 at_risk=status_counts.at_risk|default:0 inactive=status_counts.inactive|default:0 churned=status_counts.churned|default:0 %}
+  <div class="card p-4 text-center border-t-4 border-green-400">
+    <p class="text-xs text-gray-400 mb-1">Active</p>
+    <p class="text-3xl font-bold text-green-600">{{ active }}</p>
+    {% if total_clients %}<p class="text-xs text-gray-400 mt-1">{% widthratio active total_clients 100 %}% of total</p>{% endif %}
+  </div>
+  <div class="card p-4 text-center border-t-4 border-amber-400">
+    <p class="text-xs text-gray-400 mb-1">At Risk</p>
+    <p class="text-3xl font-bold text-amber-600">{{ at_risk }}</p>
+    {% if total_clients %}<p class="text-xs text-gray-400 mt-1">{% widthratio at_risk total_clients 100 %}% of total</p>{% endif %}
+  </div>
+  <div class="card p-4 text-center border-t-4 border-gray-300">
+    <p class="text-xs text-gray-400 mb-1">Inactive</p>
+    <p class="text-3xl font-bold text-gray-500">{{ inactive }}</p>
+    {% if total_clients %}<p class="text-xs text-gray-400 mt-1">{% widthratio inactive total_clients 100 %}% of total</p>{% endif %}
+  </div>
+  <div class="card p-4 text-center border-t-4 border-red-300">
+    <p class="text-xs text-gray-400 mb-1">Churned</p>
+    <p class="text-3xl font-bold text-red-500">{{ churned }}</p>
+    {% if total_clients %}<p class="text-xs text-gray-400 mt-1">{% widthratio churned total_clients 100 %}% of total</p>{% endif %}
+  </div>
+  {% endwith %}
+</div>
+
+<div class="grid lg:grid-cols-2 gap-6 mb-6">
+
+  <!-- Top clients by revenue -->
+  <div>
+    <h2 class="font-semibold text-gray-900 mb-3">Top Accounts by Revenue</h2>
+    <div class="card overflow-hidden">
+      <table class="w-full text-sm">
+        <thead class="bg-gray-50 border-b">
+          <tr>
+            <th class="px-4 py-2.5 text-left font-medium text-gray-500">Client</th>
+            <th class="px-4 py-2.5 text-right font-medium text-gray-500">Billed</th>
+            <th class="px-4 py-2.5 text-right font-medium text-gray-500">Collected</th>
+            <th class="px-4 py-2.5 text-right font-medium text-gray-500">Outstanding</th>
+          </tr>
+        </thead>
+        <tbody class="divide-y divide-gray-100">
+          {% for c in top_clients %}
+          <tr class="hover:bg-gray-50">
+            <td class="px-4 py-2.5">
+              <a href="{% url 'clients:client_detail' c.client %}" class="font-medium text-gray-900 hover:text-blue-600">{{ c.client__organization_name }}</a>
+            </td>
+            <td class="px-4 py-2.5 text-right font-semibold text-gray-900">{{ c.total_billed|inr }}</td>
+            <td class="px-4 py-2.5 text-right text-green-700">{{ c.total_paid|inr }}</td>
+            <td class="px-4 py-2.5 text-right {% if c.total_outstanding %}text-red-600 font-semibold{% else %}text-gray-400{% endif %}">
+              {% if c.total_outstanding %}{{ c.total_outstanding|inr }}{% else %}—{% endif %}
+            </td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" class="px-4 py-6 text-center text-gray-400">No billing data.</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Industry breakdown -->
+  <div>
+    <h2 class="font-semibold text-gray-900 mb-3">By Industry</h2>
+    <div class="card overflow-hidden">
+      {% if industry_rows %}
+      <div class="divide-y divide-gray-100">
+        {% for r in industry_rows %}
+        <div class="px-4 py-2.5 flex items-center gap-3">
+          <span class="text-sm text-gray-800 flex-1">{{ r.industry }}</span>
+          <div class="flex items-center gap-2">
+            <div class="w-24 bg-gray-100 rounded-full h-1.5">
+              {% if total_clients %}
+              <div class="bg-indigo-400 h-1.5 rounded-full" style="width:{% widthratio r.count total_clients 100 %}%"></div>
+              {% endif %}
+            </div>
+            <span class="text-sm font-semibold text-gray-700 w-6 text-right">{{ r.count }}</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="p-8 text-center text-gray-400 text-sm">No industry data.</div>
+      {% endif %}
+    </div>
+  </div>
+
+</div>
+
+<!-- Contract expiry -->
+<h2 class="font-semibold text-gray-900 mb-3">Contract Expiry Pipeline</h2>
+<div class="grid sm:grid-cols-3 gap-4 mb-6">
+
+  <div class="card overflow-hidden">
+    <div class="px-4 py-3 bg-red-50 border-b border-red-100 flex items-center justify-between">
+      <p class="text-sm font-semibold text-red-700">Expiring in 30 days</p>
+      <span class="badge bg-red-100 text-red-700">{{ expiring_30|length }}</span>
+    </div>
+    {% for c in expiring_30 %}
+    <div class="px-4 py-2.5 border-b border-gray-50 last:border-0">
+      <a href="{% url 'clients:client_detail' c.client.pk %}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ c.client.organization_name }}</a>
+      <p class="text-xs text-gray-400">{{ c.contract_title }} · {{ c.end_date }}</p>
+    </div>
+    {% empty %}
+    <p class="px-4 py-4 text-sm text-gray-400">None</p>
+    {% endfor %}
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="px-4 py-3 bg-amber-50 border-b border-amber-100 flex items-center justify-between">
+      <p class="text-sm font-semibold text-amber-700">Expiring in 31–60 days</p>
+      <span class="badge bg-amber-100 text-amber-700">{{ expiring_60|length }}</span>
+    </div>
+    {% for c in expiring_60 %}
+    <div class="px-4 py-2.5 border-b border-gray-50 last:border-0">
+      <a href="{% url 'clients:client_detail' c.client.pk %}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ c.client.organization_name }}</a>
+      <p class="text-xs text-gray-400">{{ c.contract_title }} · {{ c.end_date }}</p>
+    </div>
+    {% empty %}
+    <p class="px-4 py-4 text-sm text-gray-400">None</p>
+    {% endfor %}
+  </div>
+
+  <div class="card overflow-hidden">
+    <div class="px-4 py-3 bg-yellow-50 border-b border-yellow-100 flex items-center justify-between">
+      <p class="text-sm font-semibold text-yellow-700">Expiring in 61–90 days</p>
+      <span class="badge bg-yellow-100 text-yellow-700">{{ expiring_90|length }}</span>
+    </div>
+    {% for c in expiring_90 %}
+    <div class="px-4 py-2.5 border-b border-gray-50 last:border-0">
+      <a href="{% url 'clients:client_detail' c.client.pk %}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ c.client.organization_name }}</a>
+      <p class="text-xs text-gray-400">{{ c.contract_title }} · {{ c.end_date }}</p>
+    </div>
+    {% empty %}
+    <p class="px-4 py-4 text-sm text-gray-400">None</p>
+    {% endfor %}
+  </div>
+
+</div>
+
+<!-- New clients per month -->
+{% if new_by_month %}
+<h2 class="font-semibold text-gray-900 mb-3">New Clients (Last 6 Months)</h2>
+<div class="card p-5">
+  <div class="flex items-end gap-3 h-28">
+    {% with max_count=new_by_month|last %}
+    {% for m in new_by_month %}
+    <div class="flex flex-col items-center gap-1 flex-1">
+      <span class="text-xs font-semibold text-gray-700">{{ m.count }}</span>
+      <div class="w-full bg-indigo-500 rounded-t"
+        style="height:{% widthratio m.count 1 1 %}px;min-height:4px;max-height:80px;
+               height:{% if new_by_month %}{{ m.count }}{% endif %}em;"></div>
+      <span class="text-xs text-gray-400 whitespace-nowrap">{{ m.month|date:"M" }}</span>
+    </div>
+    {% endfor %}
+    {% endwith %}
+  </div>
+</div>
+{% endif %}
+
+{% endblock %}
