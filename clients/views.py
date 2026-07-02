@@ -81,8 +81,9 @@ def client_detail(request, pk):
             .select_related("created_by")
             .order_by("-created_at")
         )
-    from dashboard.models import AuditLog
+    from dashboard.models import AuditLog, QuickNote
     audit_logs = AuditLog.objects.filter(model_name="Client", object_id=pk).select_related("user")[:20]
+    quick_notes = QuickNote.objects.filter(client_id=pk).select_related("user")
     return render(request, "clients/client_detail.html", {
         "client": client,
         "contracts": contracts,
@@ -91,6 +92,7 @@ def client_detail(request, pk):
         "financial": financial,
         "lead_activities": lead_activities,
         "audit_logs": audit_logs,
+        "quick_notes": quick_notes,
     })
 
 

@@ -459,6 +459,40 @@ def calendar_events(request):
     return _JR(events, safe=False)
 
 
+# ── Quick Notes ──────────────────────────────────────────────────
+
+@login_required
+@require_POST
+def quick_note_add(request):
+    from .models import QuickNote
+    from django.shortcuts import get_object_or_404
+    body = request.POST.get("body", "").strip()
+    if not body:
+        messages.error(request, "Note cannot be empty.")
+        return redirect(request.META.get("HTTP_REFERER", "/"))
+    lead_pk = request.POST.get("lead_pk")
+    client_pk = request.POST.get("client_pk")
+    note = QuickNote(user=request.user, body=body)
+    if lead_pk:
+        from leads.models import Lead
+        note.lead = get_object_or_404(Lead, pk=lead_pk)
+    elif client_pk:
+        from clients.models import Client
+        note.client = get_object_or_404(Client, pk=client_pk)
+    note.save()
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
+@login_required
+@require_POST
+def quick_note_delete(request, pk):
+    from .models import QuickNote
+    from django.shortcuts import get_object_or_404
+    note = get_object_or_404(QuickNote, pk=pk)
+    note.delete()
+    return redirect(request.META.get("HTTP_REFERER", "/"))
+
+
 # ── Tags ─────────────────────────────────────────────────────────
 
 @login_required

@@ -142,6 +142,29 @@ class Notification(models.Model):
         cls.objects.create(user=user, title=title, body=body, link=link, type=type)
 
 
+class QuickNote(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, blank=True, related_name='quick_notes',
+    )
+    lead = models.ForeignKey(
+        'leads.Lead', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='quick_notes',
+    )
+    client = models.ForeignKey(
+        'clients.Client', on_delete=models.CASCADE,
+        null=True, blank=True, related_name='quick_notes',
+    )
+    body = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f"{self.body[:50]}"
+
+
 class AuditLog(models.Model):
     ACTION_CHOICES = [
         ('created', 'Created'),

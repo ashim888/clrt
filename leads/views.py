@@ -85,13 +85,15 @@ def lead_list(request):
 def lead_detail(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     activities = lead.activities.select_related("created_by")
-    from dashboard.models import AuditLog
+    from dashboard.models import AuditLog, QuickNote
     audit_logs = AuditLog.objects.filter(model_name="Lead", object_id=pk).select_related("user")[:20]
+    quick_notes = QuickNote.objects.filter(lead_id=pk).select_related("user")
     return render(request, "leads/lead_detail.html", {
         "lead": lead,
         "activities": activities,
         "status_choices": Lead.STATUS_CHOICES,
         "audit_logs": audit_logs,
+        "quick_notes": quick_notes,
     })
 
 

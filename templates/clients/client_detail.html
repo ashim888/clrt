@@ -392,6 +392,8 @@ function closeClientLightbox() {
 document.addEventListener('keydown', function(e) { if (e.key === 'Escape') closeClientLightbox(); });
 </script>
 
+{% include "partials/quick_notes.html" with quick_notes=quick_notes client_pk=client.pk %}
+
 {% include "partials/audit_log.html" with audit_logs=audit_logs %}
 
 <!-- Portal link section -->

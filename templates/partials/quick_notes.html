@@ -1,0 +1,39 @@
+{% load clrt_filters %}
+<div class="mt-8">
+  <h2 class="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+    📝 Quick Notes
+    {% if quick_notes %}<span class="badge bg-gray-100 text-gray-600">{{ quick_notes|length }}</span>{% endif %}
+  </h2>
+
+  <!-- Add note form -->
+  <form method="post" action="{% url 'dashboard:quick_note_add' %}" class="flex gap-2 mb-4">
+    {% csrf_token %}
+    {% if lead_pk %}<input type="hidden" name="lead_pk" value="{{ lead_pk }}">{% endif %}
+    {% if client_pk %}<input type="hidden" name="client_pk" value="{{ client_pk }}">{% endif %}
+    <input type="text" name="body" placeholder="Add a quick note…" required
+      class="input flex-1 text-sm" autocomplete="off">
+    <button type="submit" class="btn-primary text-sm px-4">Save</button>
+  </form>
+
+  <!-- Notes list -->
+  <div class="space-y-2">
+    {% for note in quick_notes %}
+    <div class="card px-4 py-3 flex items-start gap-3">
+      <div class="flex-1 min-w-0">
+        <p class="text-sm text-gray-800 break-words">{{ note.body }}</p>
+        <p class="text-xs text-gray-400 mt-1">
+          {{ note.created_at|site_date }}
+          {% if note.user %} · {{ note.user.get_full_name|default:note.user.username }}{% endif %}
+        </p>
+      </div>
+      <form method="post" action="{% url 'dashboard:quick_note_delete' note.pk %}"
+        onsubmit="return confirm('Delete this note?');">
+        {% csrf_token %}
+        <button type="submit" class="text-gray-300 hover:text-red-500 transition-colors text-lg leading-none flex-shrink-0" title="Delete">×</button>
+      </form>
+    </div>
+    {% empty %}
+    <p class="text-sm text-gray-400">No notes yet.</p>
+    {% endfor %}
+  </div>
+</div>
