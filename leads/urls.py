@@ -20,4 +20,6 @@ urlpatterns = [
     path("bulk/", views.lead_bulk_action, name="lead_bulk_action"),
     path("import/", views.lead_import, name="lead_import"),
     path("check-duplicate/", views.lead_check_duplicate, name="lead_check_duplicate"),
+    path("capture/", views.lead_capture, name="lead_capture"),
+    path("capture/thanks/", views.lead_capture_thanks, name="lead_capture_thanks"),
 ]

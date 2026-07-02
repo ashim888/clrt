@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Us{% if site.business_name %} — {{ site.business_name }}{% endif %}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body { font-family: system-ui, -apple-system, sans-serif; background: #f8fafc; }
+    .input {
+      display: block; width: 100%; padding: .5rem .75rem;
+      border: 1px solid #d1d5db; border-radius: .5rem;
+      font-size: .875rem; color: #111827; background: #fff;
+      transition: border-color .15s, box-shadow .15s;
+    }
+    .input:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .input.error { border-color: #ef4444; }
+  </style>
+</head>
+<body class="min-h-screen flex items-center justify-center py-12 px-4">
+
+  <div class="w-full max-w-lg">
+
+    <!-- Header -->
+    <div class="text-center mb-8">
+      {% if site.business_name %}
+      <p class="text-sm font-semibold text-indigo-600 uppercase tracking-wider mb-2">{{ site.business_name }}</p>
+      {% endif %}
+      <h1 class="text-3xl font-bold text-gray-900">Get in touch</h1>
+      <p class="text-gray-500 mt-2 text-sm">Fill in the form and we'll get back to you shortly.</p>
+    </div>
+
+    <!-- Card -->
+    <div class="bg-white border border-gray-200 rounded-2xl shadow-sm p-8">
+
+      {% if form.errors %}
+      <div class="mb-5 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+        Please correct the errors below.
+      </div>
+      {% endif %}
+
+      <form method="post" novalidate>
+        {% csrf_token %}
+        <!-- Honeypot -->
+        {{ form.website_url }}
+
+        <div class="space-y-5">
+          <div class="grid sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Company / Organization <span class="text-red-500">*</span>
+              </label>
+              <input type="text" name="organization_name"
+                value="{{ form.organization_name.value|default:'' }}"
+                class="input {% if form.organization_name.errors %}error{% endif %}"
+                placeholder="Acme Pvt. Ltd." required>
+              {% if form.organization_name.errors %}
+              <p class="text-xs text-red-600 mt-1">{{ form.organization_name.errors.0 }}</p>
+              {% endif %}
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Your Name <span class="text-red-500">*</span>
+              </label>
+              <input type="text" name="contact_person"
+                value="{{ form.contact_person.value|default:'' }}"
+                class="input {% if form.contact_person.errors %}error{% endif %}"
+                placeholder="Raj Sharma" required>
+              {% if form.contact_person.errors %}
+              <p class="text-xs text-red-600 mt-1">{{ form.contact_person.errors.0 }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div class="grid sm:grid-cols-2 gap-5">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Phone <span class="text-red-500">*</span>
+              </label>
+              <input type="tel" name="phone"
+                value="{{ form.phone.value|default:'' }}"
+                class="input {% if form.phone.errors %}error{% endif %}"
+                placeholder="+91 98765 43210" required>
+              {% if form.phone.errors %}
+              <p class="text-xs text-red-600 mt-1">{{ form.phone.errors.0 }}</p>
+              {% endif %}
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Email <span class="text-red-500">*</span>
+              </label>
+              <input type="email" name="email"
+                value="{{ form.email.value|default:'' }}"
+                class="input {% if form.email.errors %}error{% endif %}"
+                placeholder="raj@acme.com" required>
+              {% if form.email.errors %}
+              <p class="text-xs text-red-600 mt-1">{{ form.email.errors.0 }}</p>
+              {% endif %}
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1">
+              Message / Enquiry
+            </label>
+            <textarea name="notes" rows="4"
+              class="input {% if form.notes.errors %}error{% endif %}"
+              placeholder="Tell us what you're looking for…">{{ form.notes.value|default:'' }}</textarea>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3 px-6 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-semibold text-sm transition-colors shadow-sm">
+            Send Enquiry →
+          </button>
+        </div>
+      </form>
+    </div>
+
+    {% if site.business_phone or site.business_email %}
+    <p class="text-center text-xs text-gray-400 mt-6">
+      Prefer to call?
+      {% if site.business_phone %}<a href="tel:{{ site.business_phone }}" class="text-indigo-600 hover:underline">{{ site.business_phone }}</a>{% endif %}
+      {% if site.business_phone and site.business_email %} · {% endif %}
+      {% if site.business_email %}<a href="mailto:{{ site.business_email }}" class="text-indigo-600 hover:underline">{{ site.business_email }}</a>{% endif %}
+    </p>
+    {% endif %}
+
+  </div>
+</body>
+</html>

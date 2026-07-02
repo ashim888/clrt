@@ -18,6 +18,20 @@ class LeadForm(forms.ModelForm):
         self.fields["assigned_to"].queryset = User.objects.filter(is_active=True)
 
 
+class LeadCaptureForm(forms.Form):
+    organization_name = forms.CharField(max_length=200, label="Company / Organization")
+    contact_person = forms.CharField(max_length=100, label="Your Name")
+    phone = forms.CharField(max_length=20, label="Phone Number")
+    email = forms.EmailField(label="Email Address")
+    notes = forms.CharField(
+        widget=forms.Textarea(attrs={"rows": 4}),
+        label="Message / Enquiry",
+        required=False,
+    )
+    # Honeypot — bots fill this, humans don't
+    website_url = forms.CharField(required=False, widget=forms.HiddenInput)
+
+
 class ActivityForm(forms.ModelForm):
     class Meta:
         model = Activity

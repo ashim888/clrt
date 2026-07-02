@@ -524,3 +524,44 @@ def convert_to_client(request, pk):
         messages.success(request, f"Lead converted to client: {client.organization_name}")
         return redirect("clients:client_detail", pk=client.pk)
     return render(request, "leads/convert_confirm.html", {"lead": lead})
+
+
+# ── Public Lead Capture ──────────────────────────────────────────
+
+def lead_capture(request):
+    from .forms import LeadCaptureForm
+    from dashboard.models import SiteSettings, Notification
+    from django.contrib.auth import get_user_model
+    site = SiteSettings.load()
+    form = LeadCaptureForm(request.POST or None)
+    if request.method == "POST" and form.is_valid():
+        if form.cleaned_data.get("website_url"):
+            # Honeypot triggered — silently discard
+            return redirect("leads:lead_capture_thanks")
+        lead = Lead.objects.create(
+            organization_name=form.cleaned_data["organization_name"],
+            contact_person=form.cleaned_data["contact_person"],
+            phone=form.cleaned_data["phone"],
+            email=form.cleaned_data["email"],
+            notes=form.cleaned_data.get("notes", ""),
+            source="website",
+            status="new",
+        )
+        from django.urls import reverse
+        link = reverse("leads:lead_detail", args=[lead.pk])
+        User = get_user_model()
+        for admin in User.objects.filter(role="admin", is_active=True):
+            Notification.push(
+                admin,
+                title=f"New web enquiry: {lead.organization_name}",
+                body=f"{lead.contact_person} · {lead.phone}",
+                link=link,
+                type="lead",
+            )
+        return redirect("leads:lead_capture_thanks")
+    return render(request, "leads/lead_capture.html", {"form": form, "site": site})
+
+
+def lead_capture_thanks(request):
+    from dashboard.models import SiteSettings
+    return render(request, "leads/lead_capture_thanks.html", {"site": SiteSettings.load()})
