@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CLRT — CRM for Growing Businesses</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    * { font-family: 'Inter', sans-serif; }
+    .gradient-text {
+      background: linear-gradient(135deg, #6366f1, #3b82f6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+    .hero-bg {
+      background: radial-gradient(ellipse 80% 60% at 50% -10%, rgba(99,102,241,.12) 0%, transparent 70%);
+    }
+    .feature-card {
+      transition: transform .2s, box-shadow .2s;
+    }
+    .feature-card:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.08);
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased">
+
+<!-- ── Nav ─────────────────────────────────────────────────────── -->
+<header class="fixed top-0 inset-x-0 z-50 bg-white/80 backdrop-blur border-b border-gray-100">
+  <div class="max-w-6xl mx-auto px-6 h-16 flex items-center justify-between">
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      </div>
+      <span class="text-lg font-bold text-gray-900">CLRT</span>
+    </div>
+    <a href="/accounts/login/"
+      class="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-semibold transition-colors">
+      Sign in
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+      </svg>
+    </a>
+  </div>
+</header>
+
+<!-- ── Hero ─────────────────────────────────────────────────────── -->
+<section class="hero-bg pt-40 pb-24 px-6 text-center">
+  <div class="max-w-3xl mx-auto">
+    <span class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-indigo-50 text-indigo-700 text-xs font-semibold mb-6 border border-indigo-100">
+      <span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>
+      CRM built for your team
+    </span>
+    <h1 class="text-5xl sm:text-6xl font-black tracking-tight leading-tight mb-6">
+      Close more deals.<br>
+      <span class="gradient-text">Grow faster.</span>
+    </h1>
+    <p class="text-lg text-gray-500 max-w-xl mx-auto mb-10 leading-relaxed">
+      CLRT helps you track every lead, manage every client, and get paid on time — all in one place.
+    </p>
+    <div class="flex flex-col sm:flex-row items-center justify-center gap-3">
+      <a href="/accounts/login/"
+        class="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base transition-colors shadow-lg shadow-indigo-200">
+        Get started
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+        </svg>
+      </a>
+    </div>
+  </div>
+
+  <!-- Dashboard preview mockup -->
+  <div class="max-w-5xl mx-auto mt-16 rounded-2xl overflow-hidden shadow-2xl border border-gray-200 bg-gray-50">
+    <div class="flex items-center gap-1.5 px-4 py-3 bg-gray-100 border-b border-gray-200">
+      <span class="w-3 h-3 rounded-full bg-red-400"></span>
+      <span class="w-3 h-3 rounded-full bg-amber-400"></span>
+      <span class="w-3 h-3 rounded-full bg-green-400"></span>
+      <span class="flex-1 mx-3 h-5 rounded bg-white border border-gray-200 text-xs text-gray-400 flex items-center px-2">app.clrt.io</span>
+    </div>
+    <!-- Mini dashboard preview -->
+    <div class="p-6 bg-white">
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="rounded-xl p-4 border border-gray-100" style="border-top:3px solid #6366f1;">
+          <p class="text-xs text-gray-400 font-medium mb-1">Open Pipeline</p>
+          <p class="text-xl font-extrabold text-gray-800">Rs. 8,40,000</p>
+        </div>
+        <div class="rounded-xl p-4 border border-gray-100" style="border-top:3px solid #10b981;">
+          <p class="text-xs text-gray-400 font-medium mb-1">Won This Month</p>
+          <p class="text-xl font-extrabold text-gray-800">Rs. 2,10,000</p>
+        </div>
+        <div class="rounded-xl p-4 border border-gray-100" style="border-top:3px solid #3b82f6;">
+          <p class="text-xs text-gray-400 font-medium mb-1">Revenue</p>
+          <p class="text-xl font-extrabold text-gray-800">Rs. 3,75,000</p>
+        </div>
+        <div class="rounded-xl p-4 border border-gray-100" style="border-top:3px solid #ef4444;">
+          <p class="text-xs text-gray-400 font-medium mb-1">Urgent Items</p>
+          <p class="text-xl font-extrabold text-gray-800">4</p>
+        </div>
+      </div>
+      <div class="grid grid-cols-5 gap-3">
+        <div class="col-span-3 rounded-xl border border-gray-100 p-4">
+          <p class="text-xs font-semibold text-gray-500 mb-3">Pipeline by Stage</p>
+          <div class="space-y-2.5">
+            <div>
+              <div class="flex justify-between text-xs text-gray-500 mb-1"><span>New</span><span class="text-gray-400">12 leads</span></div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 rounded-full bg-blue-500" style="width:80%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Contacted</span><span class="text-gray-400">8 leads</span></div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 rounded-full bg-indigo-500" style="width:55%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Demo</span><span class="text-gray-400">5 leads</span></div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 rounded-full bg-violet-500" style="width:35%;"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between text-xs text-gray-500 mb-1"><span>Negotiation</span><span class="text-gray-400">3 leads</span></div>
+              <div class="h-2 bg-gray-100 rounded-full overflow-hidden"><div class="h-2 rounded-full bg-amber-400" style="width:20%;"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="col-span-2 rounded-xl border border-gray-100 p-4">
+          <p class="text-xs font-semibold text-gray-500 mb-3">Today's Agenda</p>
+          <div class="space-y-2">
+            <div class="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 rounded-lg px-2.5 py-2">
+              <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">L</span>
+              <span class="truncate">Follow-up call scheduled</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-gray-600 bg-emerald-50 rounded-lg px-2.5 py-2">
+              <span class="w-5 h-5 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center text-xs font-bold flex-shrink-0">C</span>
+              <span class="truncate">Client check-in due</span>
+            </div>
+            <div class="flex items-center gap-2 text-xs text-gray-600 bg-blue-50 rounded-lg px-2.5 py-2">
+              <span class="w-5 h-5 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-bold flex-shrink-0">L</span>
+              <span class="truncate">Product demo meeting</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── Features ──────────────────────────────────────────────────── -->
+<section class="py-24 px-6 bg-gray-50">
+  <div class="max-w-6xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-3xl font-extrabold text-gray-900 mb-3">Everything your team needs</h2>
+      <p class="text-gray-500 max-w-lg mx-auto">From first contact to final payment — all in a single, clean interface.</p>
+    </div>
+    <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-6">
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-indigo-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Lead Pipeline</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Track every lead through New → Contacted → Demo → Negotiation → Won. See pipeline value at a glance.</p>
+      </div>
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-blue-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Client Management</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Maintain full client profiles, interaction history, contracts, and a secure client portal — all linked.</p>
+      </div>
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-emerald-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Invoicing & Billing</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Create invoices, track payments, set up recurring billing, and accept online payments via Razorpay.</p>
+      </div>
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-amber-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Reports & Analytics</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Leads pipeline, client health, billing revenue, and team performance — all in one management view.</p>
+      </div>
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-purple-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Calendar & Follow-ups</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Schedule events, set follow-up reminders, and see everything due today in one morning briefing.</p>
+      </div>
+
+      <div class="feature-card bg-white rounded-2xl p-6 border border-gray-100 shadow-sm">
+        <div class="w-11 h-11 rounded-xl bg-rose-100 flex items-center justify-center mb-4">
+          <svg class="w-6 h-6 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 4h18M4 4h16v12a1 1 0 01-1 1H5a1 1 0 01-1-1V4z"/>
+          </svg>
+        </div>
+        <h3 class="text-base font-bold text-gray-900 mb-2">Quotas & Goals</h3>
+        <p class="text-sm text-gray-500 leading-relaxed">Set monthly revenue targets per team member and track quota attainment with live progress bars.</p>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ── CTA ───────────────────────────────────────────────────────── -->
+<section class="py-24 px-6">
+  <div class="max-w-2xl mx-auto text-center">
+    <h2 class="text-3xl font-extrabold text-gray-900 mb-4">Ready to get organised?</h2>
+    <p class="text-gray-500 mb-8">Sign in to your workspace and pick up right where you left off.</p>
+    <a href="/accounts/login/"
+      class="inline-flex items-center gap-2 px-8 py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-base transition-colors shadow-lg shadow-indigo-200">
+      Sign in to CLRT
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7l5 5m0 0l-5 5m5-5H6"/>
+      </svg>
+    </a>
+  </div>
+</section>
+
+<!-- ── Footer ────────────────────────────────────────────────────── -->
+<footer class="border-t border-gray-100 py-8 px-6 text-center text-xs text-gray-400">
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <div class="w-5 h-5 rounded bg-indigo-600 flex items-center justify-center">
+      <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+      </svg>
+    </div>
+    <span class="font-semibold text-gray-600">CLRT</span>
+  </div>
+  <p>Client Relationship Tracker &mdash; Built for your team.</p>
+</footer>
+
+</body>
+</html>

@@ -16,8 +16,9 @@ from billing.models import Invoice
 User = get_user_model()
 
 
-@login_required
 def dashboard(request):
+    if not request.user.is_authenticated:
+        return render(request, "landing.html")
     today = timezone.now().date()
     now_local = timezone.localtime(timezone.now())
     in_30_days = today + timezone.timedelta(days=30)
