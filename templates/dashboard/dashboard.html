@@ -79,6 +79,31 @@
   </div>
 </div>
 
+{% if my_goal %}
+<div class="card p-4 mb-6 flex flex-col sm:flex-row sm:items-center gap-4">
+  <div class="flex-1 min-w-0">
+    <div class="flex items-center justify-between mb-1.5">
+      <p class="text-sm font-semibold text-gray-700">Your {{ today|date:"F" }} Target</p>
+      <span class="text-sm font-bold {% if my_goal.pct >= 100 %}text-green-600{% elif my_goal.pct >= 60 %}text-amber-600{% else %}text-indigo-600{% endif %}">
+        {{ my_goal.pct }}%
+      </span>
+    </div>
+    <div class="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+      <div class="h-3 rounded-full transition-all
+        {% if my_goal.pct >= 100 %}bg-green-500{% elif my_goal.pct >= 60 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
+        style="width:{{ my_goal.pct }}%"></div>
+    </div>
+    <div class="flex items-center justify-between mt-1.5 text-xs text-gray-500">
+      <span>{{ my_goal.achieved|inr }} achieved</span>
+      <span>Target: {{ my_goal.target|inr }}</span>
+    </div>
+  </div>
+  {% if my_goal.pct >= 100 %}
+  <div class="text-2xl flex-shrink-0">🎉</div>
+  {% endif %}
+</div>
+{% endif %}
+
   <!-- Stats Row -->
 <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-7">
   <div class="stat-card" style="background:linear-gradient(135deg,#4c1d95,#7c3aed);">

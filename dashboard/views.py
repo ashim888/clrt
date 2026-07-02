@@ -66,6 +66,22 @@ def dashboard(request):
         "lost": Lead.objects.filter(status="lost").count(),
     }
 
+    from .models import UserGoal
+    month_start = today.replace(day=1)
+    my_goal = None
+    try:
+        goal_obj = UserGoal.objects.get(user=request.user, month=month_start)
+        achieved = Lead.objects.filter(
+            status="won",
+            updated_at__year=today.year,
+            updated_at__month=today.month,
+            assigned_to=request.user,
+        ).aggregate(t=Sum("deal_value"))["t"] or 0
+        pct = min(int(float(achieved) / float(goal_obj.target) * 100), 100) if goal_obj.target else 0
+        my_goal = {"target": goal_obj.target, "achieved": achieved, "pct": pct}
+    except UserGoal.DoesNotExist:
+        pass
+
     return render(request, "dashboard/dashboard.html", {
         "today": today,
         "todays_followups": todays_followups,
@@ -76,6 +92,7 @@ def dashboard(request):
         "pending_invoices": pending_invoices,
         "revenue_month": revenue_month,
         "lead_stats": lead_stats,
+        "my_goal": my_goal,
     })
 
 
@@ -457,6 +474,69 @@ def calendar_events(request):
         })
 
     return _JR(events, safe=False)
+
+
+# ── Quota / Goal Tracking ────────────────────────────────────────
+
+@login_required
+def quota_list(request):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("dashboard:dashboard")
+    from .models import UserGoal
+    from leads.models import Lead
+    today = timezone.now().date()
+    month_start = today.replace(day=1)
+    users = User.objects.filter(is_active=True).order_by("first_name", "username")
+    goals = {g.user_id: g for g in UserGoal.objects.filter(month=month_start)}
+    rows = []
+    for u in users:
+        goal = goals.get(u.pk)
+        achieved = Lead.objects.filter(
+            status="won",
+            updated_at__year=today.year,
+            updated_at__month=today.month,
+            assigned_to=u,
+        ).aggregate(t=Sum("deal_value"))["t"] or 0
+        target = goal.target if goal else None
+        pct = min(int(float(achieved) / float(target) * 100), 100) if target else 0
+        rows.append({"user": u, "target": target, "achieved": achieved, "pct": pct, "goal": goal})
+    return render(request, "dashboard/quotas.html", {
+        "rows": rows,
+        "month": month_start,
+        "today": today,
+    })
+
+
+@login_required
+@require_POST
+def quota_set(request):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("dashboard:quota_list")
+    from .models import UserGoal
+    from datetime import date as _date
+    user_pk = request.POST.get("user_pk")
+    target_str = request.POST.get("target", "").strip()
+    month_str = request.POST.get("month")
+    try:
+        target = float(target_str)
+        month = _date.fromisoformat(month_str)
+        month = month.replace(day=1)
+        target_user = User.objects.get(pk=user_pk)
+    except (ValueError, TypeError, User.DoesNotExist):
+        messages.error(request, "Invalid input.")
+        return redirect("dashboard:quota_list")
+    if target <= 0:
+        UserGoal.objects.filter(user=target_user, month=month).delete()
+        messages.success(request, f"Goal removed for {target_user.get_full_name() or target_user.username}.")
+    else:
+        UserGoal.objects.update_or_create(
+            user=target_user, month=month,
+            defaults={"target": target},
+        )
+        messages.success(request, f"Goal updated for {target_user.get_full_name() or target_user.username}.")
+    return redirect("dashboard:quota_list")
 
 
 # ── Quick Notes ──────────────────────────────────────────────────

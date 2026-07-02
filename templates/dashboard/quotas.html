@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% load clrt_filters %}
+{% block title %}Monthly Quotas{% endblock %}
+{% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
+
+{% block content %}
+<div class="flex items-center justify-between mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Monthly Quotas</h1>
+    <p class="text-sm text-gray-500 mt-0.5">{{ month|date:"F Y" }} — deal value targets per team member</p>
+  </div>
+</div>
+
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-100">
+      <tr>
+        <th class="px-5 py-3 text-left font-medium text-gray-500">Team Member</th>
+        <th class="px-5 py-3 text-right font-medium text-gray-500">Target</th>
+        <th class="px-5 py-3 text-right font-medium text-gray-500">Achieved</th>
+        <th class="px-5 py-3 text-left font-medium text-gray-500 w-48">Progress</th>
+        <th class="px-5 py-3 text-left font-medium text-gray-500 w-48">Update Target</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for row in rows %}
+      <tr class="hover:bg-gray-50">
+        <td class="px-5 py-3">
+          <p class="font-medium text-gray-900">{{ row.user.get_full_name|default:row.user.username }}</p>
+          <p class="text-xs text-gray-400">{{ row.user.get_role_display|default:row.user.role }}</p>
+        </td>
+        <td class="px-5 py-3 text-right font-semibold text-gray-900">
+          {% if row.target %}{{ row.target|inr }}{% else %}<span class="text-gray-300">—</span>{% endif %}
+        </td>
+        <td class="px-5 py-3 text-right font-semibold {% if row.pct >= 100 %}text-green-600{% elif row.pct >= 60 %}text-amber-600{% else %}text-gray-700{% endif %}">
+          {{ row.achieved|inr }}
+        </td>
+        <td class="px-5 py-3">
+          {% if row.target %}
+          <div class="flex items-center gap-2">
+            <div class="flex-1 bg-gray-200 rounded-full h-2 overflow-hidden">
+              <div class="h-2 rounded-full transition-all
+                {% if row.pct >= 100 %}bg-green-500{% elif row.pct >= 60 %}bg-amber-500{% else %}bg-indigo-500{% endif %}"
+                style="width:{{ row.pct }}%"></div>
+            </div>
+            <span class="text-xs font-semibold tabular-nums w-9 text-right
+              {% if row.pct >= 100 %}text-green-600{% elif row.pct >= 60 %}text-amber-600{% else %}text-gray-500{% endif %}">
+              {{ row.pct }}%
+            </span>
+          </div>
+          {% else %}
+          <span class="text-xs text-gray-300">No target set</span>
+          {% endif %}
+        </td>
+        <td class="px-5 py-3">
+          <form method="post" action="{% url 'dashboard:quota_set' %}" class="flex gap-2 items-center">
+            {% csrf_token %}
+            <input type="hidden" name="user_pk" value="{{ row.user.pk }}">
+            <input type="hidden" name="month" value="{{ month|date:'Y-m-d' }}">
+            <input type="number" name="target" min="0" step="1000"
+              value="{{ row.target|default:'' }}"
+              placeholder="e.g. 500000"
+              class="input text-sm w-32 py-1.5">
+            <button type="submit" class="btn-primary text-xs px-3 py-1.5">Set</button>
+          </form>
+          <p class="text-xs text-gray-400 mt-1">Set 0 to clear goal.</p>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+
+<p class="text-xs text-gray-400 mt-4">Progress is calculated from deal values on won leads assigned to each user this month.</p>
+{% endblock %}

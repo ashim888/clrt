@@ -142,6 +142,21 @@ class Notification(models.Model):
         cls.objects.create(user=user, title=title, body=body, link=link, type=type)
 
 
+class UserGoal(models.Model):
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='goals'
+    )
+    month = models.DateField(help_text='Always the 1st of the target month')
+    target = models.DecimalField(max_digits=12, decimal_places=2)
+
+    class Meta:
+        unique_together = [('user', 'month')]
+        ordering = ['-month']
+
+    def __str__(self):
+        return f"{self.user} — {self.month.strftime('%b %Y')} target"
+
+
 class QuickNote(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
