@@ -66,6 +66,7 @@ def lead_list(request):
     page_obj = paginator.get_page(request.GET.get("page"))
 
     from dashboard.models import Tag
+    from django.contrib.auth import get_user_model
     return render(request, "leads/lead_list.html", {
         "leads": page_obj,
         "page_obj": page_obj,
@@ -78,6 +79,7 @@ def lead_list(request):
         "status_choices": Lead.STATUS_CHOICES,
         "source_choices": Lead.SOURCE_CHOICES,
         "all_tags": Tag.objects.all(),
+        "all_users": get_user_model().objects.filter(is_active=True).order_by("first_name", "username"),
     })
 
 
@@ -321,9 +323,32 @@ def lead_bulk_action(request):
         if value not in valid:
             return JsonResponse({"error": "Invalid status"}, status=400)
         qs.update(status=value)
+    elif action == "assign":
+        from django.contrib.auth import get_user_model
+        value = request.POST.get("value", "")
+        if value:
+            user = get_user_model().objects.filter(pk=value).first()
+            if not user:
+                return JsonResponse({"error": "User not found"}, status=400)
+            qs.update(assigned_to=user)
+        else:
+            qs.update(assigned_to=None)
+    elif action == "tag_add":
+        from dashboard.models import Tag
+        tag = Tag.objects.filter(pk=request.POST.get("value")).first()
+        if not tag:
+            return JsonResponse({"error": "Tag not found"}, status=400)
+        for lead in qs:
+            lead.tags.add(tag)
+    elif action == "tag_remove":
+        from dashboard.models import Tag
+        tag = Tag.objects.filter(pk=request.POST.get("value")).first()
+        if tag:
+            for lead in qs:
+                lead.tags.remove(tag)
     else:
         return JsonResponse({"error": "Unknown action"}, status=400)
-    return JsonResponse({"ok": True})
+    return JsonResponse({"ok": True, "count": len(ids)})
 
 
 @login_required

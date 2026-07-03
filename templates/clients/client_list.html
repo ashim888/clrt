@@ -75,6 +75,7 @@
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
+        <th class="px-4 py-3 w-8"><input type="checkbox" id="select-all-clients" class="rounded border-gray-300 cursor-pointer"></th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">
           <a href="?{{ bq }}&sort=name&order={% if sort == 'name' and order == 'asc' %}desc{% else %}asc{% endif %}" class="flex items-center gap-1 hover:text-gray-700">Organization {% if sort == 'name' %}{% if order == 'asc' %}↑{% else %}↓{% endif %}{% endif %}</a>
         </th>
@@ -95,6 +96,9 @@
     <tbody class="divide-y divide-gray-100">
       {% for client in clients %}
       <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "clients:client_detail" client.pk %}'">
+        <td class="px-4 py-3 w-8" onclick="event.stopPropagation()">
+          <input type="checkbox" class="client-cb rounded border-gray-300 cursor-pointer" value="{{ client.pk }}">
+        </td>
         <td class="px-4 py-3">
           <p class="font-medium text-gray-900">{{ client.organization_name }}</p>
           {% if client.email %}<p class="text-xs text-gray-400">{{ client.email }}</p>{% endif %}
@@ -128,7 +132,7 @@
         <td class="px-4 py-3 text-gray-400">{{ client.created_at|date:"M Y" }}</td>
       </tr>
       {% empty %}
-      <tr><td colspan="7" class="px-4 py-10 text-center text-gray-400">No clients yet.</td></tr>
+      <tr><td colspan="8" class="px-4 py-10 text-center text-gray-400">No clients yet.</td></tr>
       {% endfor %}
     </tbody>
   </table>
@@ -136,4 +140,99 @@
   {% include "partials/pagination.html" with page_obj=page_obj %}
 </div>
 {% endwith %}
+
+<!-- Client bulk action bar -->
+<div id="client-bulk-bar" class="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 hidden" style="min-width:0;max-width:calc(100vw - 2rem);">
+  <div class="bg-gray-900 text-white rounded-2xl shadow-2xl flex flex-wrap items-center gap-2 px-4 py-3 text-sm">
+    <span id="client-bulk-count" class="font-semibold text-indigo-300 whitespace-nowrap">0 selected</span>
+    <span class="text-gray-600">|</span>
+
+    <!-- Status -->
+    <div class="relative group">
+      <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 transition-colors flex items-center gap-1">
+        Status <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[140px] hidden group-hover:block z-50">
+        {% for val, label in status_choices %}
+        <button type="button" onclick="clientBulkAction('status','{{ val }}')"
+          class="w-full text-left px-4 py-1.5 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors">{{ label }}</button>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- Tag -->
+    {% if all_tags %}
+    <div class="relative group">
+      <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-gray-700 hover:bg-gray-600 transition-colors flex items-center gap-1">
+        Tag <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div class="absolute bottom-full left-0 mb-2 bg-white rounded-xl shadow-xl border border-gray-100 py-1 min-w-[160px] hidden group-hover:block z-50">
+        <p class="px-4 py-1 text-xs text-gray-400 font-semibold uppercase tracking-wide">Add tag</p>
+        {% for t in all_tags %}
+        <button type="button" onclick="clientBulkAction('tag_add','{{ t.pk }}')"
+          class="w-full text-left px-4 py-1.5 text-xs text-gray-700 hover:bg-indigo-50 hover:text-indigo-700 transition-colors flex items-center gap-2">
+          <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{ t.color }}"></span>{{ t.name }}
+        </button>
+        {% endfor %}
+        <div class="border-t border-gray-100 mt-1 pt-1">
+          <p class="px-4 py-1 text-xs text-gray-400 font-semibold uppercase tracking-wide">Remove tag</p>
+          {% for t in all_tags %}
+          <button type="button" onclick="clientBulkAction('tag_remove','{{ t.pk }}')"
+            class="w-full text-left px-4 py-1.5 text-xs text-gray-500 hover:bg-red-50 hover:text-red-600 transition-colors flex items-center gap-2">
+            <span class="w-2 h-2 rounded-full flex-shrink-0" style="background:{{ t.color }}"></span>{{ t.name }}
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
+    <span class="text-gray-600">|</span>
+    <button type="button" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-red-700 hover:bg-red-600 text-white transition-colors" onclick="clientBulkAction('delete')">Delete</button>
+    <button type="button" class="ml-1 text-gray-500 hover:text-white text-base leading-none" onclick="clearClientSelection()">✕</button>
+  </div>
+</div>
+
+<script>
+const CLIENT_CSRF = '{{ csrf_token }}';
+const clientBar = document.getElementById('client-bulk-bar');
+const clientCount = document.getElementById('client-bulk-count');
+
+function getCheckedClients() {
+  return [...document.querySelectorAll('.client-cb:checked')].map(cb => cb.value);
+}
+function updateClientBar() {
+  const ids = getCheckedClients();
+  clientBar.classList.toggle('hidden', ids.length === 0);
+  clientCount.textContent = ids.length + ' selected';
+}
+function clearClientSelection() {
+  document.querySelectorAll('.client-cb').forEach(cb => cb.checked = false);
+  document.getElementById('select-all-clients').checked = false;
+  updateClientBar();
+}
+document.getElementById('select-all-clients').addEventListener('change', function() {
+  document.querySelectorAll('.client-cb').forEach(cb => cb.checked = this.checked);
+  updateClientBar();
+});
+document.querySelectorAll('.client-cb').forEach(cb => cb.addEventListener('change', updateClientBar));
+
+async function clientBulkAction(action, value) {
+  const ids = getCheckedClients();
+  if (!ids.length) return;
+  if (action === 'delete' && !confirm(`Delete ${ids.length} client(s)? This cannot be undone.`)) return;
+  const body = new URLSearchParams({ action });
+  ids.forEach(id => body.append('ids', id));
+  if (value) body.set('value', value);
+  const resp = await fetch('{% url "clients:client_bulk_action" %}', {
+    method: 'POST',
+    headers: { 'X-CSRFToken': CLIENT_CSRF, 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: body.toString(),
+  });
+  const data = await resp.json();
+  if (data.ok) location.reload();
+  else alert(data.error || 'Action failed');
+}
+</script>
+
 {% endblock %}

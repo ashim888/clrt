@@ -420,3 +420,41 @@ def contract_edit(request, pk):
         messages.success(request, "Contract updated.")
         return redirect("clients:contract_detail", pk=pk)
     return render(request, "clients/contract_form.html", {"form": form, "title": "Edit Contract", "contract": contract})
+
+
+@login_required
+@require_POST
+def client_bulk_action(request):
+    if not _can_edit(request.user):
+        return JsonResponse({"error": "Permission denied"}, status=403)
+    ids = request.POST.getlist("ids")
+    action = request.POST.get("action")
+    if not ids or not action:
+        return JsonResponse({"error": "Missing ids or action"}, status=400)
+    qs = Client.objects.filter(pk__in=ids)
+    if action == "delete":
+        if not request.user.is_admin():
+            return JsonResponse({"error": "Only admins can delete clients"}, status=403)
+        qs.delete()
+    elif action == "status":
+        value = request.POST.get("value")
+        valid = [s for s, _ in Client.STATUS_CHOICES]
+        if value not in valid:
+            return JsonResponse({"error": "Invalid status"}, status=400)
+        qs.update(status=value)
+    elif action == "tag_add":
+        from dashboard.models import Tag
+        tag = Tag.objects.filter(pk=request.POST.get("value")).first()
+        if not tag:
+            return JsonResponse({"error": "Tag not found"}, status=400)
+        for client in qs:
+            client.tags.add(tag)
+    elif action == "tag_remove":
+        from dashboard.models import Tag
+        tag = Tag.objects.filter(pk=request.POST.get("value")).first()
+        if tag:
+            for client in qs:
+                client.tags.remove(tag)
+    else:
+        return JsonResponse({"error": "Unknown action"}, status=400)
+    return JsonResponse({"ok": True, "count": len(ids)})

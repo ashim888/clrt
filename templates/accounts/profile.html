@@ -21,5 +21,29 @@
       <div><span class="text-gray-500">Joined</span><p class="font-medium">{{ user.date_joined|site_date }}</p></div>
     </div>
   </div>
+
+  <!-- 2FA card -->
+  <div class="card p-5 mt-4 flex items-center justify-between gap-4">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0
+        {% if user.totp_enabled %}bg-green-100{% else %}bg-gray-100{% endif %}">
+        <svg class="w-4.5 h-4.5 {% if user.totp_enabled %}text-green-600{% else %}text-gray-400{% endif %}"
+          style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+            d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+        </svg>
+      </div>
+      <div>
+        <p class="text-sm font-semibold text-gray-900">Two-Factor Authentication</p>
+        <p class="text-xs {% if user.totp_enabled %}text-green-600{% else %}text-gray-400{% endif %}">
+          {% if user.totp_enabled %}Enabled — your account is protected{% else %}Not enabled{% endif %}
+        </p>
+      </div>
+    </div>
+    <a href="{% url 'accounts:two_factor_setup' %}"
+      class="text-sm font-semibold {% if user.totp_enabled %}text-red-500 hover:text-red-700{% else %}text-indigo-600 hover:text-indigo-800{% endif %} transition-colors whitespace-nowrap">
+      {% if user.totp_enabled %}Manage{% else %}Enable 2FA{% endif %}
+    </a>
+  </div>
 </div>
 {% endblock %}

@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Two-Factor Authentication{% endblock %}
+{% block content %}
+
+<div class="max-w-xl mx-auto">
+  <div class="mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Two-Factor Authentication</h1>
+    <p class="text-sm text-gray-500 mt-0.5">Add an extra layer of security to your account.</p>
+  </div>
+
+  <!-- Status banner -->
+  {% if enabled %}
+  <div class="card p-4 mb-6 flex items-center gap-3 border border-green-200 bg-green-50">
+    <svg class="w-5 h-5 text-green-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-semibold text-green-800">2FA is enabled</p>
+      <p class="text-xs text-green-600">Your account is protected with an authenticator app.</p>
+    </div>
+  </div>
+  {% else %}
+  <div class="card p-4 mb-6 flex items-center gap-3 border border-amber-200 bg-amber-50">
+    <svg class="w-5 h-5 text-amber-600 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+    </svg>
+    <div>
+      <p class="text-sm font-semibold text-amber-800">2FA is not enabled</p>
+      <p class="text-xs text-amber-600">Scan the QR code below to activate it.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if not enabled %}
+  <!-- Setup card -->
+  <div class="card p-6 mb-6">
+    <h2 class="text-base font-semibold text-gray-900 mb-4">Scan with your authenticator app</h2>
+    <p class="text-sm text-gray-500 mb-5">
+      Use <strong>Google Authenticator</strong>, <strong>Authy</strong>, or any TOTP-compatible app.
+      Scan the QR code, then enter the 6-digit code to confirm.
+    </p>
+
+    <div class="flex flex-col sm:flex-row gap-6 items-start">
+      <!-- QR code -->
+      <div class="flex-shrink-0">
+        <img src="data:image/png;base64,{{ qr_b64 }}" alt="2FA QR Code"
+          class="w-44 h-44 rounded-xl border border-gray-200 shadow-sm">
+      </div>
+
+      <div class="flex-1">
+        <!-- Manual entry -->
+        <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Can't scan? Enter this code manually:</p>
+        <div class="flex items-center gap-2 mb-5">
+          <code id="totp-secret" class="text-sm font-mono bg-gray-100 px-3 py-1.5 rounded-lg text-gray-800 select-all tracking-widest">{{ secret }}</code>
+          <button type="button" onclick="copySecret()" title="Copy"
+            class="p-1.5 rounded-lg border border-gray-200 hover:bg-gray-50 text-gray-400 hover:text-gray-700 transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Verify -->
+        {% if error %}
+        <div class="mb-3 px-3 py-2 rounded-lg bg-red-50 border border-red-200 text-sm text-red-700">{{ error }}</div>
+        {% endif %}
+
+        <form method="post">
+          {% csrf_token %}
+          <label class="block text-xs font-semibold text-gray-500 mb-1.5">Enter the 6-digit code to confirm</label>
+          <div class="flex gap-2">
+            <input
+              type="text"
+              name="code"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              maxlength="6"
+              placeholder="000000"
+              autofocus
+              required
+              class="input font-mono text-center tracking-widest text-lg flex-1"
+            >
+            <button type="submit" class="btn-primary px-5 whitespace-nowrap">Enable 2FA</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
+  {% if enabled %}
+  <!-- Disable card -->
+  <div class="card p-6 border border-red-100">
+    <h2 class="text-base font-semibold text-gray-900 mb-1">Disable 2FA</h2>
+    <p class="text-sm text-gray-500 mb-4">Enter your current authenticator code to turn off two-factor authentication.</p>
+    <form method="post" action="{% url 'accounts:two_factor_disable' %}">
+      {% csrf_token %}
+      <div class="flex gap-2">
+        <input
+          type="text"
+          name="code"
+          inputmode="numeric"
+          maxlength="6"
+          placeholder="000000"
+          required
+          class="input font-mono text-center tracking-widest text-lg flex-1"
+        >
+        <button type="submit"
+          onclick="return confirm('This will remove 2FA protection from your account. Are you sure?')"
+          class="btn-danger px-5 whitespace-nowrap">Disable</button>
+      </div>
+    </form>
+  </div>
+  {% endif %}
+
+  <a href="{% url 'accounts:profile' %}" class="inline-flex items-center gap-1 mt-5 text-sm text-gray-400 hover:text-gray-600 transition-colors">
+    ← Back to profile
+  </a>
+</div>
+
+<script>
+function copySecret() {
+  const s = document.getElementById('totp-secret').textContent;
+  navigator.clipboard.writeText(s).then(() => {
+    const btn = event.currentTarget;
+    btn.innerHTML = '<svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+    setTimeout(() => {
+      btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg>';
+    }, 2000);
+  });
+}
+</script>
+
+{% endblock %}

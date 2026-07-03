@@ -9,6 +9,8 @@ class User(AbstractUser):
         ("accounts", "Accounts"),
     ]
     role = models.CharField(max_length=20, choices=ROLE_CHOICES, default="sales")
+    totp_secret = models.CharField(max_length=64, blank=True)
+    totp_enabled = models.BooleanField(default=False)
 
     def is_admin(self):
         return self.role == "admin" or self.is_superuser
