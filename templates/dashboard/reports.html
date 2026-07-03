@@ -165,6 +165,95 @@
   {% endif %}
 </div>
 
+<!-- Velocity metrics -->
+<p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-2">Sales Velocity</p>
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-8">
+  <div class="card p-4 border-l-4 border-indigo-400">
+    <p class="text-xs text-gray-400 mb-1">Avg. Days to Close</p>
+    {% if avg_close_days %}
+    <p class="text-xl font-bold text-gray-900">{{ avg_close_days }}<span class="text-sm font-normal text-gray-400"> days</span></p>
+    <p class="text-xs text-gray-400 mt-0.5">for won deals</p>
+    {% else %}
+    <p class="text-xl font-bold text-gray-300">—</p>
+    <p class="text-xs text-gray-300 mt-0.5">no won deals yet</p>
+    {% endif %}
+  </div>
+  <div class="card p-4 border-l-4 border-blue-400">
+    <p class="text-xs text-gray-400 mb-1">Avg. First Touch</p>
+    {% if avg_first_touch_days %}
+    <p class="text-xl font-bold text-gray-900">{{ avg_first_touch_days }}<span class="text-sm font-normal text-gray-400"> days</span></p>
+    <p class="text-xs text-gray-400 mt-0.5">lead created → 1st activity</p>
+    {% else %}
+    <p class="text-xl font-bold text-gray-300">—</p>
+    <p class="text-xs text-gray-300 mt-0.5">no activity data</p>
+    {% endif %}
+  </div>
+  <div class="card p-4 border-l-4 border-emerald-400">
+    <p class="text-xs text-gray-400 mb-1">Overall Win Rate</p>
+    <p class="text-xl font-bold text-emerald-600">{{ conversion_rate }}%</p>
+    <p class="text-xs text-gray-400 mt-0.5">{{ won_leads }} won of {{ total_leads }} total</p>
+  </div>
+  <div class="card p-4 border-l-4 border-amber-400">
+    <p class="text-xs text-gray-400 mb-1">Lost Leads</p>
+    <p class="text-xl font-bold text-amber-600">{{ lost_total }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">
+      {% if total_leads %}{{ lost_total|floatformat:0 }} / {{ total_leads }} = {% widthratio lost_total total_leads 100 %}%{% else %}no leads yet{% endif %}
+    </p>
+  </div>
+</div>
+
+<!-- Source performance table -->
+{% if source_perf %}
+<div class="card p-5 mb-6">
+  <div class="flex items-start justify-between mb-4">
+    <div>
+      <h2 class="font-semibold text-gray-900">Source Performance</h2>
+      <p class="text-xs text-gray-400 mt-0.5">Win rate and deal flow by lead source</p>
+    </div>
+  </div>
+  <div style="overflow-x:auto;">
+  <table class="w-full text-sm">
+    <thead>
+      <tr class="border-b border-gray-100">
+        <th class="py-2 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">Source</th>
+        <th class="py-2 px-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Total</th>
+        <th class="py-2 px-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Won</th>
+        <th class="py-2 px-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Lost</th>
+        <th class="py-2 px-3 text-right text-xs font-semibold text-gray-400 uppercase tracking-wide">Active</th>
+        <th class="py-2 px-3 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide w-36">Win Rate</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-50">
+      {% for row in source_perf %}
+      <tr class="hover:bg-gray-50 transition-colors">
+        <td class="py-2.5 px-3 font-medium text-gray-800">{{ row.source }}</td>
+        <td class="py-2.5 px-3 text-right text-gray-600">{{ row.total }}</td>
+        <td class="py-2.5 px-3 text-right text-emerald-600 font-semibold">{{ row.won }}</td>
+        <td class="py-2.5 px-3 text-right text-red-400">{{ row.lost }}</td>
+        <td class="py-2.5 px-3 text-right text-blue-500">{{ row.active }}</td>
+        <td class="py-2.5 px-3">
+          <div class="flex items-center gap-2">
+            <div class="flex-1 h-1.5 bg-gray-100 rounded-full overflow-hidden">
+              <div class="h-full rounded-full transition-all"
+                style="width:{{ row.win_rate }}%;background:{% if row.win_rate >= 50 %}#10b981{% elif row.win_rate >= 25 %}#f59e0b{% else %}#ef4444{% endif %};">
+              </div>
+            </div>
+            <span class="text-xs font-bold w-10 text-right
+              {% if row.win_rate >= 50 %}text-emerald-600
+              {% elif row.win_rate >= 25 %}text-amber-600
+              {% else %}text-red-500{% endif %}">
+              {{ row.win_rate }}%
+            </span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+{% endif %}
+
 <!-- Client health + Lost reasons -->
 <div class="grid lg:grid-cols-2 gap-6 mb-6">
   <div class="card p-5">

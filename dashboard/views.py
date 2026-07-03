@@ -316,6 +316,56 @@ def reports(request):
     pv_data = [pipeline_value_map.get(s, 0) for s in status_order]
     pv_data[status_order.index("won")] = float(won_pipeline_value)
 
+    # Win rate by source
+    source_map = dict(Lead.SOURCE_CHOICES)
+    source_perf = []
+    for src, label in Lead.SOURCE_CHOICES:
+        src_qs = lead_qs.filter(source=src)
+        total = src_qs.count()
+        if not total:
+            continue
+        won = src_qs.filter(status="won").count()
+        lost = src_qs.filter(status="lost").count()
+        active = total - won - lost
+        source_perf.append({
+            "source": label,
+            "total": total,
+            "won": won,
+            "lost": lost,
+            "active": active,
+            "win_rate": round(won / total * 100, 1),
+        })
+    source_perf.sort(key=lambda x: x["win_rate"], reverse=True)
+
+    # Avg days to close (won leads only — updated_at is a proxy for close date)
+    from django.db.models import F, ExpressionWrapper, DurationField
+    from django.db.models.functions import Now
+    won_qs = lead_qs.filter(status="won")
+    avg_close_days = None
+    if won_qs.exists():
+        delta = won_qs.annotate(
+            days=ExpressionWrapper(F("updated_at") - F("created_at"), output_field=DurationField())
+        ).aggregate(avg=Avg("days"))["avg"]
+        if delta:
+            avg_close_days = round(delta.total_seconds() / 86400, 1)
+
+    # Avg time to first activity on new leads
+    leads_with_first_act = (
+        lead_qs
+        .filter(status__in=["new", "contacted", "demo", "negotiation", "won"])
+        .annotate(first_act=_db_models.Min("activities__created_at"))
+        .filter(first_act__isnull=False)
+    )
+    avg_first_touch_days = None
+    if leads_with_first_act.exists():
+        deltas = [
+            (l.first_act - l.created_at).total_seconds() / 86400
+            for l in leads_with_first_act
+            if l.first_act > l.created_at
+        ]
+        if deltas:
+            avg_first_touch_days = round(sum(deltas) / len(deltas), 1)
+
     # Lost reason breakdown
     lost_qs = lead_qs.filter(status="lost")
     lost_reasons = list(
@@ -372,6 +422,9 @@ def reports(request):
         "lost_reasons": lost_reasons,
         "lost_total": lost_total,
         "lost_no_reason": lost_no_reason,
+        "source_perf": source_perf,
+        "avg_close_days": avg_close_days,
+        "avg_first_touch_days": avg_first_touch_days,
         "date_from": date_from_str,
         "date_to": date_to_str,
     })

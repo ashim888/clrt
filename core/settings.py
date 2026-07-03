@@ -87,3 +87,4 @@ EMAIL_HOST_USER = os.getenv("EMAIL_HOST_USER", "")
 EMAIL_HOST_PASSWORD = os.getenv("EMAIL_HOST_PASSWORD", "")
 DEFAULT_FROM_EMAIL = os.getenv("DEFAULT_FROM_EMAIL", "CLRT <noreply@clrt.app>")
 ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "")  # receives daily notification summaries
+SITE_URL = os.getenv("SITE_URL", "http://localhost:8000")  # used in reminder email links
