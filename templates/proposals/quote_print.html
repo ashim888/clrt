@@ -46,8 +46,12 @@
 <div class="page">
   <div class="header">
     <div>
-      <div class="brand">📋 CLRT</div>
-      <div class="brand-sub">Client Lifecycle & Revenue Tracker</div>
+      {% if cfg.business_logo %}
+      <img src="{{ cfg.business_logo.url }}" alt="{{ cfg.business_name }}" style="max-height:56px;max-width:180px;object-fit:contain;display:block;margin-bottom:6px;">
+      {% endif %}
+      <div class="brand">{{ cfg.business_name|default:"My Business" }}</div>
+      {% if cfg.business_tagline %}<div class="brand-sub">{{ cfg.business_tagline }}</div>{% endif %}
+      {% if cfg.business_address %}<div style="font-size:11px;color:#9ca3af;margin-top:3px;white-space:pre-line;">{{ cfg.business_address }}</div>{% endif %}
     </div>
     <div class="quote-meta">
       <div style="font-size:11px;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:.05em;">Proposal</div>

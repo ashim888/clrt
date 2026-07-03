@@ -555,8 +555,12 @@ def convert_to_client(request, pk):
 
 def lead_capture(request):
     from .forms import LeadCaptureForm
-    from dashboard.models import SiteSettings, Notification
+    from dashboard.models import SiteSettings, Notification, Subscription
     from django.contrib.auth import get_user_model
+    sub = Subscription.current()
+    if sub is None or not getattr(sub.plan, 'has_web_capture', False):
+        from django.http import Http404
+        raise Http404
     site = SiteSettings.load()
     form = LeadCaptureForm(request.POST or None)
     if request.method == "POST" and form.is_valid():

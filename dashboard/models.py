@@ -41,6 +41,7 @@ class SiteSettings(models.Model):
     # — Business Identity —
     business_name = models.CharField(max_length=200, default='My Business')
     business_tagline = models.CharField(max_length=300, blank=True)
+    business_logo = models.ImageField(upload_to='business/', blank=True)
     business_address = models.TextField(blank=True)
     business_phone = models.CharField(max_length=50, blank=True)
     business_email = models.EmailField(blank=True)

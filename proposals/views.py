@@ -8,6 +8,7 @@ from django.views.decorators.http import require_POST
 from .models import Quote, QuoteLineItem
 from leads.models import Lead
 from clients.models import Client
+from dashboard.decorators import requires_feature
 
 
 def _save_line_items(quote, post):
@@ -32,7 +33,7 @@ def _save_line_items(quote, post):
 
 _QUOTE_SORT = {"date": "created_at", "status": "status", "title": "title", "valid": "valid_until"}
 
-@login_required
+@requires_feature('has_proposals')
 def quote_list(request):
     q = request.GET.get("q", "")
     status = request.GET.get("status", "")
@@ -63,13 +64,13 @@ def quote_list(request):
     })
 
 
-@login_required
+@requires_feature('has_proposals')
 def quote_detail(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
     return render(request, "proposals/quote_detail.html", {"quote": quote})
 
 
-@login_required
+@requires_feature('has_proposals')
 def quote_create(request):
     leads = Lead.objects.exclude(status__in=["won", "lost"]).order_by("organization_name")
     clients = Client.objects.order_by("organization_name")
@@ -104,7 +105,7 @@ def quote_create(request):
     })
 
 
-@login_required
+@requires_feature('has_proposals')
 def quote_edit(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
     leads = Lead.objects.order_by("organization_name")
@@ -137,7 +138,7 @@ def quote_edit(request, pk):
     })
 
 
-@login_required
+@requires_feature('has_proposals')
 @require_POST
 def quote_update_status(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
@@ -150,7 +151,9 @@ def quote_update_status(request, pk):
     return JsonResponse({"status": new_status, "label": quote.get_status_display()})
 
 
-@login_required
+@requires_feature('has_proposals')
 def quote_print(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
-    return render(request, "proposals/quote_print.html", {"quote": quote})
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
+    return render(request, "proposals/quote_print.html", {"quote": quote, "cfg": cfg})

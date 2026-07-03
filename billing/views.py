@@ -51,7 +51,8 @@ def invoice_detail(request, pk):
         "payments": payments,
         "paid_total": paid_total,
         "balance": invoice.amount - paid_total,
-        "razorpay_enabled": cfg.razorpay_enabled and bool(cfg.razorpay_key_id),
+        "razorpay_enabled": cfg.razorpay_enabled,
+        "razorpay_configured": cfg.razorpay_enabled and bool(cfg.razorpay_key_id) and bool(cfg.razorpay_key_secret),
     })
 
 
@@ -138,11 +139,14 @@ def invoice_print(request, pk):
     invoice = get_object_or_404(Invoice, pk=pk)
     payments = invoice.payments.all()
     paid_total = payments.aggregate(t=Sum("amount_paid"))["t"] or 0
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
     return render(request, "billing/invoice_print.html", {
         "invoice": invoice,
         "payments": payments,
         "paid_total": paid_total,
         "balance": invoice.amount - paid_total,
+        "cfg": cfg,
     })
 
 

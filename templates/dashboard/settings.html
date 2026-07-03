@@ -11,7 +11,7 @@
     </div>
   </div>
 
-  <form method="post" id="settings-form">
+  <form method="post" enctype="multipart/form-data" id="settings-form">
     {% csrf_token %}
 
     <!-- ── CURRENCY & NUMBERS ── -->
@@ -115,6 +115,35 @@
         <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </button>
       <div id="sec-business" class="acc-body border-t border-gray-100 px-5 py-5 space-y-4 hidden">
+        <!-- Logo upload -->
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Business Logo</label>
+          <div class="flex items-center gap-4">
+            <div id="logo-preview-wrap" class="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden flex-shrink-0">
+              {% if obj.business_logo %}
+              <img id="logo-preview" src="{{ obj.business_logo.url }}" alt="Logo" class="w-full h-full object-contain">
+              {% else %}
+              <span id="logo-preview-placeholder" class="text-3xl text-gray-300">🏢</span>
+              <img id="logo-preview" src="" alt="" class="w-full h-full object-contain hidden">
+              {% endif %}
+            </div>
+            <div class="flex-1">
+              <label for="id_business_logo" class="inline-flex items-center gap-2 cursor-pointer px-4 py-2 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-sm font-medium text-gray-700 transition-colors">
+                <svg class="w-4 h-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                Choose Image
+              </label>
+              <input type="file" name="business_logo" id="id_business_logo" accept="image/*" class="sr-only" onchange="previewLogo(this)">
+              <p class="text-xs text-gray-400 mt-1.5">PNG or SVG recommended · shown on invoices and proposals · max 2 MB</p>
+              {% if obj.business_logo %}
+              <label class="flex items-center gap-2 mt-2 cursor-pointer">
+                <input type="checkbox" name="business_logo-clear" id="business_logo-clear-id" class="rounded border-gray-300">
+                <span class="text-xs text-red-600">Remove current logo</span>
+              </label>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+
         <div class="grid sm:grid-cols-2 gap-4">
           <div class="sm:col-span-2">
             <label class="block text-sm font-medium text-gray-700 mb-1">Business Name <span class="text-red-500">*</span></label>
@@ -197,20 +226,40 @@
         </div>
         <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
       </button>
-      <div id="sec-razorpay" class="acc-body hidden border-t border-gray-100 px-5 py-5 space-y-4">
-        <div class="flex items-center gap-3">
-          {{ form.razorpay_enabled }}
-          <label class="text-sm font-medium text-gray-700">Enable Razorpay "Pay Now" button on invoices</label>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Razorpay Key ID</label>
-          {{ form.razorpay_key_id }}
-          <p class="text-xs text-gray-400 mt-1">From Razorpay Dashboard → Settings → API Keys (starts with <code>rzp_</code>)</p>
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1">Razorpay Key Secret</label>
-          {{ form.razorpay_key_secret }}
-          <p class="text-xs text-gray-400 mt-1">Keep this secret — never share it publicly.</p>
+      <div id="sec-razorpay" class="acc-body hidden border-t border-gray-100 px-5 py-5 space-y-5">
+        <!-- Enable toggle -->
+        <label class="flex items-start gap-3 cursor-pointer select-none">
+          <div class="relative mt-0.5">
+            <input type="checkbox" name="razorpay_enabled" id="id_razorpay_enabled" {% if form.razorpay_enabled.value %}checked{% endif %} class="sr-only peer">
+            <div class="w-10 h-6 bg-gray-200 peer-checked:bg-indigo-600 rounded-full transition-colors"></div>
+            <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-800">Enable Razorpay</p>
+            <p class="text-xs text-gray-400 mt-0.5">Shows a "Pay Now" button on unpaid invoices for online payment</p>
+          </div>
+        </label>
+
+        <div id="razorpay-fields" class="space-y-4 {% if not form.razorpay_enabled.value %}opacity-50 pointer-events-none{% endif %}">
+          <div class="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-xs text-amber-700">
+            Get your API keys from <strong>Razorpay Dashboard → Settings → API Keys</strong>. Use test keys (<code>rzp_test_...</code>) during development.
+          </div>
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Key ID</label>
+              <input type="text" name="razorpay_key_id" value="{{ form.razorpay_key_id.value|default:'' }}" class="input font-mono text-sm" placeholder="rzp_live_...">
+            </div>
+            <div>
+              <label class="block text-sm font-medium text-gray-700 mb-1">Key Secret</label>
+              <div class="relative">
+                <input type="password" name="razorpay_key_secret" id="id_rzp_secret" value="{{ form.razorpay_key_secret.value|default:'' }}" class="input font-mono text-sm pr-10" placeholder="••••••••••••">
+                <button type="button" onclick="toggleSecret()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                  <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
+                </button>
+              </div>
+              <p class="text-xs text-gray-400 mt-1">Never share this — treat it like a password.</p>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -294,5 +343,38 @@ function updateDatePreview() {
 }
 document.getElementById('id_date_format').addEventListener('change', updateDatePreview);
 updateDatePreview();
+
+// Logo preview
+function previewLogo(input) {
+  if (!input.files || !input.files[0]) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = document.getElementById('logo-preview');
+    const ph = document.getElementById('logo-preview-placeholder');
+    img.src = e.target.result;
+    img.classList.remove('hidden');
+    if (ph) ph.classList.add('hidden');
+  };
+  reader.readAsDataURL(input.files[0]);
+}
+
+// Razorpay toggle dims/enables the key fields
+const rzpToggle = document.getElementById('id_razorpay_enabled');
+const rzpFields = document.getElementById('razorpay-fields');
+if (rzpToggle && rzpFields) {
+  rzpToggle.addEventListener('change', function() {
+    if (this.checked) {
+      rzpFields.classList.remove('opacity-50', 'pointer-events-none');
+    } else {
+      rzpFields.classList.add('opacity-50', 'pointer-events-none');
+    }
+  });
+}
+
+// Secret reveal
+function toggleSecret() {
+  const el = document.getElementById('id_rzp_secret');
+  el.type = el.type === 'password' ? 'text' : 'password';
+}
 </script>
 {% endblock %}

@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block title %}{{ u.get_full_name|default:u.username }}{% endblock %}
+{% block nav_users %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+
+<!-- Header -->
+<div class="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-6">
+  <div class="flex items-center gap-4">
+    <div class="w-14 h-14 rounded-2xl bg-indigo-100 text-indigo-700 font-extrabold text-xl flex items-center justify-center flex-shrink-0">
+      {{ u.username|slice:":2"|upper }}
+    </div>
+    <div>
+      <div class="flex items-center gap-2 flex-wrap">
+        <h1 class="text-2xl font-bold text-gray-900">{{ u.get_full_name|default:u.username }}</h1>
+        <span class="badge
+          {% if u.role == 'admin' %}bg-purple-100 text-purple-800
+          {% elif u.role == 'accounts' %}bg-blue-100 text-blue-800
+          {% else %}bg-gray-100 text-gray-700{% endif %}">
+          {{ u.get_role_display }}
+        </span>
+        {% if not u.is_active %}<span class="badge bg-red-100 text-red-700">Inactive</span>{% endif %}
+      </div>
+      <p class="text-sm text-gray-400 mt-0.5">
+        @{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}
+        · Joined {{ u.date_joined|date:"d M Y" }}
+      </p>
+    </div>
+  </div>
+  <div class="flex gap-2 flex-shrink-0">
+    <a href="{% url 'accounts:user_edit' u.pk %}" class="btn-secondary text-sm">Edit</a>
+    <a href="{% url 'accounts:user_list' %}" class="btn-secondary text-sm">← Users</a>
+  </div>
+</div>
+
+<!-- Stats strip -->
+<div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+  <div class="card p-4 text-center">
+    <p class="text-2xl font-bold text-gray-900">{{ lead_stats.total|default:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">Assigned Leads</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-2xl font-bold text-green-600">{{ lead_stats.won|default:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">Won Deals</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-2xl font-bold text-blue-600">{{ lead_stats.active|default:0 }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">Active Pipeline</p>
+  </div>
+  <div class="card p-4 text-center">
+    <p class="text-2xl font-bold text-gray-700">{{ activities|length }}</p>
+    <p class="text-xs text-gray-400 mt-0.5">Recent Activities</p>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6">
+
+  <!-- Left: Account info + actions -->
+  <div class="space-y-4">
+
+    <!-- Account details -->
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider text-gray-500">Account</h3>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span class="text-gray-400">Username</span><span class="font-medium">{{ u.username }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Email</span><span class="font-medium break-all">{{ u.email|default:"—" }}</span></div>
+        <div class="flex justify-between"><span class="text-gray-400">Last login</span>
+          <span class="{% if not u.last_login %}text-gray-300{% endif %}">
+            {% if u.last_login %}{{ u.last_login|date:"d M Y H:i" }}{% else %}Never{% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between"><span class="text-gray-400">2FA</span>
+          <span class="{% if u.totp_enabled %}text-green-600 font-semibold{% else %}text-gray-400{% endif %}">
+            {% if u.totp_enabled %}Enabled{% else %}Off{% endif %}
+          </span>
+        </div>
+        <div class="flex justify-between"><span class="text-gray-400">Status</span>
+          {% if u.is_active %}<span class="text-green-600 font-semibold">Active</span>
+          {% else %}<span class="text-red-600 font-semibold">Inactive</span>{% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Admin: Reset password -->
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Reset Password</h3>
+      <form method="post" action="{% url 'accounts:user_set_password' u.pk %}">
+        {% csrf_token %}
+        <div class="space-y-2">
+          <input type="password" name="new_password1" placeholder="New password" class="input text-sm" minlength="8" required>
+          <input type="password" name="new_password2" placeholder="Confirm password" class="input text-sm" minlength="8" required>
+        </div>
+        <button type="submit" class="btn-primary text-sm mt-3 w-full">Set Password</button>
+      </form>
+    </div>
+
+    <!-- Activate / Deactivate -->
+    {% if u != request.user %}
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Account Status</h3>
+      <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}"
+        onsubmit="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')">
+        {% csrf_token %}
+        <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border transition-colors
+          {% if u.is_active %}border-red-200 text-red-600 hover:bg-red-50{% else %}border-green-200 text-green-600 hover:bg-green-50{% endif %}">
+          {% if u.is_active %}Deactivate User{% else %}Reactivate User{% endif %}
+        </button>
+        {% if u.is_active %}
+        <p class="text-xs text-gray-400 mt-1.5 text-center">User will be blocked from logging in immediately.</p>
+        {% endif %}
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- Right: Activity feed -->
+  <div class="lg:col-span-2">
+    <h3 class="font-semibold text-gray-900 mb-3">Recent Activity <span class="text-gray-400 font-normal text-sm">(last 20)</span></h3>
+    <div class="space-y-2">
+      {% for act in activities %}
+      <div class="card p-3 flex items-start gap-3">
+        <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
+          {% if act.type == 'call' %}bg-blue-100 text-blue-600
+          {% elif act.type == 'meeting' %}bg-purple-100 text-purple-600
+          {% elif act.type == 'email' %}bg-indigo-100 text-indigo-600
+          {% elif act.type == 'follow_up' %}bg-amber-100 text-amber-600
+          {% else %}bg-gray-100 text-gray-500{% endif %}">
+          {% if act.type == 'call' %}☎
+          {% elif act.type == 'meeting' %}🤝
+          {% elif act.type == 'email' %}✉
+          {% elif act.type == 'follow_up' %}🔄
+          {% else %}📌{% endif %}
+        </div>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center justify-between gap-2">
+            <span class="text-sm font-medium text-gray-800">{{ act.get_type_display }}
+              {% if act.email_subject %}<span class="text-gray-400 font-normal text-xs">— {{ act.email_subject }}</span>{% endif %}
+            </span>
+            <span class="text-xs text-gray-400 flex-shrink-0">{{ act.created_at|date:"d M Y" }}</span>
+          </div>
+          <a href="{% url 'leads:lead_detail' act.lead.pk %}" class="text-xs text-indigo-500 hover:underline">
+            {{ act.lead.organization_name }}
+          </a>
+          {% if act.notes %}
+          <p class="text-xs text-gray-500 mt-0.5 truncate">{{ act.notes|truncatechars:80 }}</p>
+          {% endif %}
+        </div>
+      </div>
+      {% empty %}
+      <div class="card p-8 text-center text-gray-400 text-sm">
+        No activities logged by this user yet.
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+
+</div>
+
+{% endblock %}

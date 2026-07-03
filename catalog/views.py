@@ -6,13 +6,14 @@ from django.views.decorators.http import require_POST
 from django.db.models import Q
 from .models import Service, ServiceCategory
 from .forms import ServiceForm, ServiceCategoryForm
+from dashboard.decorators import requires_feature
 
 
 def _can_edit(user):
     return user.is_superuser or getattr(user, 'role', '') in ('admin', 'sales')
 
 
-@login_required
+@requires_feature('has_catalog')
 def service_list(request):
     q = request.GET.get('q', '')
     category_id = request.GET.get('category', '')
@@ -31,7 +32,7 @@ def service_list(request):
     })
 
 
-@login_required
+@requires_feature('has_catalog')
 def service_create(request):
     if not _can_edit(request.user):
         messages.error(request, 'Access denied.')
@@ -44,7 +45,7 @@ def service_create(request):
     return render(request, 'catalog/service_form.html', {'form': form, 'title': 'Add Service'})
 
 
-@login_required
+@requires_feature('has_catalog')
 def service_edit(request, pk):
     service = get_object_or_404(Service, pk=pk)
     if not _can_edit(request.user):
@@ -58,7 +59,7 @@ def service_edit(request, pk):
     return render(request, 'catalog/service_form.html', {'form': form, 'title': 'Edit Service', 'service': service})
 
 
-@login_required
+@requires_feature('has_catalog')
 @require_POST
 def service_delete(request, pk):
     if not _can_edit(request.user):

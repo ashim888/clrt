@@ -19,7 +19,10 @@
     {% if invoice.status != "paid" %}
     <a href="{% url "billing:payment_add" invoice.pk %}" class="btn-primary">+ Record Payment</a>
     {% if razorpay_enabled %}
-    <button type="button" id="rzp-btn" onclick="startRazorpayPayment()" class="btn-secondary font-semibold text-blue-700 border-blue-300 hover:bg-blue-50">💳 Pay Now</button>
+    <button type="button" id="rzp-btn" {% if not razorpay_configured %}disabled title="Razorpay API keys not configured in Settings"{% else %}onclick="startRazorpayPayment()"{% endif %}
+      class="btn-secondary font-semibold {% if razorpay_configured %}text-blue-700 border-blue-300 hover:bg-blue-50{% else %}text-gray-400 border-gray-200 cursor-not-allowed{% endif %}">
+      💳 Pay Now{% if not razorpay_configured %} <span class="text-xs font-normal">(keys missing)</span>{% endif %}
+    </button>
     {% endif %}
     {% endif %}
     <a href="{% url "billing:invoice_print" invoice.pk %}" target="_blank" class="btn-secondary">🖨 Print / PDF</a>
@@ -60,7 +63,7 @@
   </div>
 </div>
 
-{% if razorpay_enabled and invoice.status != "paid" %}
+{% if razorpay_configured and invoice.status != "paid" %}
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 const CREATE_ORDER_URL = "{% url 'billing:razorpay_create_order' invoice.pk %}";

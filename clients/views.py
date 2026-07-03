@@ -8,6 +8,7 @@ from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
 from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate
 from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm, ContractTemplateForm
+from dashboard.decorators import requires_feature
 
 
 def _can_edit(user):
@@ -221,7 +222,7 @@ def portal_home(request, token):
     })
 
 
-@login_required
+@requires_feature('has_client_portal')
 @require_POST
 def portal_regenerate_token(request, pk):
     import uuid as _uuid

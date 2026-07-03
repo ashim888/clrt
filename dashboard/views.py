@@ -13,6 +13,7 @@ from django.contrib.auth import get_user_model
 from leads.models import Lead, Activity
 from clients.models import Client, Contract, ClientInteraction
 from billing.models import Invoice
+from .decorators import requires_feature
 
 User = get_user_model()
 
@@ -222,7 +223,7 @@ def dashboard(request):
     })
 
 
-@login_required
+@requires_feature('has_reports')
 def reports(request):
     from datetime import date as _date
     today = timezone.now().date()
@@ -459,7 +460,7 @@ def search(request):
     })
 
 
-@login_required
+@requires_feature('has_reports')
 def team_performance(request):
     today = timezone.localdate()
     month_start = today.replace(day=1)
@@ -513,7 +514,7 @@ def team_performance(request):
     })
 
 
-@login_required
+@requires_feature('has_reports')
 def report_leads(request):
     from datetime import date as _date
     today = timezone.now().date()
@@ -613,7 +614,7 @@ def report_leads(request):
     })
 
 
-@login_required
+@requires_feature('has_reports')
 def report_clients(request):
     today = timezone.now().date()
 
@@ -677,7 +678,7 @@ def report_clients(request):
     })
 
 
-@login_required
+@requires_feature('has_reports')
 def report_billing(request):
     today = timezone.now().date()
     month_start = today.replace(day=1)
@@ -752,9 +753,11 @@ def site_settings_view(request):
     from .forms import SiteSettingsForm
     obj = SiteSettings.load()
     if request.method == "POST":
-        form = SiteSettingsForm(request.POST, instance=obj)
+        form = SiteSettingsForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
             form.save()
+            from .templatetags.clrt_filters import _settings_cache
+            _settings_cache.clear()
             messages.success(request, "Settings saved.")
             return redirect("dashboard:settings")
     else:
@@ -792,7 +795,7 @@ def notification_list(request):
 
 # ── Audit Trail ──────────────────────────────────────────────────
 
-@login_required
+@requires_feature('has_audit_log')
 def audit_trail(request):
     if not (request.user.is_superuser or getattr(request.user, 'role', '') == 'admin'):
         messages.error(request, "Access restricted to admins.")
@@ -819,7 +822,7 @@ def audit_trail(request):
 
 # ── Calendar ──────────────────────────────────────────────────────
 
-@login_required
+@requires_feature('has_calendar')
 def calendar_view(request):
     from .models import CalendarEvent
     return render(request, "dashboard/calendar.html", {
@@ -827,7 +830,7 @@ def calendar_view(request):
     })
 
 
-@login_required
+@requires_feature('has_calendar')
 def calendar_events(request):
     from django.http import JsonResponse as _JR
     start = request.GET.get("start", "")
@@ -936,7 +939,7 @@ def calendar_events(request):
     return _JR(events, safe=False)
 
 
-@login_required
+@requires_feature('has_calendar')
 @require_POST
 def calendar_event_save(request):
     from .models import CalendarEvent
@@ -991,7 +994,7 @@ def calendar_event_save(request):
     return JsonResponse({'ok': True, 'pk': event.pk})
 
 
-@login_required
+@requires_feature('has_calendar')
 @require_POST
 def calendar_event_delete(request, pk):
     from .models import CalendarEvent
@@ -1003,7 +1006,7 @@ def calendar_event_delete(request, pk):
 
 # ── Quota / Goal Tracking ────────────────────────────────────────
 
-@login_required
+@requires_feature('has_quota_tracking')
 def quota_list(request):
     if not request.user.is_admin():
         messages.error(request, "Access denied.")
@@ -1033,7 +1036,7 @@ def quota_list(request):
     })
 
 
-@login_required
+@requires_feature('has_quota_tracking')
 @require_POST
 def quota_set(request):
     if not request.user.is_admin():
@@ -1146,7 +1149,7 @@ def analytics_track(request):
     return JsonResponse({"ok": True})
 
 
-@login_required
+@requires_feature('has_reports')
 def analytics_dashboard(request):
     from .models import PageEvent
     from django.db.models.functions import TruncDate

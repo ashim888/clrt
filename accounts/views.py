@@ -9,7 +9,9 @@ from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.views.decorators.http import require_POST
-from .forms import LoginForm, UserCreateForm
+from django.contrib.auth import update_session_auth_hash
+from django.shortcuts import get_object_or_404
+from .forms import LoginForm, UserCreateForm, UserEditForm, AdminSetPasswordForm, SelfPasswordChangeForm
 from .models import User
 
 
@@ -32,8 +34,27 @@ def user_list(request):
     if not request.user.is_admin():
         messages.error(request, "Access denied.")
         return redirect("/")
-    users = User.objects.all().order_by("username")
-    return render(request, "accounts/user_list.html", {"users": users})
+    qs = User.objects.all()
+    role = request.GET.get("role", "")
+    status = request.GET.get("status", "")
+    q = request.GET.get("q", "")
+    if role:
+        qs = qs.filter(role=role)
+    if status == "active":
+        qs = qs.filter(is_active=True)
+    elif status == "inactive":
+        qs = qs.filter(is_active=False)
+    if q:
+        from django.db.models import Q
+        qs = qs.filter(Q(username__icontains=q) | Q(first_name__icontains=q) | Q(last_name__icontains=q) | Q(email__icontains=q))
+    qs = qs.order_by("is_active", "first_name", "username")
+    return render(request, "accounts/user_list.html", {
+        "users": qs,
+        "role_choices": User.ROLE_CHOICES,
+        "role": role,
+        "status": status,
+        "q": q,
+    })
 
 
 @login_required
@@ -132,3 +153,87 @@ def user_create(request):
         messages.success(request, "User created successfully.")
         return redirect("accounts:user_list")
     return render(request, "accounts/user_form.html", {"form": form, "title": "Add User"})
+
+
+@login_required
+def user_detail(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    from leads.models import Activity, Lead
+    from django.db.models import Count, Q
+    activities = Activity.objects.filter(created_by=u).select_related("lead").order_by("-created_at")[:20]
+    lead_stats = Lead.objects.filter(assigned_to=u).aggregate(
+        total=Count("pk"),
+        won=Count("pk", filter=Q(status="won")),
+        active=Count("pk", filter=Q(status__in=["new", "contacted", "demo", "negotiation"])),
+    )
+    return render(request, "accounts/user_detail.html", {
+        "u": u,
+        "activities": activities,
+        "lead_stats": lead_stats,
+    })
+
+
+@login_required
+def user_edit(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    form = UserEditForm(request.POST or None, instance=u)
+    if form.is_valid():
+        form.save()
+        messages.success(request, f"User '{u.username}' updated.")
+        return redirect("accounts:user_detail", pk=pk)
+    return render(request, "accounts/user_form.html", {"form": form, "title": f"Edit {u.get_full_name() or u.username}", "editing": True, "u": u})
+
+
+@login_required
+@require_POST
+def user_set_password(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    form = AdminSetPasswordForm(request.POST)
+    if form.is_valid():
+        u.set_password(form.cleaned_data["new_password1"])
+        u.save(update_fields=["password"])
+        messages.success(request, f"Password for '{u.username}' updated.")
+    else:
+        for err in form.errors.values():
+            messages.error(request, err.as_text())
+    return redirect("accounts:user_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def user_toggle_active(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    if u == request.user:
+        messages.error(request, "You cannot deactivate your own account.")
+        return redirect("accounts:user_detail", pk=pk)
+    u.is_active = not u.is_active
+    u.save(update_fields=["is_active"])
+    messages.success(request, f"User '{u.username}' {'activated' if u.is_active else 'deactivated'}.")
+    return redirect("accounts:user_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def user_change_own_password(request):
+    form = SelfPasswordChangeForm(request.user, request.POST)
+    if form.is_valid():
+        request.user.set_password(form.cleaned_data["new_password1"])
+        request.user.save(update_fields=["password"])
+        update_session_auth_hash(request, request.user)
+        messages.success(request, "Password changed successfully.")
+    else:
+        for err in form.errors.values():
+            messages.error(request, err.as_text())
+    return redirect("accounts:profile")

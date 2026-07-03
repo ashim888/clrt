@@ -2,35 +2,102 @@
 {% block title %}Users{% endblock %}
 {% block nav_users %}bg-gray-800 text-white{% endblock %}
 {% block content %}
-<div class="flex items-center justify-between mb-6">
-  <h1 class="text-2xl font-bold text-gray-900">Users</h1>
-  <a href="{% url "accounts:user_create" %}" class="btn-primary">+ Add User</a>
+
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Users</h1>
+    <p class="text-sm text-gray-500 mt-0.5">{{ users|length }} user{{ users|length|pluralize }} in this system</p>
+  </div>
+  <a href="{% url "accounts:user_create" %}" class="btn-primary self-start">+ Add User</a>
 </div>
+
+<!-- Filters -->
+<form method="get" class="flex flex-wrap gap-2 mb-5">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search name, username, email…"
+    class="input flex-1 min-w-[180px] sm:max-w-xs text-sm">
+  <select name="role" class="input text-sm w-auto">
+    <option value="">All Roles</option>
+    {% for val, label in role_choices %}
+    <option value="{{ val }}" {% if role == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <select name="status" class="input text-sm w-auto">
+    <option value="">All Status</option>
+    <option value="active" {% if status == "active" %}selected{% endif %}>Active</option>
+    <option value="inactive" {% if status == "inactive" %}selected{% endif %}>Inactive</option>
+  </select>
+  <button type="submit" class="btn-primary text-sm px-4">Filter</button>
+  {% if q or role or status %}
+  <a href="{% url "accounts:user_list" %}" class="btn-secondary text-sm px-4">Clear</a>
+  {% endif %}
+</form>
+
+<!-- Table -->
 <div class="card overflow-hidden">
   <table class="w-full text-sm">
     <thead class="bg-gray-50 border-b border-gray-200">
       <tr>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Name</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Username</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">User</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Role</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500 hidden sm:table-cell">Last Login</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">2FA</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3"></th>
       </tr>
     </thead>
     <tbody class="divide-y divide-gray-100">
       {% for u in users %}
-      <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3 font-medium">{{ u.get_full_name|default:u.username }}</td>
-        <td class="px-4 py-3 text-gray-500">{{ u.username }}</td>
-        <td class="px-4 py-3"><span class="badge bg-blue-100 text-blue-800">{{ u.get_role_display }}</span></td>
+      <tr class="hover:bg-gray-50 {% if not u.is_active %}opacity-60{% endif %}">
         <td class="px-4 py-3">
-          {% if u.is_active %}<span class="badge bg-green-100 text-green-800">Active</span>
-          {% else %}<span class="badge bg-gray-100 text-gray-600">Inactive</span>{% endif %}
+          <div class="flex items-center gap-3">
+            <div class="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 font-bold text-xs flex items-center justify-center flex-shrink-0">
+              {{ u.username|slice:":2"|upper }}
+            </div>
+            <div>
+              <p class="font-medium text-gray-900">{{ u.get_full_name|default:u.username }}</p>
+              <p class="text-xs text-gray-400">{{ u.username }}{% if u.email %} · {{ u.email }}{% endif %}</p>
+            </div>
+          </div>
+        </td>
+        <td class="px-4 py-3">
+          <span class="badge
+            {% if u.role == 'admin' %}bg-purple-100 text-purple-800
+            {% elif u.role == 'accounts' %}bg-blue-100 text-blue-800
+            {% else %}bg-gray-100 text-gray-700{% endif %}">
+            {{ u.get_role_display }}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-gray-400 hidden sm:table-cell text-xs">
+          {% if u.last_login %}{{ u.last_login|date:"d M Y H:i" }}{% else %}Never{% endif %}
+        </td>
+        <td class="px-4 py-3">
+          {% if u.totp_enabled %}
+          <span class="text-green-600 text-xs font-semibold">✓ On</span>
+          {% else %}
+          <span class="text-gray-300 text-xs">Off</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3">
+          {% if u.is_active %}
+          <span class="badge bg-green-100 text-green-800">Active</span>
+          {% else %}
+          <span class="badge bg-red-100 text-red-700">Inactive</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right">
+          <a href="{% url "accounts:user_detail" u.pk %}" class="text-xs text-indigo-600 hover:underline font-medium">View →</a>
         </td>
       </tr>
       {% empty %}
-      <tr><td colspan="4" class="px-4 py-8 text-center text-gray-400">No users found.</td></tr>
+      <tr>
+        <td colspan="6" class="px-4 py-10 text-center text-gray-400">
+          No users match your filters.
+          {% if q or role or status %}<a href="{% url "accounts:user_list" %}" class="text-indigo-500 hover:underline ml-1">Clear filters</a>{% endif %}
+        </td>
+      </tr>
       {% endfor %}
     </tbody>
   </table>
 </div>
+
 {% endblock %}
