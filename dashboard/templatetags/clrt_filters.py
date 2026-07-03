@@ -75,6 +75,15 @@ def inr_num(value):
 
 
 @register.filter
+def wa_phone(value):
+    """Strip non-digit characters from a phone number for use in wa.me links."""
+    if not value:
+        return ''
+    import re
+    return re.sub(r'\D', '', str(value))
+
+
+@register.filter
 def site_date(value):
     """Format a date using the system-configured date format."""
     if not value:
