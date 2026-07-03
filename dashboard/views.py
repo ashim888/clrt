@@ -18,11 +18,16 @@ from .decorators import requires_feature
 User = get_user_model()
 
 
+def home(request):
+    if request.user.is_authenticated:
+        return redirect("/dashboard/")
+    from .models import SiteSettings
+    cfg = SiteSettings.load()
+    return render(request, "landing.html", {"ga_id": cfg.ga_measurement_id})
+
+
+@login_required
 def dashboard(request):
-    if not request.user.is_authenticated:
-        from .models import SiteSettings
-        cfg = SiteSettings.load()
-        return render(request, "landing.html", {"ga_id": cfg.ga_measurement_id})
     today = timezone.now().date()
     now_local = timezone.localtime(timezone.now())
     in_30_days = today + timezone.timedelta(days=30)

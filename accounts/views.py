@@ -153,9 +153,9 @@ def two_factor_verify(request):
     if not request.user.is_authenticated:
         return redirect("accounts:login")
     if not getattr(request.user, "totp_enabled", False):
-        return redirect("/")
+        return redirect("/dashboard/")
     if request.session.get("2fa_verified"):
-        return redirect(request.GET.get("next", "/"))
+        return redirect(request.GET.get("next", "/dashboard/"))
 
     error = None
     if request.method == "POST":
@@ -163,7 +163,7 @@ def two_factor_verify(request):
         totp = pyotp.TOTP(request.user.totp_secret)
         if totp.verify(code, valid_window=1):
             request.session["2fa_verified"] = True
-            return redirect(request.POST.get("next", "/"))
+            return redirect(request.POST.get("next", "/dashboard/"))
         else:
             error = "Invalid code. Check your authenticator app and try again."
 
