@@ -4,6 +4,7 @@ import pyotp
 import qrcode
 
 from django.contrib.auth import views as auth_views
+from django.contrib.auth.views import PasswordResetView as _PasswordResetView
 from django.contrib.auth.decorators import login_required
 from django.contrib.admin.views.decorators import staff_member_required
 from django.shortcuts import render, redirect
@@ -16,6 +17,24 @@ from django.contrib.auth.tokens import default_token_generator
 from django.utils.http import urlsafe_base64_encode
 from django.utils.encoding import force_bytes
 from .forms import LoginForm, UserCreateForm, UserEditForm, AdminSetPasswordForm, SelfPasswordChangeForm
+
+
+class PasswordResetView(_PasswordResetView):
+    """Wraps Django's built-in view to catch SMTP errors gracefully."""
+    template_name = "accounts/password_reset.html"
+    email_template_name = "accounts/password_reset_email.txt"
+    subject_template_name = "accounts/password_reset_subject.txt"
+    success_url = "/accounts/forgot-password/sent/"
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except Exception as e:
+            messages.error(
+                self.request,
+                f"Could not send reset email: {e}. Check your email settings.",
+            )
+            return self.render_to_response(self.get_context_data(form=form))
 
 
 def _send_invite_email(request, user):

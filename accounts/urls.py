@@ -20,12 +20,7 @@ urlpatterns = [
     path("2fa/disable/", views.two_factor_disable, name="two_factor_disable"),
     path("2fa/verify/", views.two_factor_verify, name="two_factor_verify"),
     # ── Password reset flow ──────────────────────────────────────
-    path("forgot-password/", auth_views.PasswordResetView.as_view(
-        template_name="accounts/password_reset.html",
-        email_template_name="accounts/password_reset_email.txt",
-        subject_template_name="accounts/password_reset_subject.txt",
-        success_url="/accounts/forgot-password/sent/",
-    ), name="password_reset"),
+    path("forgot-password/", views.PasswordResetView.as_view(), name="password_reset"),
     path("forgot-password/sent/", auth_views.PasswordResetDoneView.as_view(
         template_name="accounts/password_reset_done.html",
     ), name="password_reset_done"),
