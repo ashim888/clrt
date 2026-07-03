@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-gray-50">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>{% block title %}CLRT{% endblock %} | CLRT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    *, body { font-family: 'Inter', sans-serif; }
+    .input {
+      display: block; width: 100%; border-radius: .375rem;
+      border: 1.5px solid #d1d5db; padding: .5rem .75rem;
+      font-size: .875rem; line-height: 1.25rem; background-color: #fff;
+      color: #111827; box-shadow: 0 1px 2px 0 rgb(0 0 0/.05);
+      outline: none; transition: border-color .15s, box-shadow .15s;
+    }
+    .input:focus { border-color: #3b82f6; box-shadow: 0 0 0 3px rgb(59 130 246/.15); }
+    .input:hover:not(:focus) { border-color: #9ca3af; }
+    input[type="text"], input[type="email"], input[type="password"],
+    input[type="number"], textarea {
+      display: block; width: 100%; border-radius: .375rem;
+      border: 1.5px solid #d1d5db; padding: .5rem .75rem;
+      font-size: .875rem; background-color: #fff; color: #111827;
+      outline: none; transition: border-color .15s, box-shadow .15s; margin-top: .125rem;
+    }
+    input[type="text"]:focus, input[type="email"]:focus,
+    input[type="password"]:focus, textarea:focus {
+      border-color: #3b82f6; box-shadow: 0 0 0 3px rgb(59 130 246/.15);
+    }
+    ul.errorlist { list-style: none; padding: 0; margin: .25rem 0 0; }
+    ul.errorlist li { font-size: .75rem; color: #dc2626; }
+    .btn-primary {
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: .5rem; padding: .5rem 1.125rem;
+      font-size: .875rem; font-weight: 500; cursor: pointer;
+      text-decoration: none; border: 1.5px solid #2563eb;
+      background-color: #2563eb; color: #fff;
+      transition: background-color .15s, box-shadow .15s;
+    }
+    .btn-primary:hover { background-color: #1d4ed8; border-color: #1d4ed8; }
+    .btn-secondary {
+      display: inline-flex; align-items: center; justify-content: center;
+      border-radius: .5rem; padding: .5rem 1.125rem;
+      font-size: .875rem; font-weight: 500; cursor: pointer;
+      text-decoration: none; border: 1.5px solid #d1d5db;
+      background-color: #fff; color: #374151;
+      transition: background-color .15s;
+    }
+    .btn-secondary:hover { background-color: #f9fafb; }
+    .card {
+      background-color: #fff; border-radius: .75rem;
+      border: 1px solid #e5e7eb;
+      box-shadow: 0 1px 3px 0 rgb(0 0 0/.07), 0 1px 2px -1px rgb(0 0 0/.07);
+    }
+  </style>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="min-h-screen bg-gray-50">
+  {% if messages %}
+  <div class="fixed top-4 inset-x-0 flex flex-col items-center gap-2 z-50 px-4">
+    {% for message in messages %}
+    <div class="px-4 py-2.5 rounded-lg text-sm font-medium shadow
+      {% if message.tags == 'success' %}bg-green-600 text-white
+      {% elif message.tags == 'error' %}bg-red-600 text-white
+      {% else %}bg-gray-800 text-white{% endif %}">
+      {{ message }}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+  {% block auth_content %}{% endblock %}
+</body>
+</html>

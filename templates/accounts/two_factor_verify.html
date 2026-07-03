@@ -1,9 +1,13 @@
-{% extends "base.html" %}
-{% block title %}Verify Identity{% endblock %}
-{% block content %}
+{% extends "base_auth.html" %}
+{% block title %}Two-Factor Authentication{% endblock %}
+{% block auth_content %}
+<div class="min-h-screen flex items-center justify-center px-4">
+  <div class="w-full max-w-md">
 
-<div class="min-h-[60vh] flex items-center justify-center">
-  <div class="w-full max-w-sm">
+    <div class="text-center mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">&#x1F4CB; CLRT</h1>
+      <p class="text-gray-500 mt-1">Client Lifecycle &amp; Revenue Tracker</p>
+    </div>
 
     <div class="card p-8 text-center">
       <div class="w-14 h-14 rounded-2xl bg-indigo-100 flex items-center justify-center mx-auto mb-5">
@@ -12,7 +16,7 @@
         </svg>
       </div>
 
-      <h1 class="text-xl font-bold text-gray-900 mb-1">Two-factor authentication</h1>
+      <h2 class="text-xl font-bold text-gray-900 mb-1">Two-factor authentication</h2>
       <p class="text-sm text-gray-500 mb-6">Open your authenticator app and enter the 6-digit code.</p>
 
       {% if error %}
@@ -33,19 +37,24 @@
           placeholder="000000"
           autofocus
           required
-          class="input text-center text-2xl tracking-[0.5em] font-mono w-full mb-4"
+          class="input text-center text-2xl font-mono w-full mb-4"
           style="letter-spacing:0.4em;"
         >
-        <button type="submit" class="btn-primary w-full py-2.5">Verify →</button>
+        <button type="submit" class="btn-primary w-full py-2.5">Verify &rarr;</button>
       </form>
 
-      <p class="text-xs text-gray-400 mt-5">
-        Lost access to your authenticator?
-        <a href="mailto:{{ request.user.email }}" class="text-indigo-600 hover:underline">Contact admin</a>
-      </p>
+      <div class="mt-6 pt-5 border-t border-gray-100 space-y-2">
+        <p class="text-xs text-gray-400">
+          Signed in as <span class="font-medium text-gray-600">{{ request.user.username }}</span>
+          &mdash;
+          <a href="{% url 'accounts:logout' %}" class="text-indigo-600 hover:underline">Sign out</a>
+        </p>
+        <p class="text-xs text-gray-400">
+          Lost access to your authenticator? Contact your administrator.
+        </p>
+      </div>
     </div>
 
   </div>
 </div>
-
 {% endblock %}

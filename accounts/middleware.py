@@ -30,6 +30,6 @@ class TwoFactorMiddleware:
                 and not request.session.get("2fa_verified")
                 and request.path not in _EXEMPT
             ):
-                return redirect("/accounts/2fa/verify/")
+                return redirect(f"/accounts/2fa/verify/?next={request.path}")
 
         return self.get_response(request)
