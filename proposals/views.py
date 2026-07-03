@@ -95,13 +95,13 @@ def quote_create(request):
                 quote.client_id = int(client_id)
             quote.save()
             _save_line_items(quote, request.POST)
-            messages.success(request, f"Proposal {quote.quote_number} created.")
+            messages.success(request, f"Quotation {quote.quote_number} created.")
             return redirect("proposals:quote_detail", pk=quote.pk)
     return render(request, "proposals/quote_form.html", {
         "leads": leads,
         "clients": clients,
         "status_choices": Quote.STATUS_CHOICES,
-        "title": "New Proposal",
+        "title": "New Quotation",
     })
 
 
@@ -126,14 +126,14 @@ def quote_edit(request, pk):
             quote.client_id = int(client_id)
         quote.save()
         _save_line_items(quote, request.POST)
-        messages.success(request, "Proposal updated.")
+        messages.success(request, "Quotation updated.")
         return redirect("proposals:quote_detail", pk=quote.pk)
     return render(request, "proposals/quote_form.html", {
         "quote": quote,
         "leads": leads,
         "clients": clients,
         "status_choices": Quote.STATUS_CHOICES,
-        "title": f"Edit {quote.quote_number}",
+        "title": f"Edit Quotation {quote.quote_number}",
         "editing": True,
     })
 

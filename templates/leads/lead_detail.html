@@ -241,12 +241,12 @@
   </div>
 </div>
 
-<!-- Proposals section -->
+<!-- Quotations section -->
 {% if lead.quotes.all %}
 <div class="mt-6">
   <div class="flex items-center justify-between mb-3">
-    <h2 class="text-lg font-semibold text-gray-900">Proposals</h2>
-    <a href="/proposals/add/?lead={{ lead.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ New Proposal</a>
+    <h2 class="text-lg font-semibold text-gray-900">Quotations</h2>
+    <a href="/quotations/add/?lead={{ lead.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ New Quotation</a>
   </div>
   <div class="card overflow-hidden">
     <table class="w-full text-sm">
@@ -261,7 +261,7 @@
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for q in lead.quotes.all %}
-        <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='/proposals/{{ q.pk }}/'">
+        <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='/quotations/{{ q.pk }}/'">
           <td class="px-4 py-2.5 font-medium text-gray-900">{{ q.quote_number }}</td>
           <td class="px-4 py-2.5 text-gray-700">{{ q.title }}</td>
           <td class="px-4 py-2.5">
@@ -282,8 +282,8 @@
 </div>
 {% else %}
 <div class="mt-6 flex items-center justify-between">
-  <span class="text-sm text-gray-400">No proposals yet for this lead.</span>
-  <a href="/proposals/add/?lead={{ lead.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ Create Proposal</a>
+  <span class="text-sm text-gray-400">No quotations yet for this lead.</span>
+  <a href="/quotations/add/?lead={{ lead.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ Create Quotation</a>
 </div>
 {% endif %}
 

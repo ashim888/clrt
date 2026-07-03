@@ -266,11 +266,11 @@
   </div>
 </div>
 
-<!-- Proposals -->
+<!-- Quotations -->
 <div class="mt-2 mb-6">
   <div class="flex items-center justify-between mb-3">
-    <h2 class="font-semibold text-gray-900 flex items-center gap-2"><span class="text-lg">📄</span> Proposals</h2>
-    <a href="/proposals/add/?client={{ client.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ New Proposal</a>
+    <h2 class="font-semibold text-gray-900 flex items-center gap-2"><span class="text-lg">📄</span> Quotations</h2>
+    <a href="/quotations/add/?client={{ client.pk }}" class="text-sm text-blue-600 hover:underline font-medium">+ New Quotation</a>
   </div>
   {% if client.quotes.all %}
   <div class="card overflow-hidden">
@@ -286,7 +286,7 @@
       </thead>
       <tbody class="divide-y divide-gray-100">
         {% for q in client.quotes.all %}
-        <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='/proposals/{{ q.pk }}/'">
+        <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='/quotations/{{ q.pk }}/'">
           <td class="px-4 py-2.5 font-medium text-gray-900">{{ q.quote_number }}</td>
           <td class="px-4 py-2.5 text-gray-700">{{ q.title }}</td>
           <td class="px-4 py-2.5">
@@ -305,7 +305,7 @@
     </table>
   </div>
   {% else %}
-  <p class="text-sm text-gray-400">No proposals yet. <a href="/proposals/add/?client={{ client.pk }}" class="text-blue-600 hover:underline">Create one →</a></p>
+  <p class="text-sm text-gray-400">No quotations yet. <a href="/quotations/add/?client={{ client.pk }}" class="text-blue-600 hover:underline">Create one →</a></p>
   {% endif %}
 </div>
 
