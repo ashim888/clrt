@@ -33,4 +33,5 @@ urlpatterns = [
     path("contract-templates/<int:pk>/edit/", views.contract_template_edit, name="contract_template_edit"),
     path("contract-templates/<int:pk>/delete/", views.contract_template_delete, name="contract_template_delete"),
     path("contract-templates/<int:pk>/json/", views.contract_template_json, name="contract_template_json"),
+    path("<int:pk>/send-email/", views.client_send_email, name="client_send_email"),
 ]

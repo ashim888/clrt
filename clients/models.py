@@ -65,6 +65,8 @@ class ClientInteraction(models.Model):
     next_follow_up_date = models.DateField(null=True, blank=True)
     follow_up_done = models.BooleanField(default=False)
     attachment = models.FileField(upload_to="client_interactions/", blank=True, null=True)
+    email_to = models.EmailField(blank=True)
+    email_subject = models.CharField(max_length=200, blank=True)
     created_by = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True,
         related_name="client_interactions",

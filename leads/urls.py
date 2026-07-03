@@ -22,4 +22,5 @@ urlpatterns = [
     path("check-duplicate/", views.lead_check_duplicate, name="lead_check_duplicate"),
     path("capture/", views.lead_capture, name="lead_capture"),
     path("capture/thanks/", views.lead_capture_thanks, name="lead_capture_thanks"),
+    path("<int:pk>/send-email/", views.lead_send_email, name="lead_send_email"),
 ]

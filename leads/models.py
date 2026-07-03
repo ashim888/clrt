@@ -85,6 +85,8 @@ class Activity(models.Model):
         null=True, related_name="activities"
     )
     attachment = models.FileField(upload_to="activity_attachments/", blank=True, null=True)
+    email_to = models.EmailField(blank=True)
+    email_subject = models.CharField(max_length=200, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

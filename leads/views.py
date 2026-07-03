@@ -590,3 +590,39 @@ def lead_capture(request):
 def lead_capture_thanks(request):
     from dashboard.models import SiteSettings
     return render(request, "leads/lead_capture_thanks.html", {"site": SiteSettings.load()})
+
+
+@login_required
+@require_POST
+def lead_send_email(request, pk):
+    lead = get_object_or_404(Lead, pk=pk)
+    to = request.POST.get("to", "").strip()
+    subject = request.POST.get("subject", "").strip()
+    body = request.POST.get("body", "").strip()
+
+    if not to or not subject or not body:
+        return JsonResponse({"error": "To, subject and body are required."}, status=400)
+
+    from django.core.mail import send_mail
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(to)
+    except ValidationError:
+        return JsonResponse({"error": "Invalid email address."}, status=400)
+
+    try:
+        send_mail(subject, body, None, [to], fail_silently=False)
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to send: {e}"}, status=500)
+
+    Activity.objects.create(
+        lead=lead,
+        type="email",
+        notes=body,
+        email_to=to,
+        email_subject=subject,
+        status="completed",
+        created_by=request.user,
+    )
+    return JsonResponse({"ok": True})

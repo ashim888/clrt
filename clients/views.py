@@ -458,3 +458,38 @@ def client_bulk_action(request):
     else:
         return JsonResponse({"error": "Unknown action"}, status=400)
     return JsonResponse({"ok": True, "count": len(ids)})
+
+
+@login_required
+@require_POST
+def client_send_email(request, pk):
+    client = get_object_or_404(Client, pk=pk)
+    to = request.POST.get("to", "").strip()
+    subject = request.POST.get("subject", "").strip()
+    body = request.POST.get("body", "").strip()
+
+    if not to or not subject or not body:
+        return JsonResponse({"error": "To, subject and body are required."}, status=400)
+
+    from django.core.mail import send_mail
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    try:
+        validate_email(to)
+    except ValidationError:
+        return JsonResponse({"error": "Invalid email address."}, status=400)
+
+    try:
+        send_mail(subject, body, None, [to], fail_silently=False)
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to send: {e}"}, status=500)
+
+    ClientInteraction.objects.create(
+        client=client,
+        type="email",
+        notes=body,
+        email_to=to,
+        email_subject=subject,
+        created_by=request.user,
+    )
+    return JsonResponse({"ok": True})
