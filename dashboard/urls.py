@@ -29,4 +29,5 @@ urlpatterns = [
     path("analytics/track/", views.analytics_track, name="analytics_track"),
     path("subscription/", views.subscription_view, name="subscription"),
     path("signup/", views.landing_signup, name="landing_signup"),
+    path("contact/", views.contact_sales, name="contact_sales"),
 ]

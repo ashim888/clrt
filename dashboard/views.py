@@ -1207,6 +1207,46 @@ def landing_signup(request):
     return JsonResponse({"ok": True})
 
 
+def contact_sales(request):
+    from leads.models import Lead
+    success = False
+    if request.method == "POST":
+        name = request.POST.get("name", "").strip()
+        email = request.POST.get("email", "").strip()
+        phone = request.POST.get("phone", "").strip()
+        company = request.POST.get("company", "").strip()
+        company_size = request.POST.get("company_size", "").strip()
+        current_tool = request.POST.get("current_tool", "").strip()
+        plan = request.POST.get("plan", "").strip()
+        budget = request.POST.get("budget", "").strip()
+        requirements = request.POST.get("requirements", "").strip()
+        heard = request.POST.get("heard", "").strip()
+
+        if name and email:
+            notes_parts = []
+            if plan:         notes_parts.append(f"Plan interest: {plan}")
+            if company_size: notes_parts.append(f"Company size: {company_size}")
+            if current_tool: notes_parts.append(f"Current tool: {current_tool}")
+            if budget:       notes_parts.append(f"Budget: {budget}")
+            if heard:        notes_parts.append(f"Heard via: {heard}")
+            if requirements: notes_parts.append(f"Requirements:\n{requirements}")
+
+            Lead.objects.create(
+                organization_name=company or name,
+                contact_person=name,
+                email=email,
+                phone=phone,
+                source="website",
+                notes="\n".join(notes_parts),
+                status="new",
+            )
+            success = True
+
+    from .models import SiteSettings
+    cfg = SiteSettings.load()
+    return render(request, "contact.html", {"success": success, "ga_id": cfg.ga_measurement_id})
+
+
 @login_required
 def subscription_view(request):
     from .models import Plan, Subscription

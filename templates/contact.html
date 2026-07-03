@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Contact Sales — CLRT</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+    *, body { font-family: 'Inter', sans-serif; }
+    .blob { position: absolute; border-radius: 50%; filter: blur(80px); opacity: .3; pointer-events: none; }
+    .inp:focus { outline: none; border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.15); }
+    .gradient-text {
+      background: linear-gradient(135deg, #818cf8, #6366f1, #3b82f6);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+    }
+  </style>
+</head>
+<body class="bg-white text-gray-900 antialiased overflow-x-hidden">
+
+<!-- NAV -->
+<header class="fixed top-0 inset-x-0 z-50" style="background:rgba(255,255,255,.9);backdrop-filter:blur(14px);border-bottom:1px solid #f1f5f9;">
+  <div class="max-w-6xl mx-auto px-5 h-16 flex items-center justify-between gap-6">
+    <a href="/" class="flex items-center gap-2.5 flex-shrink-0">
+      <div class="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center shadow-md shadow-indigo-300">
+        <svg class="text-white" style="width:18px;height:18px;" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+        </svg>
+      </div>
+      <span class="text-lg font-extrabold tracking-tight">CLRT</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <a href="/#pricing" class="hidden sm:inline-flex text-sm font-medium text-gray-500 hover:text-gray-900 transition-colors">← Back to pricing</a>
+      <a href="/accounts/login/" class="text-sm font-semibold text-gray-600 hover:text-gray-900 transition-colors px-3 py-2">Sign in</a>
+    </div>
+  </div>
+</header>
+
+<!-- HERO -->
+<section class="relative pt-28 pb-16 px-5 overflow-hidden" style="background:linear-gradient(160deg,#f8faff 0%,#eef2ff 50%,#f0f9ff 100%);">
+  <div class="blob w-80 h-80 bg-indigo-400 -top-20 -right-20"></div>
+  <div class="blob w-64 h-64 bg-blue-300 bottom-0 left-0"></div>
+  <div class="relative max-w-2xl mx-auto text-center">
+    <div class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-indigo-100 text-indigo-700 text-xs font-semibold mb-5">
+      <span class="w-1.5 h-1.5 rounded-full bg-indigo-500 animate-pulse"></span>
+      Enterprise & Custom Plans
+    </div>
+    <h1 class="text-4xl sm:text-5xl font-black tracking-tight leading-tight mb-4">
+      Let's talk about <span class="gradient-text">your needs</span>
+    </h1>
+    <p class="text-gray-500 text-lg leading-relaxed max-w-lg mx-auto">
+      Tell us what you're looking for. We'll get back to you within 24 hours with a tailored plan.
+    </p>
+  </div>
+</section>
+
+<!-- MAIN -->
+<section class="py-16 px-5">
+  <div class="max-w-5xl mx-auto grid lg:grid-cols-5 gap-12 items-start">
+
+    <!-- Left: trust signals -->
+    <div class="lg:col-span-2 space-y-6">
+
+      <div class="rounded-2xl border border-indigo-100 bg-indigo-50 p-6">
+        <h3 class="text-sm font-bold text-indigo-800 mb-4">What happens next?</h3>
+        <ol class="space-y-4">
+          <li class="flex gap-3">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">1</span>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">We review your request</p>
+              <p class="text-xs text-gray-500 mt-0.5">Usually within a few hours during business hours.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">2</span>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">We reach out to understand your workflow</p>
+              <p class="text-xs text-gray-500 mt-0.5">A quick call or email thread — whatever works for you.</p>
+            </div>
+          </li>
+          <li class="flex gap-3">
+            <span class="w-6 h-6 rounded-full bg-indigo-600 text-white text-xs font-bold flex items-center justify-center flex-shrink-0 mt-0.5">3</span>
+            <div>
+              <p class="text-sm font-semibold text-gray-800">We set you up</p>
+              <p class="text-xs text-gray-500 mt-0.5">Onboarding, data import, and custom config included.</p>
+            </div>
+          </li>
+        </ol>
+      </div>
+
+      <div class="rounded-2xl border border-gray-100 bg-white shadow-sm p-6">
+        <h3 class="text-sm font-bold text-gray-800 mb-4">Enterprise includes</h3>
+        <ul class="space-y-2.5">
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Unlimited leads &amp; clients</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Unlimited team members</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Audit trail &amp; compliance logs</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Custom branding on client portal</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Dedicated onboarding session</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Priority support &amp; SLA</li>
+          <li class="flex gap-2 text-sm text-gray-600"><span class="text-indigo-500 mt-0.5 flex-shrink-0">✓</span>Custom feature requests</li>
+        </ul>
+      </div>
+
+      <div class="rounded-2xl bg-gray-900 p-6 text-white">
+        <p class="text-sm font-bold mb-1">Prefer email?</p>
+        <p class="text-xs text-gray-400 mb-3">Reach us directly and we'll reply within 24 hours.</p>
+        <a href="mailto:hello@clrt.io" class="text-indigo-400 hover:text-indigo-300 text-sm font-semibold transition-colors">hello@clrt.io</a>
+      </div>
+
+    </div>
+
+    <!-- Right: form -->
+    <div class="lg:col-span-3">
+
+      {% if success %}
+      <!-- Success state -->
+      <div class="rounded-2xl border border-green-200 bg-green-50 p-10 text-center">
+        <div class="text-5xl mb-4">✅</div>
+        <h2 class="text-2xl font-extrabold text-gray-900 mb-2">We've got your message!</h2>
+        <p class="text-gray-500 mb-6">Our team will review your requirements and get back to you within 24 hours.</p>
+        <a href="/" class="inline-flex items-center gap-2 px-6 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold transition-colors">
+          ← Back to home
+        </a>
+      </div>
+
+      {% else %}
+      <!-- Contact form -->
+      <div class="rounded-2xl border border-gray-200 shadow-sm bg-white p-8">
+        <h2 class="text-xl font-extrabold text-gray-900 mb-1">Tell us about your requirements</h2>
+        <p class="text-sm text-gray-400 mb-7">All fields marked * are required.</p>
+
+        <form method="post" action="/contact/" class="space-y-5">
+          {% csrf_token %}
+
+          <!-- Name + Email -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Full Name *</label>
+              <input name="name" type="text" required placeholder="Ashim Shrestha"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Work Email *</label>
+              <input name="email" type="email" required placeholder="ashim@company.com"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+          </div>
+
+          <!-- Company + Phone -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Company Name</label>
+              <input name="company" type="text" placeholder="TechNova Pvt. Ltd."
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Phone / WhatsApp</label>
+              <input name="phone" type="tel" placeholder="+977 98XXXXXXXX"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+          </div>
+
+          <!-- Company size + Current tool -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Team Size</label>
+              <select name="company_size"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 transition-all bg-gray-50 focus:bg-white appearance-none">
+                <option value="">Select size…</option>
+                <option>Just me</option>
+                <option>2–5 people</option>
+                <option>6–20 people</option>
+                <option>21–50 people</option>
+                <option>50+ people</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">What do you use today?</label>
+              <input name="current_tool" type="text" placeholder="Excel, Salesforce, nothing…"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+          </div>
+
+          <!-- Plan interest + Budget -->
+          <div class="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Plan you're interested in</label>
+              <select name="plan"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 transition-all bg-gray-50 focus:bg-white appearance-none">
+                <option value="">Not sure yet</option>
+                <option>Growth — Rs. 2,499/month</option>
+                <option selected>Enterprise — Rs. 5,999/month</option>
+                <option>Custom pricing</option>
+              </select>
+            </div>
+            <div>
+              <label class="block text-xs font-semibold text-gray-500 mb-1.5">Monthly budget (approx.)</label>
+              <input name="budget" type="text" placeholder="e.g. Rs. 5,000 – 10,000"
+                class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white">
+            </div>
+          </div>
+
+          <!-- Requirements -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5">Requirements &amp; questions *</label>
+            <textarea name="requirements" required rows="5"
+              placeholder="Tell us what you need — number of users, integrations, compliance requirements, features you care most about, anything custom…"
+              class="inp w-full px-4 py-3 rounded-xl border border-gray-200 text-sm text-gray-800 placeholder-gray-300 transition-all bg-gray-50 focus:bg-white resize-none"></textarea>
+          </div>
+
+          <!-- How did you hear -->
+          <div>
+            <label class="block text-xs font-semibold text-gray-500 mb-1.5">How did you hear about us?</label>
+            <select name="heard"
+              class="inp w-full px-4 py-2.5 rounded-xl border border-gray-200 text-sm text-gray-700 transition-all bg-gray-50 focus:bg-white appearance-none">
+              <option value="">Prefer not to say</option>
+              <option>Google search</option>
+              <option>Social media</option>
+              <option>Word of mouth / referral</option>
+              <option>Online community / forum</option>
+              <option>Other</option>
+            </select>
+          </div>
+
+          <button type="submit"
+            class="w-full py-3.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-extrabold text-sm transition-colors shadow-lg shadow-indigo-200">
+            Send message →
+          </button>
+          <p class="text-xs text-gray-400 text-center">We'll reply within 24 hours. No spam, no cold calls.</p>
+        </form>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer class="border-t border-gray-100 py-8 px-5 text-center">
+  <div class="flex items-center justify-center gap-2 mb-2">
+    <div class="w-6 h-6 rounded-lg bg-indigo-600 flex items-center justify-center">
+      <svg class="w-3.5 h-3.5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>
+      </svg>
+    </div>
+    <span class="font-extrabold text-gray-800 tracking-tight">CLRT</span>
+  </div>
+  <p class="text-xs text-gray-400">© 2026 CLRT. Built for growing businesses in Nepal &amp; India.</p>
+</footer>
+
+{% if ga_id %}
+<script async src="https://www.googletagmanager.com/gtag/js?id={{ ga_id }}"></script>
+<script>window.dataLayer=window.dataLayer||[];function gtag(){dataLayer.push(arguments);}gtag('js',new Date());gtag('config','{{ ga_id }}');</script>
+{% endif %}
+
+</body>
+</html>
