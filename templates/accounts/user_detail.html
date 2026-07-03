@@ -59,7 +59,7 @@
 
     <!-- Account details -->
     <div class="card p-5">
-      <h3 class="font-semibold text-gray-900 mb-3 text-sm uppercase tracking-wider text-gray-500">Account</h3>
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Account</h3>
       <div class="space-y-2 text-sm">
         <div class="flex justify-between"><span class="text-gray-400">Username</span><span class="font-medium">{{ u.username }}</span></div>
         <div class="flex justify-between"><span class="text-gray-400">Email</span><span class="font-medium break-all">{{ u.email|default:"—" }}</span></div>
@@ -93,67 +93,167 @@
       </form>
     </div>
 
-    <!-- Activate / Deactivate -->
+    <!-- Force logout -->
     {% if u != request.user %}
     <div class="card p-5">
-      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Account Status</h3>
-      <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}"
-        onsubmit="return confirm('{% if u.is_active %}Deactivate{% else %}Activate{% endif %} {{ u.username }}?')">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-1">Force Logout</h3>
+      <p class="text-xs text-gray-400 mb-3">Immediately invalidates all active sessions for this user.</p>
+      <form method="post" action="{% url 'accounts:user_force_logout' u.pk %}"
+        onsubmit="return confirm('Force {{ u.username }} out of all active sessions?')">
         {% csrf_token %}
-        <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border transition-colors
-          {% if u.is_active %}border-red-200 text-red-600 hover:bg-red-50{% else %}border-green-200 text-green-600 hover:bg-green-50{% endif %}">
-          {% if u.is_active %}Deactivate User{% else %}Reactivate User{% endif %}
+        <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors">
+          Terminate All Sessions
         </button>
-        {% if u.is_active %}
-        <p class="text-xs text-gray-400 mt-1.5 text-center">User will be blocked from logging in immediately.</p>
-        {% endif %}
       </form>
+    </div>
+
+    <!-- Activate / Deactivate -->
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-3">Account Status</h3>
+      {% if u.is_active %}
+      <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}" id="deactivate-form">
+        {% csrf_token %}
+        <div class="mb-3">
+          <label class="block text-xs font-medium text-gray-500 mb-1">Reassign active leads to</label>
+          <select name="reassign_to" class="input text-sm">
+            <option value="">— Keep assigned to {{ u.get_full_name|default:u.username }}</option>
+            {% for au in active_users %}
+            <option value="{{ au.pk }}">{{ au.get_full_name|default:au.username }}</option>
+            {% endfor %}
+          </select>
+          <p class="text-xs text-gray-400 mt-1">Only open/active leads are reassigned.</p>
+        </div>
+        <button type="button" onclick="confirmDeactivate()" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+          Deactivate User
+        </button>
+        <p class="text-xs text-gray-400 mt-1.5 text-center">User will be blocked from logging in immediately.</p>
+      </form>
+      {% else %}
+      <form method="post" action="{% url 'accounts:user_toggle_active' u.pk %}"
+        onsubmit="return confirm('Reactivate {{ u.username }}?')">
+        {% csrf_token %}
+        <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border border-green-200 text-green-600 hover:bg-green-50 transition-colors">
+          Reactivate User
+        </button>
+      </form>
+      {% endif %}
     </div>
     {% endif %}
 
   </div>
 
-  <!-- Right: Activity feed -->
-  <div class="lg:col-span-2">
-    <h3 class="font-semibold text-gray-900 mb-3">Recent Activity <span class="text-gray-400 font-normal text-sm">(last 20)</span></h3>
-    <div class="space-y-2">
-      {% for act in activities %}
-      <div class="card p-3 flex items-start gap-3">
-        <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
-          {% if act.type == 'call' %}bg-blue-100 text-blue-600
-          {% elif act.type == 'meeting' %}bg-purple-100 text-purple-600
-          {% elif act.type == 'email' %}bg-indigo-100 text-indigo-600
-          {% elif act.type == 'follow_up' %}bg-amber-100 text-amber-600
-          {% else %}bg-gray-100 text-gray-500{% endif %}">
-          {% if act.type == 'call' %}☎
-          {% elif act.type == 'meeting' %}🤝
-          {% elif act.type == 'email' %}✉
-          {% elif act.type == 'follow_up' %}🔄
-          {% else %}📌{% endif %}
-        </div>
-        <div class="flex-1 min-w-0">
-          <div class="flex items-center justify-between gap-2">
-            <span class="text-sm font-medium text-gray-800">{{ act.get_type_display }}
-              {% if act.email_subject %}<span class="text-gray-400 font-normal text-xs">— {{ act.email_subject }}</span>{% endif %}
-            </span>
-            <span class="text-xs text-gray-400 flex-shrink-0">{{ act.created_at|date:"d M Y" }}</span>
-          </div>
-          <a href="{% url 'leads:lead_detail' act.lead.pk %}" class="text-xs text-indigo-500 hover:underline">
-            {{ act.lead.organization_name }}
-          </a>
-          {% if act.notes %}
-          <p class="text-xs text-gray-500 mt-0.5 truncate">{{ act.notes|truncatechars:80 }}</p>
-          {% endif %}
-        </div>
+  <!-- Right: Chart + Activity feed -->
+  <div class="lg:col-span-2 space-y-6">
+
+    <!-- 6-month performance chart -->
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-900 mb-4 text-sm">Performance — Last 6 Months</h3>
+      <div style="height:200px;position:relative;">
+        <canvas id="perfChart"></canvas>
       </div>
-      {% empty %}
-      <div class="card p-8 text-center text-gray-400 text-sm">
-        No activities logged by this user yet.
-      </div>
-      {% endfor %}
     </div>
+
+    <!-- Activity feed -->
+    <div>
+      <h3 class="font-semibold text-gray-900 mb-3">Recent Activity <span class="text-gray-400 font-normal text-sm">(last 20)</span></h3>
+      <div class="space-y-2">
+        {% for act in activities %}
+        <div class="card p-3 flex items-start gap-3">
+          <div class="w-7 h-7 rounded-full flex-shrink-0 flex items-center justify-center text-xs font-bold
+            {% if act.type == 'call' %}bg-blue-100 text-blue-600
+            {% elif act.type == 'meeting' %}bg-purple-100 text-purple-600
+            {% elif act.type == 'email' %}bg-indigo-100 text-indigo-600
+            {% elif act.type == 'follow_up' %}bg-amber-100 text-amber-600
+            {% else %}bg-gray-100 text-gray-500{% endif %}">
+            {% if act.type == 'call' %}☎
+            {% elif act.type == 'meeting' %}🤝
+            {% elif act.type == 'email' %}✉
+            {% elif act.type == 'follow_up' %}🔄
+            {% else %}📌{% endif %}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-sm font-medium text-gray-800">{{ act.get_type_display }}
+                {% if act.email_subject %}<span class="text-gray-400 font-normal text-xs">— {{ act.email_subject }}</span>{% endif %}
+              </span>
+              <span class="text-xs text-gray-400 flex-shrink-0">{{ act.created_at|date:"d M Y" }}</span>
+            </div>
+            <a href="{% url 'leads:lead_detail' act.lead.pk %}" class="text-xs text-indigo-500 hover:underline">
+              {{ act.lead.organization_name }}
+            </a>
+            {% if act.notes %}
+            <p class="text-xs text-gray-500 mt-0.5 truncate">{{ act.notes|truncatechars:80 }}</p>
+            {% endif %}
+          </div>
+        </div>
+        {% empty %}
+        <div class="card p-8 text-center text-gray-400 text-sm">
+          No activities logged by this user yet.
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
   </div>
 
 </div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+  const labels = {{ chart_labels|safe }};
+  const actData = {{ chart_activities|safe }};
+  const wonData = {{ chart_won|safe }};
+  const ctx = document.getElementById('perfChart');
+  if (!ctx) return;
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Activities',
+          data: actData,
+          backgroundColor: 'rgba(99,102,241,0.7)',
+          borderRadius: 4,
+          order: 2,
+        },
+        {
+          label: 'Won Deals',
+          data: wonData,
+          type: 'line',
+          borderColor: '#16a34a',
+          backgroundColor: 'rgba(22,163,74,0.12)',
+          pointBackgroundColor: '#16a34a',
+          borderWidth: 2,
+          tension: 0.35,
+          fill: true,
+          order: 1,
+          yAxisID: 'y2',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: 'bottom', labels: { font: { size: 11 } } } },
+      scales: {
+        x: { grid: { display: false }, ticks: { font: { size: 11 } } },
+        y: { beginAtZero: true, ticks: { stepSize: 1, font: { size: 11 } }, grid: { color: '#f3f4f6' } },
+        y2: { beginAtZero: true, position: 'right', ticks: { stepSize: 1, font: { size: 11 } }, grid: { display: false } },
+      },
+    },
+  });
+})();
+
+function confirmDeactivate() {
+  const sel = document.querySelector('select[name="reassign_to"]');
+  const chosen = sel ? sel.options[sel.selectedIndex].text : '';
+  const msg = chosen && sel.value
+    ? `Deactivate {{ u.username }} and reassign leads to ${chosen}?`
+    : 'Deactivate {{ u.username }}? Active leads will remain assigned to them.';
+  if (confirm(msg)) document.getElementById('deactivate-form').submit();
+}
+</script>
 
 {% endblock %}

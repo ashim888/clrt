@@ -11,7 +11,38 @@ from django.contrib import messages
 from django.views.decorators.http import require_POST
 from django.contrib.auth import update_session_auth_hash
 from django.shortcuts import get_object_or_404
+from django.core.mail import send_mail
+from django.contrib.auth.tokens import default_token_generator
+from django.utils.http import urlsafe_base64_encode
+from django.utils.encoding import force_bytes
 from .forms import LoginForm, UserCreateForm, UserEditForm, AdminSetPasswordForm, SelfPasswordChangeForm
+
+
+def _send_invite_email(request, user):
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
+    site_url = getattr(__import__("django.conf", fromlist=["settings"]).settings, "SITE_URL", request.build_absolute_uri("/").rstrip("/"))
+    uid = urlsafe_base64_encode(force_bytes(user.pk))
+    token = default_token_generator.make_token(user)
+    reset_url = f"{site_url}/accounts/reset/{uid}/{token}/"
+    body = (
+        f"Hi {user.get_full_name() or user.username},\n\n"
+        f"An account has been created for you on {cfg.business_name}.\n\n"
+        f"Username: {user.username}\n\n"
+        f"Set your password here:\n{reset_url}\n\n"
+        f"This link expires in 3 days.\n\n"
+        f"— {cfg.business_name} Team"
+    )
+    try:
+        send_mail(
+            subject=f"You're invited to {cfg.business_name}",
+            message=body,
+            from_email=None,
+            recipient_list=[user.email],
+            fail_silently=True,
+        )
+    except Exception:
+        pass
 from .models import User
 
 
@@ -149,9 +180,12 @@ def user_create(request):
         return redirect("/")
     form = UserCreateForm(request.POST or None)
     if form.is_valid():
-        form.save()
-        messages.success(request, "User created successfully.")
-        return redirect("accounts:user_list")
+        user = form.save()
+        send_invite = request.POST.get("send_invite") == "1"
+        if send_invite and user.email:
+            _send_invite_email(request, user)
+        messages.success(request, f"User '{user.username}' created." + (" Invite email sent." if send_invite and user.email else ""))
+        return redirect("accounts:user_detail", pk=user.pk)
     return render(request, "accounts/user_form.html", {"form": form, "title": "Add User"})
 
 
@@ -163,16 +197,46 @@ def user_detail(request, pk):
     u = get_object_or_404(User, pk=pk)
     from leads.models import Activity, Lead
     from django.db.models import Count, Q
+    from django.utils import timezone
+    from datetime import timedelta
+    import json
+
     activities = Activity.objects.filter(created_by=u).select_related("lead").order_by("-created_at")[:20]
     lead_stats = Lead.objects.filter(assigned_to=u).aggregate(
         total=Count("pk"),
         won=Count("pk", filter=Q(status="won")),
         active=Count("pk", filter=Q(status__in=["new", "contacted", "demo", "negotiation"])),
     )
+
+    # 6-month performance chart data
+    today = timezone.localdate()
+    chart_labels = []
+    chart_activities = []
+    chart_won = []
+    for i in range(5, -1, -1):
+        month_start = (today.replace(day=1) - timedelta(days=i * 28)).replace(day=1)
+        if month_start.month == 12:
+            month_end = month_start.replace(year=month_start.year + 1, month=1)
+        else:
+            month_end = month_start.replace(month=month_start.month + 1)
+        chart_labels.append(month_start.strftime("%b %Y"))
+        chart_activities.append(
+            Activity.objects.filter(created_by=u, created_at__date__gte=month_start, created_at__date__lt=month_end).count()
+        )
+        chart_won.append(
+            Lead.objects.filter(assigned_to=u, status="won", updated_at__date__gte=month_start, updated_at__date__lt=month_end).count()
+        )
+
+    active_users = User.objects.filter(is_active=True).exclude(pk=u.pk).order_by("first_name", "username")
+
     return render(request, "accounts/user_detail.html", {
         "u": u,
         "activities": activities,
         "lead_stats": lead_stats,
+        "chart_labels": json.dumps(chart_labels),
+        "chart_activities": json.dumps(chart_activities),
+        "chart_won": json.dumps(chart_won),
+        "active_users": active_users,
     })
 
 
@@ -218,9 +282,41 @@ def user_toggle_active(request, pk):
     if u == request.user:
         messages.error(request, "You cannot deactivate your own account.")
         return redirect("accounts:user_detail", pk=pk)
+    deactivating = u.is_active
     u.is_active = not u.is_active
     u.save(update_fields=["is_active"])
-    messages.success(request, f"User '{u.username}' {'activated' if u.is_active else 'deactivated'}.")
+    if deactivating:
+        # Reassign open leads if requested
+        reassign_to_id = request.POST.get("reassign_to", "").strip()
+        if reassign_to_id:
+            new_owner = User.objects.filter(pk=reassign_to_id, is_active=True).first()
+            if new_owner:
+                from leads.models import Lead
+                count = Lead.objects.filter(
+                    assigned_to=u,
+                    status__in=["new", "contacted", "demo", "negotiation"]
+                ).update(assigned_to=new_owner)
+                messages.info(request, f"{count} active lead(s) reassigned to {new_owner.get_full_name() or new_owner.username}.")
+        # Force all sessions out
+        u.session_version = (u.session_version or 0) + 1
+        u.save(update_fields=["session_version"])
+    messages.success(request, f"User '{u.username}' {'deactivated' if deactivating else 'reactivated'}.")
+    return redirect("accounts:user_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def user_force_logout(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    if u == request.user:
+        messages.error(request, "You cannot force-logout your own account.")
+        return redirect("accounts:user_detail", pk=pk)
+    u.session_version = (u.session_version or 0) + 1
+    u.save(update_fields=["session_version"])
+    messages.success(request, f"All sessions for '{u.username}' have been terminated.")
     return redirect("accounts:user_detail", pk=pk)
 
 
