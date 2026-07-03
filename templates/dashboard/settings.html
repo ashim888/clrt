@@ -264,6 +264,50 @@
       </div>
     </div>
 
+    <!-- ── SECURITY ── -->
+    <div class="card mb-4 overflow-hidden">
+      <button type="button" class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-gray-50 transition-colors acc-toggle" data-target="sec-security">
+        <div class="flex items-center gap-3">
+          <span class="text-xl">🔐</span>
+          <div>
+            <p class="font-semibold text-gray-900">Security</p>
+            <p class="text-xs text-gray-400 mt-0.5">Two-factor authentication and login policies</p>
+          </div>
+        </div>
+        <svg class="w-5 h-5 text-gray-400 acc-chev transition-transform" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+      </button>
+      <div id="sec-security" class="acc-body border-t border-gray-100 px-5 py-5 space-y-4 hidden">
+
+        <!-- 2FA toggle -->
+        <label class="flex items-start gap-3 cursor-pointer select-none">
+          <div class="relative mt-0.5 flex-shrink-0">
+            <input type="checkbox" name="require_2fa" id="id_require_2fa"
+              {% if form.require_2fa.value %}checked{% endif %} class="sr-only peer">
+            <div class="w-10 h-6 bg-gray-200 peer-checked:bg-indigo-600 rounded-full transition-colors"></div>
+            <div class="absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform peer-checked:translate-x-4"></div>
+          </div>
+          <div>
+            <p class="text-sm font-medium text-gray-800">Require Two-Factor Authentication (2FA)</p>
+            <p class="text-xs text-gray-400 mt-0.5">
+              When enabled, users who have set up Google Authenticator will be asked for their OTP code after every login.
+            </p>
+          </div>
+        </label>
+
+        <div id="2fa-info" class="rounded-lg border px-4 py-3 text-xs space-y-1.5
+          {% if form.require_2fa.value %}bg-indigo-50 border-indigo-200 text-indigo-700{% else %}bg-gray-50 border-gray-200 text-gray-500{% endif %}">
+          <p class="font-semibold">How it works</p>
+          <p>1. Enable this toggle and save.</p>
+          <p>2. Each user goes to <strong>Profile → Two-Factor Auth</strong> and scans the QR code with Google Authenticator.</p>
+          <p>3. From the next login they will be asked for a 6-digit code before accessing the system.</p>
+          <p class="mt-1 text-amber-600 {% if not form.require_2fa.value %}hidden{% endif %}" id="2fa-warning">
+            ⚠ Users who have not set up 2FA yet can still log in normally. Prompt them to enable it from their profile.
+          </p>
+        </div>
+
+      </div>
+    </div>
+
     <!-- Save bar -->
     <div class="sticky bottom-0 bg-white border-t border-gray-200 -mx-4 sm:-mx-6 px-4 sm:px-6 py-3 flex items-center justify-between shadow-lg">
       <p class="text-xs text-gray-400">Changes take effect immediately for all users.</p>
@@ -367,6 +411,24 @@ if (rzpToggle && rzpFields) {
       rzpFields.classList.remove('opacity-50', 'pointer-events-none');
     } else {
       rzpFields.classList.add('opacity-50', 'pointer-events-none');
+    }
+  });
+}
+
+// 2FA toggle — update info box colour
+const twoFaToggle = document.getElementById('id_require_2fa');
+const twoFaInfo   = document.getElementById('2fa-info');
+const twoFaWarn   = document.getElementById('2fa-warning');
+if (twoFaToggle && twoFaInfo) {
+  twoFaToggle.addEventListener('change', function () {
+    if (this.checked) {
+      twoFaInfo.className = twoFaInfo.className
+        .replace('bg-gray-50 border-gray-200 text-gray-500', 'bg-indigo-50 border-indigo-200 text-indigo-700');
+      twoFaWarn && twoFaWarn.classList.remove('hidden');
+    } else {
+      twoFaInfo.className = twoFaInfo.className
+        .replace('bg-indigo-50 border-indigo-200 text-indigo-700', 'bg-gray-50 border-gray-200 text-gray-500');
+      twoFaWarn && twoFaWarn.classList.add('hidden');
     }
   });
 }

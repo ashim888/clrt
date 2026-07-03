@@ -66,6 +66,12 @@ class SiteSettings(models.Model):
     razorpay_key_secret = models.CharField(max_length=100, blank=True)
     razorpay_enabled = models.BooleanField(default=False)
 
+    # — Security —
+    require_2fa = models.BooleanField(
+        default=False,
+        help_text='Require all users to verify via Google Authenticator after login',
+    )
+
     # — Analytics —
     ga_measurement_id = models.CharField(
         max_length=30, blank=True,

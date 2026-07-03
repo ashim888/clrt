@@ -93,6 +93,33 @@
       </form>
     </div>
 
+    <!-- Reset 2FA -->
+    {% if u.totp_enabled %}
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-1">Two-Factor Auth</h3>
+      <div class="flex items-center gap-2 mb-3">
+        <span class="w-2 h-2 rounded-full bg-green-500 flex-shrink-0"></span>
+        <span class="text-xs text-green-700 font-medium">Enabled</span>
+      </div>
+      <p class="text-xs text-gray-400 mb-3">Use this if the user has lost access to their authenticator app. They will be prompted to re-enrol on next login.</p>
+      <form method="post" action="{% url 'accounts:user_reset_2fa' u.pk %}"
+        onsubmit="return confirm('Reset 2FA for {{ u.username }}? They will need to re-scan the QR code on next login.')">
+        {% csrf_token %}
+        <button type="submit" class="w-full text-sm font-semibold px-4 py-2 rounded-lg border border-red-200 text-red-600 hover:bg-red-50 transition-colors">
+          Reset 2FA
+        </button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card p-5">
+      <h3 class="font-semibold text-gray-500 text-sm uppercase tracking-wider mb-1">Two-Factor Auth</h3>
+      <div class="flex items-center gap-2">
+        <span class="w-2 h-2 rounded-full bg-gray-300 flex-shrink-0"></span>
+        <span class="text-xs text-gray-400">Not set up</span>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Force logout -->
     {% if u != request.user %}
     <div class="card p-5">

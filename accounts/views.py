@@ -69,6 +69,16 @@ class LoginView(auth_views.LoginView):
     form_class = LoginForm
     template_name = "accounts/login.html"
 
+    def get_success_url(self):
+        from dashboard.models import SiteSettings
+        cfg = SiteSettings.load()
+        if cfg.require_2fa and getattr(self.request.user, "totp_enabled", False):
+            next_url = self.request.POST.get(
+                "next", self.request.GET.get("next", "/dashboard/")
+            )
+            return f"/accounts/2fa/verify/?next={next_url}"
+        return super().get_success_url()
+
 
 class LogoutView(auth_views.LogoutView):
     pass
@@ -76,7 +86,22 @@ class LogoutView(auth_views.LogoutView):
 
 @login_required
 def profile(request):
-    return render(request, "accounts/profile.html", {"user": request.user})
+    user = request.user
+    # Always generate QR so it's ready to show inline on the profile page
+    if not user.totp_secret:
+        user.totp_secret = pyotp.random_base32()
+        user.save(update_fields=["totp_secret"])
+    totp = pyotp.TOTP(user.totp_secret)
+    uri = totp.provisioning_uri(name=user.email or user.username, issuer_name="CLRT")
+    img = qrcode.make(uri)
+    buf = io.BytesIO()
+    img.save(buf, "PNG")
+    qr_b64 = base64.b64encode(buf.getvalue()).decode()
+    return render(request, "accounts/profile.html", {
+        "user": user,
+        "qr_b64": qr_b64,
+        "totp_secret": user.totp_secret,
+    })
 
 
 @login_required
@@ -130,6 +155,9 @@ def two_factor_setup(request):
     qr_b64 = base64.b64encode(buf.getvalue()).decode()
 
     error = None
+    from dashboard.models import SiteSettings
+    forced = SiteSettings.load().require_2fa and not user.totp_enabled
+
     if request.method == "POST":
         code = request.POST.get("code", "").strip()
         if totp.verify(code, valid_window=1):
@@ -137,15 +165,18 @@ def two_factor_setup(request):
             user.save(update_fields=["totp_enabled"])
             request.session["2fa_verified"] = True
             messages.success(request, "Two-factor authentication enabled.")
-            return redirect("accounts:profile")
+            return redirect(request.POST.get("next", "/dashboard/"))
         else:
-            error = "Invalid code. Try again."
+            messages.error(request, "Invalid code — please try again.")
 
+    # GET: render standalone setup page
     return render(request, "accounts/two_factor_setup.html", {
         "qr_b64": qr_b64,
         "secret": user.totp_secret,
         "enabled": user.totp_enabled,
-        "error": error,
+        "forced": forced,
+        "next": request.GET.get("next", "/dashboard/"),
+        "error": None,
     })
 
 
@@ -336,6 +367,21 @@ def user_force_logout(request, pk):
     u.session_version = (u.session_version or 0) + 1
     u.save(update_fields=["session_version"])
     messages.success(request, f"All sessions for '{u.username}' have been terminated.")
+    return redirect("accounts:user_detail", pk=pk)
+
+
+@login_required
+@require_POST
+def user_reset_2fa(request, pk):
+    if not request.user.is_admin():
+        messages.error(request, "Access denied.")
+        return redirect("/")
+    u = get_object_or_404(User, pk=pk)
+    u.totp_enabled = False
+    u.totp_secret = ""
+    u.session_version = (u.session_version or 0) + 1  # invalidate sessions
+    u.save(update_fields=["totp_enabled", "totp_secret", "session_version"])
+    messages.success(request, f"2FA reset for '{u.username}'. They will be prompted to re-enroll on next login.")
     return redirect("accounts:user_detail", pk=pk)
 
 

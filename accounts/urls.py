@@ -16,6 +16,7 @@ urlpatterns = [
     path("users/<int:pk>/set-password/", views.user_set_password, name="user_set_password"),
     path("users/<int:pk>/toggle-active/", views.user_toggle_active, name="user_toggle_active"),
     path("users/<int:pk>/force-logout/", views.user_force_logout, name="user_force_logout"),
+    path("users/<int:pk>/reset-2fa/", views.user_reset_2fa, name="user_reset_2fa"),
     path("2fa/setup/", views.two_factor_setup, name="two_factor_setup"),
     path("2fa/disable/", views.two_factor_disable, name="two_factor_disable"),
     path("2fa/verify/", views.two_factor_verify, name="two_factor_verify"),
