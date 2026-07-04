@@ -12,7 +12,9 @@ class Invoice(models.Model):
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="invoices")
     contract = models.ForeignKey(Contract, on_delete=models.SET_NULL, null=True, blank=True, related_name="invoices")
     invoice_number = models.CharField(max_length=50, unique=True)
-    amount = models.DecimalField(max_digits=12, decimal_places=2)
+    amount = models.DecimalField(max_digits=12, decimal_places=2, help_text='Subtotal before discount and tax')
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     due_date = models.DateField()
     generated_date = models.DateField(auto_now_add=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="pending")
@@ -23,6 +25,28 @@ class Invoice(models.Model):
 
     def __str__(self):
         return f"INV-{self.invoice_number} | {self.client} | {self.amount}"
+
+    @property
+    def discount_amount(self):
+        from decimal import Decimal
+        if self.discount_percent:
+            return self.amount * self.discount_percent / Decimal('100')
+        return Decimal('0')
+
+    @property
+    def taxable_amount(self):
+        return self.amount - self.discount_amount
+
+    @property
+    def tax_amount(self):
+        from decimal import Decimal
+        if self.tax_rate:
+            return self.taxable_amount * self.tax_rate / Decimal('100')
+        return Decimal('0')
+
+    @property
+    def final_amount(self):
+        return self.taxable_amount + self.tax_amount
 
     @property
     def is_overdue(self):

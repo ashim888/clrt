@@ -54,7 +54,11 @@ class SiteSettings(models.Model):
     quote_prefix = models.CharField(max_length=20, default='Q')
     default_tax_rate = models.DecimalField(
         max_digits=5, decimal_places=2, default=0,
-        help_text='Default tax % applied on new invoices / quotes'
+        help_text='VAT/tax % automatically pre-filled on new quotations and invoices'
+    )
+    max_discount_percent = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0,
+        help_text='Maximum discount % allowed on any quotation or invoice (0 = no limit)'
     )
     default_payment_terms = models.TextField(
         blank=True,

@@ -8,10 +8,17 @@ import uuid
 class InvoiceForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = Invoice
-        fields = ["client", "contract", "invoice_number", "amount", "due_date", "description"]
+        fields = ["client", "contract", "invoice_number", "amount", "discount_percent", "tax_rate", "due_date", "description"]
+        labels = {
+            "amount": "Subtotal Amount",
+            "discount_percent": "Discount %",
+            "tax_rate": "VAT / Tax %",
+        }
         widgets = {
             "due_date": forms.DateInput(attrs={"type": "date"}),
             "description": forms.Textarea(attrs={"rows": 2}),
+            "discount_percent": forms.NumberInput(attrs={"step": "0.01", "min": "0", "max": "100"}),
+            "tax_rate": forms.NumberInput(attrs={"step": "0.01", "min": "0", "max": "100"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -21,7 +28,29 @@ class InvoiceForm(TailwindFormMixin, forms.ModelForm):
             self.fields["contract"].queryset = Contract.objects.filter(client_id=client_pk)
         if not self.instance.pk:
             self.fields["invoice_number"].initial = f"INV-{uuid.uuid4().hex[:8].upper()}"
+            # Pre-fill VAT from site settings
+            try:
+                from dashboard.models import SiteSettings
+                cfg = SiteSettings.load()
+                self.fields["tax_rate"].initial = cfg.default_tax_rate
+            except Exception:
+                pass
         self.apply_tailwind()
+
+    def clean_discount_percent(self):
+        value = self.cleaned_data.get("discount_percent") or 0
+        try:
+            from dashboard.models import SiteSettings
+            cfg = SiteSettings.load()
+            if cfg.max_discount_percent > 0 and value > cfg.max_discount_percent:
+                raise forms.ValidationError(
+                    f"Discount cannot exceed {cfg.max_discount_percent}% (configured in Settings)."
+                )
+        except forms.ValidationError:
+            raise
+        except Exception:
+            pass
+        return value
 
 
 class PaymentForm(TailwindFormMixin, forms.ModelForm):

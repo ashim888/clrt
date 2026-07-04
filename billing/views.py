@@ -50,7 +50,7 @@ def invoice_detail(request, pk):
         "invoice": invoice,
         "payments": payments,
         "paid_total": paid_total,
-        "balance": invoice.amount - paid_total,
+        "balance": invoice.final_amount - paid_total,
         "razorpay_enabled": cfg.razorpay_enabled,
         "razorpay_configured": cfg.razorpay_enabled and bool(cfg.razorpay_key_id) and bool(cfg.razorpay_key_secret),
     })
@@ -114,7 +114,7 @@ def invoice_aging(request):
         else:
             buckets[4]["items"].append(inv)
     for b in buckets:
-        b["total"] = sum(float(i.amount) for i in b["items"])
+        b["total"] = sum(float(i.final_amount) for i in b["items"])
         b["count"] = len(b["items"])
     grand_total = sum(b["total"] for b in buckets)
     return render(request, "billing/invoice_aging.html", {
@@ -145,7 +145,7 @@ def invoice_print(request, pk):
         "invoice": invoice,
         "payments": payments,
         "paid_total": paid_total,
-        "balance": invoice.amount - paid_total,
+        "balance": invoice.final_amount - paid_total,
         "cfg": cfg,
     })
 
@@ -206,7 +206,7 @@ def razorpay_create_order(request, pk):
         return JsonResponse({"error": "Payment gateway not configured."}, status=400)
     import razorpay
     client = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
-    amount_paise = int(float(invoice.amount) * 100)
+    amount_paise = int(float(invoice.final_amount) * 100)
     order = client.order.create({
         "amount": amount_paise,
         "currency": "INR",
@@ -272,7 +272,7 @@ def payment_add(request, invoice_pk):
         payment.save()
         # Check if invoice is fully paid
         paid_total = invoice.payments.aggregate(t=Sum("amount_paid"))["t"] or 0
-        if paid_total >= invoice.amount:
+        if paid_total >= invoice.final_amount:
             invoice.status = "paid"
             invoice.save()
         messages.success(request, "Payment recorded.")

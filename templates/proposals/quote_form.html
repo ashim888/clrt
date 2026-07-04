@@ -221,28 +221,77 @@
           {% endif %}
         </div>
 
-        <!-- Footer: add buttons + grand total -->
-        <div class="flex items-center justify-between px-4 py-3 bg-gray-50 border-t border-gray-100">
-          <div class="flex items-center gap-4">
-            <button type="button" onclick="addRow()"
-              class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
-              </svg>
-              Add line
-            </button>
-            <span class="text-gray-200 text-lg">|</span>
-            <button type="button" onclick="openCatalog()"
-              class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
-              </svg>
-              From catalog
-            </button>
+        <!-- Footer: add buttons -->
+        <div class="flex items-center gap-4 px-4 py-3 bg-gray-50 border-t border-gray-100">
+          <button type="button" onclick="addRow()"
+            class="inline-flex items-center gap-1.5 text-sm text-blue-600 hover:text-blue-800 font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+            </svg>
+            Add line
+          </button>
+          <span class="text-gray-200 text-lg">|</span>
+          <button type="button" onclick="openCatalog()"
+            class="inline-flex items-center gap-1.5 text-sm text-indigo-600 hover:text-indigo-800 font-medium transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+            </svg>
+            From catalog
+          </button>
+        </div>
+
+        <!-- Pricing Breakdown -->
+        <div class="border-t border-gray-200 px-5 py-4 bg-gray-50/60 space-y-2.5">
+          <!-- Subtotal -->
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">Subtotal</span>
+            <span id="subtotal-display" class="font-medium text-gray-800">{{ site_settings.currency_symbol|default:"Rs." }} 0</span>
           </div>
-          <div class="text-right">
-            <p class="text-xs text-gray-400 uppercase tracking-wide leading-none mb-0.5">Grand Total</p>
-            <p id="grand-total-footer" class="text-2xl font-bold text-gray-900">{{ site_settings.currency_symbol|default:"Rs." }} 0</p>
+
+          <!-- Discount -->
+          <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-gray-500">Discount</span>
+              <div class="flex items-center gap-1">
+                <input type="number" name="discount_percent" id="discount-pct"
+                  value="{{ quote.discount_percent|default:'0' }}"
+                  min="0" {% if site_settings.max_discount_percent %}max="{{ site_settings.max_discount_percent }}"{% else %}max="100"{% endif %}
+                  step="0.01"
+                  class="w-20 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none bg-white">
+                <span class="text-gray-400 text-xs">%</span>
+                {% if site_settings.max_discount_percent %}
+                <span class="text-xs text-amber-600 font-medium">(max {{ site_settings.max_discount_percent }}%)</span>
+                {% endif %}
+              </div>
+            </div>
+            <span id="discount-display" class="text-red-500 font-medium">—</span>
+          </div>
+
+          <!-- After discount -->
+          <div class="flex items-center justify-between text-sm">
+            <span class="text-gray-500">After Discount</span>
+            <span id="after-discount-display" class="font-medium text-gray-800">—</span>
+          </div>
+
+          <!-- VAT / Tax -->
+          <div class="flex items-center justify-between text-sm">
+            <div class="flex items-center gap-2">
+              <span class="text-gray-500">VAT / Tax</span>
+              <div class="flex items-center gap-1">
+                <input type="number" name="tax_rate" id="tax-rate"
+                  value="{% if editing %}{{ quote.tax_rate }}{% else %}{{ site_settings.default_tax_rate|default:'0' }}{% endif %}"
+                  min="0" max="100" step="0.01"
+                  class="w-20 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none bg-white">
+                <span class="text-gray-400 text-xs">%</span>
+              </div>
+            </div>
+            <span id="tax-display" class="font-medium text-gray-700">—</span>
+          </div>
+
+          <!-- Grand Total -->
+          <div class="flex items-center justify-between border-t-2 border-gray-300 pt-3 mt-1">
+            <span class="text-base font-bold text-gray-900">Grand Total</span>
+            <span id="grand-total-footer" class="text-2xl font-bold text-gray-900">{{ site_settings.currency_symbol|default:"Rs." }} 0</span>
           </div>
         </div>
       </div>
@@ -384,12 +433,25 @@ function updateRowTotal(row) {
 }
 
 function updateGrandTotal() {
-  let grand = 0;
+  let subtotal = 0;
   document.querySelectorAll('.line-item-row').forEach(row => {
     const qty   = parseFloat(row.querySelector('[name="item_quantity[]"]').value) || 0;
     const price = parseFloat(row.querySelector('[name="item_unit_price[]"]').value) || 0;
-    grand += qty * price;
+    subtotal += qty * price;
   });
+
+  const discountPct    = parseFloat(document.getElementById('discount-pct').value) || 0;
+  const taxPct         = parseFloat(document.getElementById('tax-rate').value) || 0;
+  const discountAmt    = subtotal * discountPct / 100;
+  const afterDiscount  = subtotal - discountAmt;
+  const taxAmt         = afterDiscount * taxPct / 100;
+  const grand          = afterDiscount + taxAmt;
+
+  document.getElementById('subtotal-display').textContent      = subtotal > 0 ? fmt(subtotal) : (CURRENCY + ' 0');
+  document.getElementById('discount-display').textContent      = discountAmt > 0 ? '- ' + fmt(discountAmt) : '—';
+  document.getElementById('after-discount-display').textContent = subtotal > 0 ? fmt(afterDiscount) : '—';
+  document.getElementById('tax-display').textContent           = taxAmt > 0 ? fmt(taxAmt) : '—';
+
   const display = grand > 0 ? fmt(grand) : (CURRENCY + ' 0');
   document.getElementById('grand-total-header').textContent = display;
   document.getElementById('grand-total-footer').textContent = display;
@@ -402,6 +464,19 @@ function bindRow(row) {
 }
 
 document.querySelectorAll('.line-item-row').forEach(row => { bindRow(row); updateRowTotal(row); });
+
+// Bind discount and tax inputs
+document.getElementById('discount-pct').addEventListener('input', updateGrandTotal);
+document.getElementById('tax-rate').addEventListener('input', updateGrandTotal);
+
+const MAX_DISC = {{ site_settings.max_discount_percent|default:0 }};
+document.getElementById('discount-pct').addEventListener('change', function() {
+  if (MAX_DISC > 0 && parseFloat(this.value) > MAX_DISC) {
+    this.value = MAX_DISC;
+    updateGrandTotal();
+  }
+});
+
 updateGrandTotal();
 
 // ── Catalog picker ──────────────────────────────────────────────

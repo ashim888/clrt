@@ -33,8 +33,16 @@
 <div class="grid lg:grid-cols-2 gap-6">
   <div class="card p-5">
     <h3 class="font-semibold text-gray-900 mb-4">Invoice Details</h3>
-    <div class="space-y-3 text-sm">
-      <div class="flex justify-between"><span class="text-gray-400">Invoice Total</span><span class="font-bold text-lg">{{ invoice.amount|inr }}</span></div>
+    <div class="space-y-2.5 text-sm">
+      <div class="flex justify-between"><span class="text-gray-400">Subtotal</span><span class="font-medium text-gray-700">{{ invoice.amount|inr }}</span></div>
+      {% if invoice.discount_percent %}
+      <div class="flex justify-between"><span class="text-gray-400">Discount ({{ invoice.discount_percent }}%)</span><span class="font-medium text-red-500">- {{ invoice.discount_amount|inr }}</span></div>
+      <div class="flex justify-between"><span class="text-gray-400">After Discount</span><span class="font-medium text-gray-700">{{ invoice.taxable_amount|inr }}</span></div>
+      {% endif %}
+      {% if invoice.tax_rate %}
+      <div class="flex justify-between"><span class="text-gray-400">VAT / Tax ({{ invoice.tax_rate }}%)</span><span class="font-medium text-gray-700">{{ invoice.tax_amount|inr }}</span></div>
+      {% endif %}
+      <div class="flex justify-between border-t pt-2.5"><span class="text-gray-500 font-semibold">Invoice Total</span><span class="font-bold text-lg text-gray-900">{{ invoice.final_amount|inr }}</span></div>
       <div class="flex justify-between"><span class="text-gray-400">Due Date</span><span class="{% if invoice.is_overdue %}text-red-600 font-medium{% endif %}">{{ invoice.due_date }}</span></div>
       <div class="flex justify-between"><span class="text-gray-400">Generated</span><span>{{ invoice.generated_date }}</span></div>
       {% if invoice.description %}<div><p class="text-gray-400 text-xs mb-1">Description</p><p>{{ invoice.description }}</p></div>{% endif %}

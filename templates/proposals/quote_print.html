@@ -105,6 +105,26 @@
     </tbody>
     <tfoot>
       <tr>
+        <td colspan="3" class="right" style="color:#6b7280;">Subtotal</td>
+        <td class="right" style="font-weight:600;">{{ quote.subtotal|inr }}</td>
+      </tr>
+      {% if quote.discount_percent %}
+      <tr>
+        <td colspan="3" class="right" style="color:#dc2626;">Discount ({{ quote.discount_percent }}%)</td>
+        <td class="right" style="color:#dc2626;font-weight:600;">- {{ quote.discount_amount|inr }}</td>
+      </tr>
+      <tr>
+        <td colspan="3" class="right" style="color:#6b7280;">After Discount</td>
+        <td class="right" style="font-weight:600;">{{ quote.taxable_amount|inr }}</td>
+      </tr>
+      {% endif %}
+      {% if quote.tax_rate %}
+      <tr>
+        <td colspan="3" class="right" style="color:#6b7280;">VAT / Tax ({{ quote.tax_rate }}%)</td>
+        <td class="right" style="font-weight:600;">{{ quote.tax_amount|inr }}</td>
+      </tr>
+      {% endif %}
+      <tr style="border-top:2px solid #e5e7eb;">
         <td colspan="3" class="right">Grand Total</td>
         <td class="right grand-total">{{ quote.total|inr }}</td>
       </tr>

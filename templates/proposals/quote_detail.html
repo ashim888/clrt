@@ -74,9 +74,29 @@
             <tr><td colspan="4" class="px-5 py-6 text-center text-gray-400 text-sm">No line items. <a href="{% url "proposals:quote_edit" quote.pk %}" class="text-blue-600 hover:underline">Add items →</a></td></tr>
             {% endfor %}
           </tbody>
-          <tfoot class="bg-gray-50 border-t-2 border-gray-200">
+          <tfoot class="bg-gray-50 border-t border-gray-200 text-sm">
             <tr>
-              <td colspan="3" class="px-5 py-3 text-right text-sm font-semibold text-gray-700">Grand Total</td>
+              <td colspan="3" class="px-5 py-2 text-right text-gray-500">Subtotal</td>
+              <td class="px-5 py-2 text-right font-medium text-gray-700">{{ quote.subtotal|inr }}</td>
+            </tr>
+            {% if quote.discount_percent %}
+            <tr>
+              <td colspan="3" class="px-5 py-2 text-right text-red-500">Discount ({{ quote.discount_percent }}%)</td>
+              <td class="px-5 py-2 text-right font-medium text-red-500">- {{ quote.discount_amount|inr }}</td>
+            </tr>
+            <tr>
+              <td colspan="3" class="px-5 py-2 text-right text-gray-500">After Discount</td>
+              <td class="px-5 py-2 text-right font-medium text-gray-700">{{ quote.taxable_amount|inr }}</td>
+            </tr>
+            {% endif %}
+            {% if quote.tax_rate %}
+            <tr>
+              <td colspan="3" class="px-5 py-2 text-right text-gray-500">VAT / Tax ({{ quote.tax_rate }}%)</td>
+              <td class="px-5 py-2 text-right font-medium text-gray-700">{{ quote.tax_amount|inr }}</td>
+            </tr>
+            {% endif %}
+            <tr class="border-t-2 border-gray-300">
+              <td colspan="3" class="px-5 py-3 text-right font-bold text-gray-900">Grand Total</td>
               <td class="px-5 py-3 text-right text-xl font-bold text-gray-900">{{ quote.total|inr }}</td>
             </tr>
           </tfoot>
@@ -99,9 +119,29 @@
       <p class="text-sm text-gray-600 whitespace-pre-line">{{ quote.terms }}</p>
     </div>
     {% endif %}
-    <div class="card p-4 text-center">
-      <p class="text-xs text-gray-400 mb-1">Quotation Total</p>
-      <p class="text-2xl font-bold text-gray-900">{{ quote.total|inr }}</p>
+    <div class="card p-4">
+      <div class="space-y-1.5 text-sm">
+        <div class="flex justify-between text-gray-500">
+          <span>Subtotal</span><span>{{ quote.subtotal|inr }}</span>
+        </div>
+        {% if quote.discount_percent %}
+        <div class="flex justify-between text-red-500">
+          <span>Discount ({{ quote.discount_percent }}%)</span><span>- {{ quote.discount_amount|inr }}</span>
+        </div>
+        <div class="flex justify-between text-gray-500">
+          <span>After Discount</span><span>{{ quote.taxable_amount|inr }}</span>
+        </div>
+        {% endif %}
+        {% if quote.tax_rate %}
+        <div class="flex justify-between text-gray-600">
+          <span>VAT ({{ quote.tax_rate }}%)</span><span>{{ quote.tax_amount|inr }}</span>
+        </div>
+        {% endif %}
+      </div>
+      <div class="border-t border-gray-200 mt-3 pt-3 text-center">
+        <p class="text-xs text-gray-400 mb-1">Grand Total</p>
+        <p class="text-2xl font-bold text-gray-900">{{ quote.total|inr }}</p>
+      </div>
     </div>
   </div>
 </div>

@@ -72,6 +72,8 @@ def quote_detail(request, pk):
 
 @requires_feature('has_proposals')
 def quote_create(request):
+    from dashboard.models import SiteSettings
+    cfg = SiteSettings.load()
     leads = Lead.objects.exclude(status__in=["won", "lost"]).order_by("organization_name")
     clients = Client.objects.order_by("organization_name")
     if request.method == "POST":
@@ -82,12 +84,28 @@ def quote_create(request):
         terms = request.POST.get("terms", "").strip()
         lead_id = request.POST.get("lead_id", "")
         client_id = request.POST.get("client_id", "")
+        try:
+            discount_percent = float(request.POST.get("discount_percent") or 0)
+        except ValueError:
+            discount_percent = 0.0
+        try:
+            tax_rate = float(request.POST.get("tax_rate") or cfg.default_tax_rate)
+        except ValueError:
+            tax_rate = float(cfg.default_tax_rate)
+        max_discount = float(cfg.max_discount_percent)
+        if max_discount > 0 and discount_percent > max_discount:
+            messages.error(request, f"Discount cannot exceed {max_discount}% (configured in Settings).")
+            return render(request, "proposals/quote_form.html", {
+                "leads": leads, "clients": clients,
+                "status_choices": Quote.STATUS_CHOICES, "title": "New Quotation",
+            })
         if not title or not valid_until:
             messages.error(request, "Title and valid until date are required.")
         else:
             quote = Quote(
                 title=title, valid_until=valid_until, status=status,
                 notes=notes, terms=terms, created_by=request.user,
+                discount_percent=discount_percent, tax_rate=tax_rate,
             )
             if lead_id:
                 quote.lead_id = int(lead_id)
@@ -111,11 +129,31 @@ def quote_edit(request, pk):
     leads = Lead.objects.order_by("organization_name")
     clients = Client.objects.order_by("organization_name")
     if request.method == "POST":
+        from dashboard.models import SiteSettings
+        cfg = SiteSettings.load()
+        try:
+            discount_percent = float(request.POST.get("discount_percent") or 0)
+        except ValueError:
+            discount_percent = 0.0
+        try:
+            tax_rate = float(request.POST.get("tax_rate") or 0)
+        except ValueError:
+            tax_rate = 0.0
+        max_discount = float(cfg.max_discount_percent)
+        if max_discount > 0 and discount_percent > max_discount:
+            messages.error(request, f"Discount cannot exceed {max_discount}% (configured in Settings).")
+            return render(request, "proposals/quote_form.html", {
+                "quote": quote, "leads": leads, "clients": clients,
+                "status_choices": Quote.STATUS_CHOICES, "title": f"Edit Quotation {quote.quote_number}",
+                "editing": True,
+            })
         quote.title = request.POST.get("title", "").strip()
         quote.valid_until = request.POST.get("valid_until", "")
         quote.status = request.POST.get("status", "draft")
         quote.notes = request.POST.get("notes", "").strip()
         quote.terms = request.POST.get("terms", "").strip()
+        quote.discount_percent = discount_percent
+        quote.tax_rate = tax_rate
         lead_id = request.POST.get("lead_id", "")
         client_id = request.POST.get("client_id", "")
         quote.lead = None

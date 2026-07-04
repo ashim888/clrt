@@ -23,6 +23,8 @@ class Quote(models.Model):
     title = models.CharField(max_length=200)
     valid_until = models.DateField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="draft")
+    discount_percent = models.DecimalField(max_digits=5, decimal_places=2, default=0)
+    tax_rate = models.DecimalField(max_digits=5, decimal_places=2, default=0)
     notes = models.TextField(blank=True)
     terms = models.TextField(blank=True)
     created_by = models.ForeignKey(
@@ -38,8 +40,30 @@ class Quote(models.Model):
         return f"{self.quote_number} – {self.title}"
 
     @property
-    def total(self):
+    def subtotal(self):
         return sum(item.line_total for item in self.items.all())
+
+    @property
+    def discount_amount(self):
+        from decimal import Decimal
+        if self.discount_percent:
+            return self.subtotal * self.discount_percent / Decimal('100')
+        return Decimal('0')
+
+    @property
+    def taxable_amount(self):
+        return self.subtotal - self.discount_amount
+
+    @property
+    def tax_amount(self):
+        from decimal import Decimal
+        if self.tax_rate:
+            return self.taxable_amount * self.tax_rate / Decimal('100')
+        return Decimal('0')
+
+    @property
+    def total(self):
+        return self.taxable_amount + self.tax_amount
 
     @property
     def recipient_name(self):

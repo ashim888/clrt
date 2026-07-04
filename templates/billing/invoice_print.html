@@ -93,8 +93,8 @@
       <div class="val">{{ invoice.due_date }}</div>
     </div>
     <div class="meta-item">
-      <div class="lbl">Amount</div>
-      <div class="val">{{ invoice.amount|inr }}</div>
+      <div class="lbl">Total Amount</div>
+      <div class="val">{{ invoice.final_amount|inr }}</div>
     </div>
   </div>
 
@@ -119,6 +119,14 @@
 
   <div class="total-section">
     <div class="total-row"><span>Subtotal</span><span>{{ invoice.amount|inr }}</span></div>
+    {% if invoice.discount_percent %}
+    <div class="total-row" style="color:#dc2626;"><span>Discount ({{ invoice.discount_percent }}%)</span><span>- {{ invoice.discount_amount|inr }}</span></div>
+    <div class="total-row"><span>After Discount</span><span>{{ invoice.taxable_amount|inr }}</span></div>
+    {% endif %}
+    {% if invoice.tax_rate %}
+    <div class="total-row"><span>VAT / Tax ({{ invoice.tax_rate }}%)</span><span>{{ invoice.tax_amount|inr }}</span></div>
+    {% endif %}
+    <div class="total-row grand"><span>Invoice Total</span><span>{{ invoice.final_amount|inr }}</span></div>
     {% if paid_total > 0 %}
     <div class="total-row"><span>Paid</span><span style="color:#059669;">- {{ paid_total|inr }}</span></div>
     {% endif %}
