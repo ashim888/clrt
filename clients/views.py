@@ -201,6 +201,7 @@ def client_interaction_mark_done(request, pk):
 
 def portal_home(request, token):
     """Public token-based client portal — no login required."""
+    from dashboard.models import SiteSettings
     client = get_object_or_404(Client, portal_token=token)
     invoices = client.invoices.order_by("-generated_date")
     contracts = client.contracts.all()
@@ -213,13 +214,83 @@ def portal_home(request, token):
     for k in financial:
         if financial[k] is None:
             financial[k] = 0
+    cfg = SiteSettings.load()
+    razorpay_configured = cfg.razorpay_enabled and bool(cfg.razorpay_key_id) and bool(cfg.razorpay_key_secret)
     return render(request, "portal/home.html", {
         "client": client,
         "invoices": invoices,
         "contracts": contracts,
         "interactions": interactions,
         "financial": financial,
+        "razorpay_configured": razorpay_configured,
+        "token": token,
     })
+
+
+@require_POST
+def portal_razorpay_create_order(request, token, invoice_pk):
+    from dashboard.models import SiteSettings
+    from billing.models import Invoice
+    client = get_object_or_404(Client, portal_token=token)
+    invoice = get_object_or_404(Invoice, pk=invoice_pk, client=client)
+    if invoice.status == "paid":
+        return JsonResponse({"error": "Invoice already paid."}, status=400)
+    cfg = SiteSettings.load()
+    if not cfg.razorpay_enabled or not cfg.razorpay_key_id or not cfg.razorpay_key_secret:
+        return JsonResponse({"error": "Payment gateway not configured."}, status=400)
+    import razorpay
+    rp = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
+    amount_paise = int(float(invoice.final_amount) * 100)
+    order = rp.order.create({
+        "amount": amount_paise,
+        "currency": "INR",
+        "receipt": invoice.invoice_number,
+        "notes": {"invoice_id": str(invoice.pk)},
+    })
+    return JsonResponse({
+        "order_id": order["id"],
+        "amount": amount_paise,
+        "currency": "INR",
+        "key_id": cfg.razorpay_key_id,
+        "invoice_number": invoice.invoice_number,
+        "client_name": client.organization_name,
+        "client_email": client.email or "",
+        "client_phone": client.phone or "",
+    })
+
+
+@require_POST
+def portal_razorpay_verify(request, token, invoice_pk):
+    from dashboard.models import SiteSettings
+    from billing.models import Invoice, Payment
+    from django.utils import timezone
+    client = get_object_or_404(Client, portal_token=token)
+    invoice = get_object_or_404(Invoice, pk=invoice_pk, client=client)
+    cfg = SiteSettings.load()
+    if not cfg.razorpay_enabled:
+        return JsonResponse({"error": "Not enabled."}, status=400)
+    import razorpay
+    rp = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
+    params = {
+        "razorpay_order_id": request.POST.get("razorpay_order_id", ""),
+        "razorpay_payment_id": request.POST.get("razorpay_payment_id", ""),
+        "razorpay_signature": request.POST.get("razorpay_signature", ""),
+    }
+    try:
+        rp.utility.verify_payment_signature(params)
+    except Exception:
+        return JsonResponse({"error": "Signature mismatch — payment not verified."}, status=400)
+    Payment.objects.create(
+        invoice=invoice,
+        amount_paid=invoice.final_amount,
+        payment_date=timezone.now().date(),
+        payment_mode="online",
+        reference=params["razorpay_payment_id"],
+        notes=f"Paid via Razorpay (client portal). Order: {params['razorpay_order_id']}",
+    )
+    invoice.status = "paid"
+    invoice.save(update_fields=["status"])
+    return JsonResponse({"ok": True, "redirect": f"/clients/portal/{token}/"})
 
 
 @requires_feature('has_client_portal')

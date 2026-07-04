@@ -53,8 +53,6 @@ def invoice_detail(request, pk):
         "balance": invoice.final_amount - paid_total,
         "recipient_email": invoice.client.email if invoice.client else "",
         "cfg": cfg,
-        "razorpay_enabled": cfg.razorpay_enabled,
-        "razorpay_configured": cfg.razorpay_enabled and bool(cfg.razorpay_key_id) and bool(cfg.razorpay_key_secret),
     })
 
 
