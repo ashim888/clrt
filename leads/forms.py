@@ -7,7 +7,7 @@ from dashboard.models import Tag
 class LeadForm(forms.ModelForm):
     class Meta:
         model = Lead
-        fields = ["organization_name", "contact_person", "phone", "email", "source", "deal_value", "status", "lost_reason", "assigned_to", "tags", "notes"]
+        fields = ["organization_name", "contact_person", "phone", "email", "source", "referrer_name", "deal_value", "status", "lost_reason", "assigned_to", "tags", "notes"]
         widgets = {
             "notes": forms.Textarea(attrs={"rows": 3}),
             "lost_reason": forms.TextInput(attrs={"placeholder": "Price, competitor, timing…"}),

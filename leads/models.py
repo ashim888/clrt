@@ -27,6 +27,7 @@ class Lead(models.Model):
     phone = models.CharField(max_length=20)
     email = models.EmailField(blank=True)
     source = models.CharField(max_length=20, choices=SOURCE_CHOICES, blank=True)
+    referrer_name = models.CharField(max_length=200, blank=True)
     deal_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="new")
     lost_reason = models.CharField(max_length=300, blank=True)
