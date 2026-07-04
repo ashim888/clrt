@@ -224,7 +224,13 @@
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">Default Payment Terms</label>
           <textarea name="default_payment_terms" class="input" rows="3">{{ form.default_payment_terms.value|default:'' }}</textarea>
-          <p class="text-xs text-gray-400 mt-1">Pre-filled on new invoices and quotations</p>
+          <p class="text-xs text-gray-400 mt-1">Pre-filled on new invoices</p>
+        </div>
+
+        <div class="border-t border-gray-100 pt-4">
+          <label class="block text-sm font-medium text-gray-700 mb-1">Default Quotation Terms &amp; Conditions</label>
+          <textarea name="default_quote_terms" class="input" rows="5" placeholder="Validity &amp; Acceptance: This quote is valid for 15 days. Acceptance constitutes agreement to these terms.&#10;Payment: 50% deposit required to commence; balance due on completion.">{{ form.default_quote_terms.value|default:'' }}</textarea>
+          <p class="text-xs text-gray-400 mt-1">Pre-filled on every new quotation. Use <code class="bg-gray-100 px-1 rounded">Label: text</code> format — labels print in <strong>bold</strong>.</p>
         </div>
       </div>
     </div>

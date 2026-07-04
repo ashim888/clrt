@@ -68,7 +68,7 @@
         </label>
         <input id="quote-title-input" type="text" name="title" required
           placeholder="e.g. Website Redesign for ACME Corp"
-          value="{% if editing %}{{ quote.title }}{% endif %}">
+          value="{% if preserved %}{{ preserved.title }}{% elif editing %}{{ quote.title }}{% endif %}">
       </div>
 
       <!-- Bill To -->
@@ -81,7 +81,8 @@
               <option value="">— None —</option>
               {% for lead in leads %}
               <option value="{{ lead.pk }}"
-                {% if editing and quote.lead_id == lead.pk %}selected
+                {% if preserved and preserved.lead_id == lead.pk|stringformat:"s" %}selected
+                {% elif editing and quote.lead_id == lead.pk %}selected
                 {% elif not editing and request.GET.lead == lead.pk|stringformat:"s" %}selected{% endif %}>
                 {{ lead.organization_name }}
               </option>
@@ -94,7 +95,8 @@
               <option value="">— None —</option>
               {% for c in clients %}
               <option value="{{ c.pk }}"
-                {% if editing and quote.client_id == c.pk %}selected
+                {% if preserved and preserved.client_id == c.pk|stringformat:"s" %}selected
+                {% elif editing and quote.client_id == c.pk %}selected
                 {% elif not editing and request.GET.client == c.pk|stringformat:"s" %}selected{% endif %}>
                 {{ c.organization_name }}
               </option>
@@ -127,7 +129,7 @@
 
         <!-- Rows -->
         <div id="line-items-body">
-          {% if editing %}
+          {% if editing and not preserved %}
           {% for item in quote.items.all %}
           <div class="li-row line-item-row group">
             <div class="li-desc">
@@ -159,6 +161,8 @@
             </div>
           </div>
           {% endfor %}
+          {% elif preserved %}
+          <!-- JS will restore from preserved.items_json -->
           {% else %}
           <div class="li-row line-item-row group">
             <div class="li-desc">
@@ -254,7 +258,7 @@
               <span class="text-gray-500">Discount</span>
               <div class="flex items-center gap-1">
                 <input type="number" name="discount_percent" id="discount-pct"
-                  value="{{ quote.discount_percent|default:'0' }}"
+                  value="{% if preserved %}{{ preserved.discount_percent }}{% elif editing %}{{ quote.discount_percent }}{% else %}0{% endif %}"
                   min="0" {% if site_settings.max_discount_percent %}max="{{ site_settings.max_discount_percent }}"{% else %}max="100"{% endif %}
                   step="0.01"
                   class="w-20 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none bg-white">
@@ -279,7 +283,7 @@
               <span class="text-gray-500">VAT / Tax</span>
               <div class="flex items-center gap-1">
                 <input type="number" name="tax_rate" id="tax-rate"
-                  value="{% if editing %}{{ quote.tax_rate }}{% else %}{{ site_settings.default_tax_rate|default:'0' }}{% endif %}"
+                  value="{% if preserved %}{{ preserved.tax_rate }}{% elif editing %}{{ quote.tax_rate }}{% else %}{{ site_settings.default_tax_rate|default:'0' }}{% endif %}"
                   min="0" max="100" step="0.01"
                   class="w-20 text-sm text-right border border-gray-200 rounded-lg px-2 py-1 focus:ring-2 focus:ring-blue-200 focus:border-blue-400 outline-none bg-white">
                 <span class="text-gray-400 text-xs">%</span>
@@ -307,14 +311,15 @@
           <div>
             <label class="text-sm font-medium text-gray-700 mb-1 block">Valid Until <span class="text-red-500">*</span></label>
             <input type="date" name="valid_until" class="input" required
-              value="{% if editing %}{{ quote.valid_until|date:"Y-m-d" }}{% endif %}">
+              value="{% if preserved %}{{ preserved.valid_until }}{% elif editing %}{{ quote.valid_until|date:"Y-m-d" }}{% endif %}">
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 mb-1 block">Status</label>
             <select name="status" class="input">
               {% for val, label in status_choices %}
               <option value="{{ val }}"
-                {% if editing and quote.status == val %}selected
+                {% if preserved and preserved.status == val %}selected
+                {% elif editing and quote.status == val %}selected
                 {% elif not editing and val == "draft" %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
@@ -332,12 +337,12 @@
               <span class="font-normal text-gray-400 text-xs ml-1">(not shown on quotation)</span>
             </label>
             <textarea name="notes" rows="3" class="input text-sm resize-none"
-              placeholder="Context, reminders, internal remarks…">{% if editing %}{{ quote.notes }}{% endif %}</textarea>
+              placeholder="Context, reminders, internal remarks…">{% if preserved %}{{ preserved.notes }}{% elif editing %}{{ quote.notes }}{% endif %}</textarea>
           </div>
           <div>
             <label class="text-sm font-medium text-gray-700 mb-1 block">Terms &amp; Conditions</label>
             <textarea name="terms" rows="5" class="input text-sm resize-none"
-              placeholder="Payment terms, delivery conditions, validity…">{% if editing %}{{ quote.terms }}{% endif %}</textarea>
+              placeholder="Payment terms, delivery conditions, validity…">{% if preserved %}{{ preserved.terms }}{% elif editing %}{{ quote.terms }}{% else %}{{ site_settings.default_quote_terms }}{% endif %}</textarea>
           </div>
         </div>
       </div>
@@ -478,6 +483,26 @@ document.getElementById('discount-pct').addEventListener('change', function() {
 });
 
 updateGrandTotal();
+
+// ── Restore preserved line items after validation error ──────────
+{% if preserved %}
+(function() {
+  const items = {{ preserved.items_json|safe }};
+  if (!items.length) return;
+  const body = document.getElementById('line-items-body');
+  body.innerHTML = '';
+  items.forEach(item => {
+    body.insertAdjacentHTML('beforeend', rowHtml());
+    const row = body.lastElementChild;
+    row.querySelector('[name="item_description[]"]').value = item.desc;
+    row.querySelector('[name="item_quantity[]"]').value    = item.qty;
+    row.querySelector('[name="item_unit_price[]"]').value  = item.price;
+    bindRow(row);
+    updateRowTotal(row);
+  });
+  updateGrandTotal();
+})();
+{% endif %}
 
 // ── Catalog picker ──────────────────────────────────────────────
 function openCatalog() {

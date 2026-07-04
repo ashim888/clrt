@@ -94,3 +94,21 @@ def site_date(value):
         return _date_fmt(value, fmt)
     except Exception:
         return str(value)
+
+
+@register.filter(is_safe=True)
+def render_terms(value):
+    """Render terms text as HTML, bolding any 'Label:' prefix at the start of each line."""
+    import re
+    from django.utils.html import escape, mark_safe
+    if not value:
+        return ''
+    lines = value.split('\n')
+    result = []
+    for line in lines:
+        m = re.match(r'^([^:\n]{1,60}:)(.*)', line)
+        if m:
+            result.append(f'<strong>{escape(m.group(1))}</strong>{escape(m.group(2))}')
+        else:
+            result.append(escape(line))
+    return mark_safe('<br>'.join(result))

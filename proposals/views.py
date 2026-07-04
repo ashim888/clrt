@@ -1,3 +1,4 @@
+import json
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
 from django.contrib import messages
@@ -9,6 +10,28 @@ from .models import Quote, QuoteLineItem
 from leads.models import Lead
 from clients.models import Client
 from dashboard.decorators import requires_feature
+
+
+def _build_preserved(post, discount_percent=None, tax_rate=None):
+    descs = post.getlist("item_description[]")
+    qtys = post.getlist("item_quantity[]")
+    prices = post.getlist("item_unit_price[]")
+    items = [
+        {"desc": desc, "qty": qtys[i] if i < len(qtys) else "1", "price": prices[i] if i < len(prices) else "0"}
+        for i, desc in enumerate(descs)
+    ]
+    return {
+        "title": post.get("title", ""),
+        "valid_until": post.get("valid_until", ""),
+        "status": post.get("status", "draft"),
+        "notes": post.get("notes", ""),
+        "terms": post.get("terms", ""),
+        "discount_percent": discount_percent if discount_percent is not None else post.get("discount_percent", "0"),
+        "tax_rate": tax_rate if tax_rate is not None else post.get("tax_rate", "0"),
+        "lead_id": post.get("lead_id", ""),
+        "client_id": post.get("client_id", ""),
+        "items_json": json.dumps(items),
+    }
 
 
 def _save_line_items(quote, post):
@@ -109,6 +132,7 @@ def quote_create(request):
             return render(request, "proposals/quote_form.html", {
                 "leads": leads, "clients": clients,
                 "status_choices": Quote.STATUS_CHOICES, "title": "New Quotation",
+                "preserved": _build_preserved(request.POST, discount_percent=max_discount, tax_rate=tax_rate),
             })
         if not title or not valid_until:
             messages.error(request, "Title and valid until date are required.")
@@ -157,6 +181,7 @@ def quote_edit(request, pk):
                 "quote": quote, "leads": leads, "clients": clients,
                 "status_choices": Quote.STATUS_CHOICES, "title": f"Edit Quotation {quote.quote_number}",
                 "editing": True,
+                "preserved": _build_preserved(request.POST, discount_percent=max_discount, tax_rate=tax_rate),
             })
         quote.title = request.POST.get("title", "").strip()
         quote.valid_until = request.POST.get("valid_until", "")
@@ -215,7 +240,6 @@ def quote_send_email(request, pk):
     from django.core.validators import validate_email
     from django.core.exceptions import ValidationError
     from django.template.loader import render_to_string
-    from django.urls import reverse
     from dashboard.models import SiteSettings
 
     quote = get_object_or_404(Quote, pk=pk)
@@ -235,14 +259,13 @@ def quote_send_email(request, pk):
     cfg = SiteSettings.load()
 
     try:
-        print_url = request.build_absolute_uri(
-            reverse("proposals:quote_print", args=[quote.pk])
-        )
-        html_body = render_to_string("proposals/quote_email.html", {
+        base_url = f"{request.scheme}://{request.get_host()}"
+        html_body = render_to_string("proposals/quote_print.html", {
             "quote": quote,
-            "message": message,
             "cfg": cfg,
-            "print_url": print_url,
+            "email_mode": True,
+            "email_note": message,
+            "base_url": base_url,
         }, request=request)
 
         cc_list = []

@@ -130,7 +130,7 @@
     {% if quote.terms %}
     <div class="terms-box">
       <div class="lbl">Terms &amp; Conditions</div>
-      <p>{{ quote.terms }}</p>
+      <p>{{ quote.terms|render_terms }}</p>
     </div>
     {% endif %}
 

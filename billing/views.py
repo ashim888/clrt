@@ -289,7 +289,6 @@ def invoice_send_email(request, pk):
     from django.core.validators import validate_email
     from django.core.exceptions import ValidationError
     from django.template.loader import render_to_string
-    from django.urls import reverse
     from dashboard.models import SiteSettings
 
     invoice = get_object_or_404(Invoice, pk=pk)
@@ -309,14 +308,16 @@ def invoice_send_email(request, pk):
     cfg = SiteSettings.load()
 
     try:
-        print_url = request.build_absolute_uri(
-            reverse("billing:invoice_print", args=[invoice.pk])
-        )
-        html_body = render_to_string("billing/invoice_email.html", {
+        base_url = f"{request.scheme}://{request.get_host()}"
+        html_body = render_to_string("billing/invoice_print.html", {
             "invoice": invoice,
-            "message": message,
+            "payments": invoice.payments.all(),
+            "paid_total": invoice.payments.aggregate(t=Sum("amount_paid"))["t"] or 0,
+            "balance": invoice.final_amount - (invoice.payments.aggregate(t=Sum("amount_paid"))["t"] or 0),
             "cfg": cfg,
-            "print_url": print_url,
+            "email_mode": True,
+            "email_note": message,
+            "base_url": base_url,
         }, request=request)
 
         cc_list = []

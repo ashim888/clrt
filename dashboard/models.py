@@ -64,6 +64,10 @@ class SiteSettings(models.Model):
         blank=True,
         default='Payment due within 30 days of invoice date.'
     )
+    default_quote_terms = models.TextField(
+        blank=True,
+        help_text='Pre-filled on every new quotation; supports "Label: text" format for bold labels on print'
+    )
 
     # — Payment Gateway —
     razorpay_key_id = models.CharField(max_length=100, blank=True)

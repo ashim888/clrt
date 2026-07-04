@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+{% load clrt_filters %}<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -42,12 +42,13 @@
 </style>
 </head>
 <body>
-<button class="print-btn" onclick="window.print()">Print / Save PDF</button>
+{% if not email_mode %}<button class="print-btn" onclick="window.print()">Print / Save PDF</button>{% endif %}
+{% if email_mode and email_note %}<div style="max-width:720px;margin:0 auto;padding:20px 40px 16px;font-family:'Segoe UI',system-ui,sans-serif;font-size:14px;color:#374151;white-space:pre-line;border-bottom:2px solid #e5e7eb;">{{ email_note }}</div>{% endif %}
 <div class="page">
   <div class="header">
     <div>
       {% if cfg.business_logo %}
-      <img src="{{ cfg.business_logo.url }}" alt="{{ cfg.business_name }}" style="max-height:56px;max-width:180px;object-fit:contain;display:block;margin-bottom:6px;">
+      <img src="{% if email_mode %}{{ base_url }}{{ cfg.business_logo.url }}{% else %}{{ cfg.business_logo.url }}{% endif %}" alt="{{ cfg.business_name }}" style="max-height:56px;max-width:180px;object-fit:contain;display:block;margin-bottom:6px;">
       {% endif %}
       <div class="brand">{{ cfg.business_name|default:"My Business" }}</div>
       {% if cfg.business_tagline %}<div class="brand-sub">{{ cfg.business_tagline }}</div>{% endif %}
@@ -73,9 +74,9 @@
       {% if quote.client.phone %}<div class="party-detail">{{ quote.client.phone }}</div>{% endif %}
       {% endif %}
     </div>
-    <div>
+    <div style="text-align:right;">
       <div class="lbl">Quotation Details</div>
-      <div class="meta-row" style="flex-direction:column;gap:8px;margin:0;">
+      <div class="meta-row" style="flex-direction:column;gap:8px;margin:0;align-items:flex-end;">
         <div><div class="lbl">Date</div><div class="val">{{ quote.created_at|site_date }}</div></div>
         <div><div class="lbl">Valid Until</div><div class="val">{{ quote.valid_until }}</div></div>
       </div>
@@ -134,7 +135,7 @@
   {% if quote.terms %}
   <div>
     <div class="lbl" style="margin-bottom:6px;">Terms &amp; Conditions</div>
-    <div class="terms">{{ quote.terms }}</div>
+    <div class="terms">{{ quote.terms|render_terms }}</div>
   </div>
   {% endif %}
 
