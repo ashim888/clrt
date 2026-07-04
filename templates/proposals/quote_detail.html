@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% load clrt_filters %}
 {% block title %}{{ quote.quote_number }}{% endblock %}
 {% block nav_proposals %}bg-gray-800 text-white{% endblock %}
 {% block content %}
@@ -8,26 +9,41 @@
       <a href="{% url "proposals:quote_list" %}" class="text-gray-400 hover:text-gray-700 text-sm">Quotations</a>
       <span class="text-gray-300">/</span>
       <h1 class="text-2xl font-bold text-gray-900">{{ quote.quote_number }}</h1>
-      <!-- Status pill with change dropdown -->
-      <div class="relative">
-        <select id="status-sel" onchange="changeStatus(this.value)"
-          class="text-xs font-semibold px-3 py-1 rounded-full border-0 cursor-pointer outline-none appearance-none pr-6
-            {% if quote.status == 'draft' %}bg-gray-100 text-gray-600
-            {% elif quote.status == 'sent' %}bg-blue-100 text-blue-700
-            {% elif quote.status == 'accepted' %}bg-green-100 text-green-700
-            {% elif quote.status == 'declined' %}bg-red-100 text-red-600
-            {% else %}bg-amber-100 text-amber-700{% endif %}"
-          style="background-image:url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3E%3Cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3E%3C/svg%3E\");background-repeat:no-repeat;background-position:right .3rem center;background-size:.85em;">
-          {% for val, label in quote.STATUS_CHOICES %}
-          <option value="{{ val }}" {% if quote.status == val %}selected{% endif %}>{{ label }}</option>
-          {% endfor %}
-        </select>
-      </div>
+      <!-- Static status badge -->
+      <span id="status-badge" class="text-xs font-semibold px-2.5 py-0.5 rounded-full
+        {% if quote.status == 'draft' %}bg-gray-100 text-gray-600
+        {% elif quote.status == 'sent' %}bg-blue-100 text-blue-700
+        {% elif quote.status == 'accepted' %}bg-green-100 text-green-700
+        {% elif quote.status == 'declined' %}bg-red-100 text-red-600
+        {% else %}bg-amber-100 text-amber-700{% endif %}">
+        {{ quote.get_status_display }}
+      </span>
     </div>
     <div class="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-gray-500">
       <span>For: <span class="font-medium text-gray-900">{{ quote.recipient_name }}</span></span>
       <span>Valid until: <span class="font-medium {% if quote.is_expired %}text-red-600{% endif %}">{{ quote.valid_until }}</span>{% if quote.is_expired %} <span class="text-xs text-red-500">(expired)</span>{% endif %}</span>
       {% if quote.created_by %}<span>by {{ quote.created_by.get_full_name|default:quote.created_by.username }}</span>{% endif %}
+      <span class="text-gray-300">·</span>
+      <span>Created <span class="font-medium text-gray-700">{{ quote.created_at|site_date }}</span></span>
+      {% if quote.status_changed_at %}
+      <span class="text-gray-300">·</span>
+      <span>Status updated <span id="status-changed-at" class="font-medium text-gray-700">{{ quote.status_changed_at|site_date }}</span></span>
+      {% else %}
+      <span class="text-gray-300">·</span>
+      <span id="status-changed-at-wrap" class="hidden">Status updated <span id="status-changed-at" class="font-medium text-gray-700"></span></span>
+      {% endif %}
+    </div>
+    <!-- Status change row -->
+    <div class="flex items-center gap-2 mt-2">
+      <span class="text-xs text-gray-400 font-medium">Change status:</span>
+      <select id="status-sel" class="text-sm border border-gray-200 rounded-lg px-2.5 py-1 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white">
+        {% for val, label in quote.STATUS_CHOICES %}
+        <option value="{{ val }}" {% if quote.status == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <button onclick="changeStatus()" class="inline-flex items-center gap-1 text-xs font-semibold bg-gray-800 hover:bg-gray-700 text-white px-3 py-1.5 rounded-lg transition-colors">
+        Update
+      </button>
     </div>
     {% if quote.lead %}
     <p class="text-xs text-blue-600 mt-1">
@@ -147,10 +163,7 @@
   </div>
 </div>
 
-<form id="status-form" method="post" action="{% url "proposals:quote_update_status" quote.pk %}" style="display:none;">
-  {% csrf_token %}
-  <input type="hidden" name="status" id="status-input">
-</form>
+<form id="status-form" style="display:none;">{% csrf_token %}</form>
 
 <!-- ─── Email preview dialog ─── -->
 <div id="email-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none!important;">
@@ -207,9 +220,41 @@
 </div>
 
 <script>
-function changeStatus(val) {
-  document.getElementById('status-input').value = val;
-  document.getElementById('status-form').submit();
+const STATUS_COLORS = {
+  draft:    'bg-gray-100 text-gray-600',
+  sent:     'bg-blue-100 text-blue-700',
+  accepted: 'bg-green-100 text-green-700',
+  declined: 'bg-red-100 text-red-600',
+  expired:  'bg-amber-100 text-amber-700',
+};
+
+async function changeStatus() {
+  const sel = document.getElementById('status-sel');
+  const val = sel.value;
+  const fd = new FormData(document.getElementById('status-form'));
+  fd.set('status', val);
+  const res = await fetch("{% url 'proposals:quote_update_status' quote.pk %}", {
+    method: 'POST', body: fd
+  });
+  if (!res.ok) return;
+  const data = await res.json();
+
+  // Update badge
+  const badge = document.getElementById('status-badge');
+  badge.textContent = data.label;
+  badge.className = badge.className.replace(/bg-\S+|text-\S+/g, '');
+  const cls = STATUS_COLORS[data.status] || STATUS_COLORS.draft;
+  badge.className = `text-xs font-semibold px-2.5 py-0.5 rounded-full ${cls}`;
+  badge.style.outline = '2px solid #2563eb';
+  setTimeout(() => badge.style.outline = '', 800);
+
+  // Update / reveal the "Status updated" timestamp
+  if (data.changed_at) {
+    const el = document.getElementById('status-changed-at');
+    if (el) el.textContent = data.changed_at;
+    const wrap = document.getElementById('status-changed-at-wrap');
+    if (wrap) wrap.classList.remove('hidden');
+  }
 }
 
 // ── Email preview dialog ──

@@ -313,17 +313,20 @@
             <input type="date" name="valid_until" class="input" required
               value="{% if preserved %}{{ preserved.valid_until }}{% elif editing %}{{ quote.valid_until|date:"Y-m-d" }}{% endif %}">
           </div>
+          {% if editing %}
           <div>
             <label class="text-sm font-medium text-gray-700 mb-1 block">Status</label>
             <select name="status" class="input">
               {% for val, label in status_choices %}
               <option value="{{ val }}"
                 {% if preserved and preserved.status == val %}selected
-                {% elif editing and quote.status == val %}selected
-                {% elif not editing and val == "draft" %}selected{% endif %}>{{ label }}</option>
+                {% elif quote.status == val %}selected{% endif %}>{{ label }}</option>
               {% endfor %}
             </select>
           </div>
+          {% else %}
+          <input type="hidden" name="status" value="draft">
+          {% endif %}
         </div>
       </div>
 

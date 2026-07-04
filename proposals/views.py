@@ -215,14 +215,20 @@ def quote_edit(request, pk):
 @requires_feature('has_proposals')
 @require_POST
 def quote_update_status(request, pk):
+    from django.utils import timezone
     quote = get_object_or_404(Quote, pk=pk)
     new_status = request.POST.get("status", "")
     valid = [s for s, _ in Quote.STATUS_CHOICES]
     if new_status not in valid:
         return JsonResponse({"error": "Invalid status"}, status=400)
     quote.status = new_status
-    quote.save(update_fields=["status"])
-    return JsonResponse({"status": new_status, "label": quote.get_status_display()})
+    quote.status_changed_at = timezone.now()
+    quote.save(update_fields=["status", "status_changed_at"])
+    return JsonResponse({
+        "status": new_status,
+        "label": quote.get_status_display(),
+        "changed_at": quote.status_changed_at.strftime("%-d %b %Y, %-I:%M %p"),
+    })
 
 
 @requires_feature('has_proposals')
@@ -294,7 +300,9 @@ def quote_send_email(request, pk):
         return JsonResponse({"error": f"Failed to send: {str(e)}"}, status=500)
 
     if quote.status == "draft":
+        from django.utils import timezone
         quote.status = "sent"
-        quote.save(update_fields=["status"])
+        quote.status_changed_at = timezone.now()
+        quote.save(update_fields=["status", "status_changed_at"])
 
     return JsonResponse({"ok": True, "new_status": quote.status, "status_label": quote.get_status_display()})

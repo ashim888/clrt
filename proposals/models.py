@@ -32,6 +32,8 @@ class Quote(models.Model):
         null=True, related_name="quotes",
     )
     created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+    status_changed_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]
