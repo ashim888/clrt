@@ -18,4 +18,5 @@ urlpatterns = [
     path("<int:pk>/print/", views.invoice_print, name="invoice_print"),
     path("<int:pk>/pay/create-order/", views.razorpay_create_order, name="razorpay_create_order"),
     path("<int:pk>/pay/verify/", views.razorpay_verify_payment, name="razorpay_verify"),
+    path("<int:pk>/send-email/", views.invoice_send_email, name="invoice_send_email"),
 ]

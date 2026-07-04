@@ -51,6 +51,8 @@ def invoice_detail(request, pk):
         "payments": payments,
         "paid_total": paid_total,
         "balance": invoice.final_amount - paid_total,
+        "recipient_email": invoice.client.email if invoice.client else "",
+        "cfg": cfg,
         "razorpay_enabled": cfg.razorpay_enabled,
         "razorpay_configured": cfg.razorpay_enabled and bool(cfg.razorpay_key_id) and bool(cfg.razorpay_key_secret),
     })
@@ -278,3 +280,64 @@ def payment_add(request, invoice_pk):
         messages.success(request, "Payment recorded.")
         return redirect("billing:invoice_detail", pk=invoice_pk)
     return render(request, "billing/payment_form.html", {"form": form, "invoice": invoice})
+
+
+@login_required
+@require_POST
+def invoice_send_email(request, pk):
+    from django.core.mail import EmailMultiAlternatives
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    from django.template.loader import render_to_string
+    from django.urls import reverse
+    from dashboard.models import SiteSettings
+
+    invoice = get_object_or_404(Invoice, pk=pk)
+    to = request.POST.get("to", "").strip()
+    cc = request.POST.get("cc", "").strip()
+    subject = request.POST.get("subject", "").strip()
+    message = request.POST.get("message", "").strip()
+
+    if not to or not subject:
+        return JsonResponse({"error": "Recipient email and subject are required."}, status=400)
+
+    try:
+        validate_email(to)
+    except ValidationError:
+        return JsonResponse({"error": "Invalid recipient email address."}, status=400)
+
+    cfg = SiteSettings.load()
+
+    try:
+        print_url = request.build_absolute_uri(
+            reverse("billing:invoice_print", args=[invoice.pk])
+        )
+        html_body = render_to_string("billing/invoice_email.html", {
+            "invoice": invoice,
+            "message": message,
+            "cfg": cfg,
+            "print_url": print_url,
+        }, request=request)
+
+        cc_list = []
+        if cc:
+            try:
+                validate_email(cc)
+                cc_list = [cc]
+            except ValidationError:
+                pass
+
+        from_email = cfg.business_email if cfg.business_email else None
+        email_msg = EmailMultiAlternatives(
+            subject=subject,
+            body=message or f"Please find invoice {invoice.invoice_number} below.",
+            from_email=from_email,
+            to=[to],
+            cc=cc_list,
+        )
+        email_msg.attach_alternative(html_body, "text/html")
+        email_msg.send()
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to send: {str(e)}"}, status=500)
+
+    return JsonResponse({"ok": True})

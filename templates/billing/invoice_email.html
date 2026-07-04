@@ -1,0 +1,140 @@
+{% load clrt_filters %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Invoice {{ invoice.invoice_number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; background: #f3f4f6; font-size: 14px; line-height: 1.6; }
+  .wrapper { max-width: 640px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .header { background: #1e293b; padding: 28px 32px; }
+  .brand { font-size: 20px; font-weight: 700; color: #ffffff; }
+  .brand-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .body-section { padding: 32px; }
+  .message-text { font-size: 14px; color: #374151; white-space: pre-line; margin-bottom: 28px; }
+  .invoice-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .invoice-box-header { background: #e2e8f0; padding: 10px 18px; }
+  .invoice-box-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+  .inv-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid #e2e8f0; }
+  .meta-cell { padding: 12px 18px; border-right: 1px solid #e2e8f0; }
+  .meta-cell:last-child { border-right: none; }
+  .meta-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 600; color: #111827; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f1f5f9; padding: 9px 18px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+  th.right { text-align: right; }
+  td { padding: 14px 18px; font-size: 13px; color: #374151; border-bottom: none; }
+  td.right { text-align: right; }
+  .total-section { padding: 0 18px 14px; }
+  .total-row { display: flex; justify-content: space-between; padding: 6px 0; font-size: 13px; color: #6b7280; border-top: 1px solid #f1f5f9; }
+  .total-row.disc { color: #dc2626; }
+  .total-row.grand { border-top: 2px solid #e2e8f0; margin-top: 4px; padding-top: 12px; font-size: 16px; font-weight: 700; color: #111827; }
+  .total-row.balance { color: #dc2626; font-weight: 600; }
+  .desc-box { padding: 12px 18px; font-size: 13px; color: #374151; border-bottom: 1px solid #e2e8f0; background: #fff; }
+  .terms-box { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; }
+  .terms-box p { font-size: 12px; color: #6b7280; white-space: pre-line; }
+  .terms-box .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 6px; }
+  .cta-btn { display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 7px; font-size: 13px; font-weight: 600; margin-bottom: 28px; }
+  .footer { border-top: 1px solid #e5e7eb; padding: 18px 32px; text-align: center; font-size: 12px; color: #9ca3af; }
+  .status-badge { display: inline-block; padding: 2px 10px; border-radius: 9999px; font-size: 11px; font-weight: 600; }
+  .status-paid { background: #d1fae5; color: #065f46; }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-overdue { background: #fee2e2; color: #b91c1c; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    {% if cfg.business_logo %}
+    <img src="{{ cfg.business_logo.url }}" alt="{{ cfg.business_name }}" style="max-height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:10px;">
+    {% endif %}
+    <div class="brand">{{ cfg.business_name|default:"My Business" }}</div>
+    {% if cfg.business_tagline %}<div class="brand-sub">{{ cfg.business_tagline }}</div>{% endif %}
+  </div>
+
+  <div class="body-section">
+
+    <!-- Custom message -->
+    {% if message %}
+    <div class="message-text">{{ message }}</div>
+    {% endif %}
+
+    <!-- Invoice card -->
+    <div class="invoice-box">
+      <div class="invoice-box-header">
+        <h2>
+          Invoice {{ invoice.invoice_number }}
+          <span class="status-badge status-{{ invoice.status }}" style="margin-left:8px;">{{ invoice.get_status_display }}</span>
+        </h2>
+      </div>
+
+      <!-- Meta row -->
+      <div class="inv-meta">
+        <div class="meta-cell">
+          <div class="meta-label">Bill To</div>
+          <div class="meta-value">{{ invoice.client.organization_name }}</div>
+        </div>
+        <div class="meta-cell">
+          <div class="meta-label">Invoice Date</div>
+          <div class="meta-value">{{ invoice.generated_date }}</div>
+        </div>
+        <div class="meta-cell">
+          <div class="meta-label">Due Date</div>
+          <div class="meta-value" {% if invoice.is_overdue %}style="color:#dc2626;"{% endif %}>{{ invoice.due_date }}</div>
+        </div>
+      </div>
+
+      <!-- Description row -->
+      {% if invoice.description %}
+      <div class="desc-box">{{ invoice.description }}</div>
+      {% endif %}
+
+      <!-- Line breakdown table -->
+      <table>
+        <thead>
+          <tr>
+            <th>Description</th>
+            <th class="right">Amount</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>{% if invoice.description %}{{ invoice.description }}{% elif invoice.contract %}{{ invoice.contract.contract_title }}{% else %}Professional Services{% endif %}</td>
+            <td class="right" style="font-weight:600;color:#111827;">{{ invoice.amount|inr }}</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <!-- Totals -->
+      <div class="total-section">
+        <div class="total-row"><span>Subtotal</span><span>{{ invoice.amount|inr }}</span></div>
+        {% if invoice.discount_percent %}
+        <div class="total-row disc"><span>Discount ({{ invoice.discount_percent }}%)</span><span>- {{ invoice.discount_amount|inr }}</span></div>
+        <div class="total-row"><span>After Discount</span><span>{{ invoice.taxable_amount|inr }}</span></div>
+        {% endif %}
+        {% if invoice.tax_rate %}
+        <div class="total-row"><span>VAT / Tax ({{ invoice.tax_rate }}%)</span><span>{{ invoice.tax_amount|inr }}</span></div>
+        {% endif %}
+        <div class="total-row grand"><span>Invoice Total</span><span>{{ invoice.final_amount|inr }}</span></div>
+      </div>
+    </div>
+
+    {% if print_url %}
+    <a href="{{ print_url }}" class="cta-btn">View Full Invoice &rarr;</a>
+    {% endif %}
+
+    {% if cfg.business_address %}
+    <p style="font-size:12px;color:#9ca3af;white-space:pre-line;">{{ cfg.business_address }}</p>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    &copy; {{ cfg.business_name|default:"My Business" }}
+    {% if cfg.business_email %} &middot; {{ cfg.business_email }}{% endif %}
+  </div>
+</div>
+</body>
+</html>
