@@ -1,0 +1,152 @@
+{% load clrt_filters %}<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Quotation {{ quote.quote_number }}</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; color: #111827; background: #f3f4f6; font-size: 14px; line-height: 1.6; }
+  .wrapper { max-width: 640px; margin: 32px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 1px 4px rgba(0,0,0,.08); }
+  .header { background: #1e293b; padding: 28px 32px; }
+  .brand { font-size: 20px; font-weight: 700; color: #ffffff; }
+  .brand-sub { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+  .body-section { padding: 32px; }
+  .message-text { font-size: 14px; color: #374151; white-space: pre-line; margin-bottom: 28px; }
+  .quote-box { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .quote-box-header { background: #e2e8f0; padding: 10px 18px; }
+  .quote-box-header h2 { font-size: 13px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #475569; }
+  .quote-meta { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0; border-bottom: 1px solid #e2e8f0; }
+  .meta-cell { padding: 12px 18px; border-right: 1px solid #e2e8f0; }
+  .meta-cell:last-child { border-right: none; }
+  .meta-label { font-size: 11px; color: #94a3b8; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 2px; }
+  .meta-value { font-size: 13px; font-weight: 600; color: #111827; }
+  table { width: 100%; border-collapse: collapse; }
+  th { background: #f1f5f9; padding: 9px 18px; text-align: left; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #64748b; border-bottom: 1px solid #e2e8f0; }
+  th.right { text-align: right; }
+  td { padding: 11px 18px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #374151; vertical-align: top; }
+  td.right { text-align: right; }
+  td.mono { font-variant-numeric: tabular-nums; }
+  .tfoot-row td { padding: 8px 18px; font-size: 13px; color: #6b7280; border-bottom: none; }
+  .tfoot-grand td { padding: 12px 18px; font-size: 16px; font-weight: 700; color: #111827; border-top: 2px solid #e2e8f0; border-bottom: none; }
+  .tfoot-disc td { color: #dc2626; }
+  .terms-box { background: #fafafa; border: 1px solid #e5e7eb; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px; }
+  .terms-box p { font-size: 12px; color: #6b7280; white-space: pre-line; }
+  .terms-box .lbl { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .05em; color: #9ca3af; margin-bottom: 6px; }
+  .cta-btn { display: inline-block; background: #2563eb; color: #ffffff; text-decoration: none; padding: 10px 22px; border-radius: 7px; font-size: 13px; font-weight: 600; margin-bottom: 28px; }
+  .footer { border-top: 1px solid #e5e7eb; padding: 18px 32px; text-align: center; font-size: 12px; color: #9ca3af; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+
+  <!-- Header -->
+  <div class="header">
+    {% if cfg.business_logo %}
+    <img src="{{ cfg.business_logo.url }}" alt="{{ cfg.business_name }}" style="max-height:48px;max-width:160px;object-fit:contain;display:block;margin-bottom:10px;">
+    {% endif %}
+    <div class="brand">{{ cfg.business_name|default:"My Business" }}</div>
+    {% if cfg.business_tagline %}<div class="brand-sub">{{ cfg.business_tagline }}</div>{% endif %}
+  </div>
+
+  <div class="body-section">
+
+    <!-- Custom message -->
+    {% if message %}
+    <div class="message-text">{{ message }}</div>
+    {% endif %}
+
+    <!-- Quotation summary card -->
+    <div class="quote-box">
+      <div class="quote-box-header">
+        <h2>Quotation {{ quote.quote_number }}{% if quote.title %} — {{ quote.title }}{% endif %}</h2>
+      </div>
+      <div class="quote-meta">
+        <div class="meta-cell">
+          <div class="meta-label">Prepared For</div>
+          <div class="meta-value">{{ quote.recipient_name }}</div>
+        </div>
+        <div class="meta-cell">
+          <div class="meta-label">Date</div>
+          <div class="meta-value">{{ quote.created_at|date:"d M Y" }}</div>
+        </div>
+        <div class="meta-cell">
+          <div class="meta-label">Valid Until</div>
+          <div class="meta-value" {% if quote.is_expired %}style="color:#dc2626;"{% endif %}>{{ quote.valid_until }}</div>
+        </div>
+      </div>
+
+      <!-- Line items -->
+      <table>
+        <thead>
+          <tr>
+            <th style="width:50%;">Description</th>
+            <th class="right" style="width:15%;">Qty</th>
+            <th class="right" style="width:18%;">Unit Price</th>
+            <th class="right" style="width:17%;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for item in quote.items.all %}
+          <tr>
+            <td>{{ item.description }}</td>
+            <td class="right mono">{{ item.quantity|floatformat:"-2" }}</td>
+            <td class="right mono">{{ item.unit_price|inr }}</td>
+            <td class="right mono" style="font-weight:600;color:#111827;">{{ item.line_total|inr }}</td>
+          </tr>
+          {% empty %}
+          <tr><td colspan="4" style="text-align:center;color:#9ca3af;padding:18px;">No items.</td></tr>
+          {% endfor %}
+        </tbody>
+        <tfoot>
+          <tr class="tfoot-row">
+            <td colspan="3" style="text-align:right;color:#6b7280;">Subtotal</td>
+            <td class="right mono">{{ quote.subtotal|inr }}</td>
+          </tr>
+          {% if quote.discount_percent %}
+          <tr class="tfoot-row tfoot-disc">
+            <td colspan="3" style="text-align:right;color:#dc2626;">Discount ({{ quote.discount_percent }}%)</td>
+            <td class="right mono" style="color:#dc2626;">- {{ quote.discount_amount|inr }}</td>
+          </tr>
+          <tr class="tfoot-row">
+            <td colspan="3" style="text-align:right;color:#6b7280;">After Discount</td>
+            <td class="right mono">{{ quote.taxable_amount|inr }}</td>
+          </tr>
+          {% endif %}
+          {% if quote.tax_rate %}
+          <tr class="tfoot-row">
+            <td colspan="3" style="text-align:right;color:#6b7280;">VAT / Tax ({{ quote.tax_rate }}%)</td>
+            <td class="right mono">{{ quote.tax_amount|inr }}</td>
+          </tr>
+          {% endif %}
+          <tr class="tfoot-grand">
+            <td colspan="3" style="text-align:right;">Grand Total</td>
+            <td class="right mono">{{ quote.total|inr }}</td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+
+    {% if quote.terms %}
+    <div class="terms-box">
+      <div class="lbl">Terms &amp; Conditions</div>
+      <p>{{ quote.terms }}</p>
+    </div>
+    {% endif %}
+
+    {% if print_url %}
+    <a href="{{ print_url }}" class="cta-btn">View Full Quotation &rarr;</a>
+    {% endif %}
+
+    {% if cfg.business_address %}
+    <p style="font-size:12px;color:#9ca3af;white-space:pre-line;">{{ cfg.business_address }}</p>
+    {% endif %}
+  </div>
+
+  <div class="footer">
+    &copy; {{ cfg.business_name|default:"My Business" }}
+    {% if cfg.business_email %} &middot; {{ cfg.business_email }}{% endif %}
+  </div>
+</div>
+</body>
+</html>

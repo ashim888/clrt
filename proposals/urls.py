@@ -10,4 +10,5 @@ urlpatterns = [
     path("<int:pk>/edit/", views.quote_edit, name="quote_edit"),
     path("<int:pk>/status/", views.quote_update_status, name="quote_update_status"),
     path("<int:pk>/print/", views.quote_print, name="quote_print"),
+    path("<int:pk>/send-email/", views.quote_send_email, name="quote_send_email"),
 ]

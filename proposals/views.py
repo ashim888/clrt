@@ -66,8 +66,19 @@ def quote_list(request):
 
 @requires_feature('has_proposals')
 def quote_detail(request, pk):
+    from dashboard.models import SiteSettings
     quote = get_object_or_404(Quote, pk=pk)
-    return render(request, "proposals/quote_detail.html", {"quote": quote})
+    recipient_email = ""
+    if quote.lead and quote.lead.email:
+        recipient_email = quote.lead.email
+    elif quote.client and quote.client.email:
+        recipient_email = quote.client.email
+    cfg = SiteSettings.load()
+    return render(request, "proposals/quote_detail.html", {
+        "quote": quote,
+        "recipient_email": recipient_email,
+        "cfg": cfg,
+    })
 
 
 @requires_feature('has_proposals')
@@ -195,3 +206,68 @@ def quote_print(request, pk):
     from dashboard.models import SiteSettings
     cfg = SiteSettings.load()
     return render(request, "proposals/quote_print.html", {"quote": quote, "cfg": cfg})
+
+
+@requires_feature('has_proposals')
+@require_POST
+def quote_send_email(request, pk):
+    from django.core.mail import EmailMultiAlternatives
+    from django.core.validators import validate_email
+    from django.core.exceptions import ValidationError
+    from django.template.loader import render_to_string
+    from django.urls import reverse
+    from dashboard.models import SiteSettings
+
+    quote = get_object_or_404(Quote, pk=pk)
+    to = request.POST.get("to", "").strip()
+    cc = request.POST.get("cc", "").strip()
+    subject = request.POST.get("subject", "").strip()
+    message = request.POST.get("message", "").strip()
+
+    if not to or not subject:
+        return JsonResponse({"error": "Recipient email and subject are required."}, status=400)
+
+    try:
+        validate_email(to)
+    except ValidationError:
+        return JsonResponse({"error": "Invalid recipient email address."}, status=400)
+
+    cfg = SiteSettings.load()
+
+    try:
+        print_url = request.build_absolute_uri(
+            reverse("proposals:quote_print", args=[quote.pk])
+        )
+        html_body = render_to_string("proposals/quote_email.html", {
+            "quote": quote,
+            "message": message,
+            "cfg": cfg,
+            "print_url": print_url,
+        }, request=request)
+
+        cc_list = []
+        if cc:
+            try:
+                validate_email(cc)
+                cc_list = [cc]
+            except ValidationError:
+                pass
+
+        from_email = cfg.business_email if cfg.business_email else None
+        email_msg = EmailMultiAlternatives(
+            subject=subject,
+            body=message or f"Please find quotation {quote.quote_number} below.",
+            from_email=from_email,
+            to=[to],
+            cc=cc_list,
+        )
+        email_msg.attach_alternative(html_body, "text/html")
+        email_msg.send()
+    except Exception as e:
+        return JsonResponse({"error": f"Failed to send: {str(e)}"}, status=500)
+
+    if quote.status == "draft":
+        quote.status = "sent"
+        quote.save(update_fields=["status"])
+
+    return JsonResponse({"ok": True, "new_status": quote.status, "status_label": quote.get_status_display()})
