@@ -152,58 +152,57 @@
   <input type="hidden" name="status" id="status-input">
 </form>
 
-<!-- ─── Email compose modal ─── -->
+<!-- ─── Email preview dialog ─── -->
 <div id="email-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display:none!important;">
-  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="closeEmailModal()"></div>
-  <div class="relative bg-white rounded-2xl shadow-2xl w-full max-w-xl z-10">
-    <div class="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-      <h3 class="font-semibold text-gray-900">Send Quotation by Email</h3>
-      <button onclick="closeEmailModal()" class="text-gray-400 hover:text-gray-600 transition-colors p-1">
+  <div class="absolute inset-0 bg-black/50 backdrop-blur-sm" onclick="closeEmailModal()"></div>
+  <div class="relative z-10 bg-white rounded-2xl shadow-2xl flex flex-col" style="width:92vw;max-width:920px;height:88vh;">
+
+    <!-- Header -->
+    <div class="flex items-start justify-between px-6 py-4 border-b border-gray-100 flex-shrink-0">
+      <div class="flex-1 min-w-0 pr-4">
+        <h3 class="font-semibold text-gray-900 mb-2">Send Quotation by Email</h3>
+        <div class="flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+          <label class="flex items-center gap-2 flex-shrink-0">
+            <span class="text-gray-500 font-medium">To</span>
+            <input type="email" id="email-to-input"
+              value="{{ recipient_email }}"
+              placeholder="Enter recipient email"
+              class="border border-gray-300 rounded-lg px-2.5 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent w-56">
+          </label>
+          <span class="text-gray-400 text-xs hidden sm:inline">Subject: Quotation {{ quote.quote_number }} from {{ cfg.business_name|default:"My Business" }}</span>
+        </div>
+      </div>
+      <button onclick="closeEmailModal()" class="flex-shrink-0 text-gray-400 hover:text-gray-600 p-1 transition-colors">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
         </svg>
       </button>
     </div>
-    <form id="email-form" class="px-6 py-5 space-y-4">
-      {% csrf_token %}
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">To <span class="text-red-500">*</span></label>
-        <input type="email" name="to" id="email-to" required
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="recipient@example.com">
+
+    <!-- Preview (loaded via fetch → srcdoc to avoid 0.0.0.0 iframe issues) -->
+    <div class="flex-1 bg-gray-100 p-3 min-h-0" style="overflow:hidden;">
+      <div id="email-preview-wrap" class="w-full h-full rounded-lg overflow-hidden shadow-sm bg-white flex items-center justify-center">
+        <span class="text-gray-400 text-sm">Loading preview…</span>
       </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">CC <span class="text-xs font-normal text-gray-400">(optional)</span></label>
-        <input type="email" name="cc" id="email-cc"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-          placeholder="cc@example.com">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">Subject <span class="text-red-500">*</span></label>
-        <input type="text" name="subject" id="email-subject" required
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-      </div>
-      <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">
-          Personal note <span class="text-xs font-normal text-gray-400">(optional — appears above the quotation)</span>
-        </label>
-        <textarea name="message" id="email-message" rows="2"
-          class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-          placeholder="e.g. Please find the attached quotation for your review. Let us know if you have any questions."></textarea>
-      </div>
-      <p class="text-xs text-gray-400 -mt-1">The full quotation — with line items, totals, and terms — is sent as the email body.</p>
-      <div id="email-error" class="hidden rounded-lg bg-red-50 border border-red-200 px-3 py-2 text-sm text-red-700"></div>
-      <div class="flex items-center gap-3 pt-1">
-        <button type="submit" id="email-submit-btn"
+    </div>
+
+    <!-- Error bar -->
+    <div id="email-error" class="hidden px-6 py-2.5 bg-red-50 border-t border-red-100 text-sm text-red-700 flex-shrink-0"></div>
+
+    <!-- Footer -->
+    <div class="flex items-center justify-between px-6 py-4 border-t border-gray-100 flex-shrink-0">
+      <p class="text-xs text-gray-400">This is exactly what the recipient will receive.</p>
+      <div class="flex items-center gap-3">
+        <button onclick="closeEmailModal()" class="btn-secondary px-5 py-2">Cancel</button>
+        <button id="email-send-btn" onclick="sendQuoteEmail()"
           class="btn-primary px-5 py-2 inline-flex items-center gap-2">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/>
           </svg>
-          Send
+          Send Email
         </button>
-        <button type="button" onclick="closeEmailModal()" class="btn-secondary px-5 py-2">Cancel</button>
       </div>
-    </form>
+    </div>
   </div>
 </div>
 
@@ -213,51 +212,71 @@ function changeStatus(val) {
   document.getElementById('status-form').submit();
 }
 
-// ── Email modal ──
-const RECIPIENT_EMAIL = "{{ recipient_email|escapejs }}";
-const QUOTE_NUMBER    = "{{ quote.quote_number|escapejs }}";
-const BUSINESS_NAME   = "{{ cfg.business_name|default:'My Business'|escapejs }}";
+// ── Email preview dialog ──
+const QUOTE_NUMBER  = "{{ quote.quote_number|escapejs }}";
+const BUSINESS_NAME = "{{ cfg.business_name|default:'My Business'|escapejs }}";
+const CSRF_TOKEN    = "{{ csrf_token }}";
+const PRINT_URL     = "{% url 'proposals:quote_print' quote.pk %}?preview=1";
+const SEND_URL      = "{% url 'proposals:quote_send_email' quote.pk %}";
+
+let previewLoaded = false;
 
 function openEmailModal() {
-  document.getElementById('email-to').value = RECIPIENT_EMAIL;
-  document.getElementById('email-subject').value = `Quotation ${QUOTE_NUMBER} from ${BUSINESS_NAME}`;
-  document.getElementById('email-message').value = '';
   document.getElementById('email-error').classList.add('hidden');
   document.getElementById('email-modal').style.removeProperty('display');
-  setTimeout(() => document.getElementById('email-to').focus(), 50);
+  if (!previewLoaded) loadPreview();
 }
 
 function closeEmailModal() {
   document.getElementById('email-modal').style.setProperty('display', 'none', 'important');
 }
 
-document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeEmailModal();
-});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeEmailModal(); });
 
-document.getElementById('email-form').addEventListener('submit', async function(e) {
-  e.preventDefault();
-  const btn = document.getElementById('email-submit-btn');
+async function loadPreview() {
+  const wrap = document.getElementById('email-preview-wrap');
+  try {
+    const res = await fetch(PRINT_URL);
+    const html = await res.text();
+    // Inject base href so relative asset URLs (logo, etc.) resolve correctly
+    const withBase = html.replace('<head>', `<head><base href="${window.location.origin}/">`);
+    wrap.innerHTML = '';
+    const iframe = document.createElement('iframe');
+    iframe.style.cssText = 'width:100%;height:100%;border:none;';
+    iframe.srcdoc = withBase;
+    wrap.appendChild(iframe);
+    previewLoaded = true;
+  } catch {
+    wrap.innerHTML = '<p style="padding:24px;color:#6b7280;font-size:13px;">Could not load preview.</p>';
+  }
+}
+
+async function sendQuoteEmail() {
+  const toInput = document.getElementById('email-to-input');
+  const to = toInput.value.trim();
+  if (!to) { toInput.focus(); return; }
+
+  const btn = document.getElementById('email-send-btn');
   const errEl = document.getElementById('email-error');
   btn.disabled = true;
   btn.innerHTML = '<svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path></svg> Sending…';
   errEl.classList.add('hidden');
 
-  const formData = new FormData(this);
+  const fd = new FormData();
+  fd.append('csrfmiddlewaretoken', CSRF_TOKEN);
+  fd.append('to', to);
+  fd.append('subject', `Quotation ${QUOTE_NUMBER} from ${BUSINESS_NAME}`);
+  fd.append('message', '');
+
   try {
-    const res = await fetch("{% url 'proposals:quote_send_email' quote.pk %}", {
-      method: 'POST',
-      body: formData,
-    });
+    const res = await fetch(SEND_URL, { method: 'POST', body: fd });
     const data = await res.json();
     if (data.ok) {
       closeEmailModal();
-      // Update status pill if it changed
       if (data.new_status) {
         const sel = document.getElementById('status-sel');
         if (sel) sel.value = data.new_status;
       }
-      // Flash a success notification
       const flash = document.createElement('div');
       flash.className = 'fixed top-4 right-4 z-50 bg-green-600 text-white text-sm font-medium px-4 py-2.5 rounded-xl shadow-lg';
       flash.textContent = 'Quotation sent successfully!';
@@ -272,8 +291,8 @@ document.getElementById('email-form').addEventListener('submit', async function(
     errEl.classList.remove('hidden');
   } finally {
     btn.disabled = false;
-    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Send';
+    btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Send Email';
   }
-});
+}
 </script>
 {% endblock %}

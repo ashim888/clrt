@@ -230,7 +230,11 @@ def quote_print(request, pk):
     quote = get_object_or_404(Quote, pk=pk)
     from dashboard.models import SiteSettings
     cfg = SiteSettings.load()
-    return render(request, "proposals/quote_print.html", {"quote": quote, "cfg": cfg})
+    return render(request, "proposals/quote_print.html", {
+        "quote": quote,
+        "cfg": cfg,
+        "email_mode": request.GET.get("preview") == "1",
+    })
 
 
 @requires_feature('has_proposals')

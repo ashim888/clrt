@@ -149,6 +149,7 @@ def invoice_print(request, pk):
         "paid_total": paid_total,
         "balance": invoice.final_amount - paid_total,
         "cfg": cfg,
+        "email_mode": request.GET.get("preview") == "1",
     })
 
 
