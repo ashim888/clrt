@@ -26,4 +26,6 @@ def decrypt(value: str) -> str:
     try:
         return _fernet().decrypt(value.encode()).decode()
     except Exception:
-        return ""
+        # Return as-is when value is plaintext (pre-encryption migration)
+        # so existing data is never silently lost
+        return value
