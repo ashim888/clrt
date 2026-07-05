@@ -9,7 +9,7 @@ from django.views.decorators.http import require_POST
 from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate, ContractDocument
 from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm, ContractTemplateForm
 from dashboard.decorators import requires_feature
-
+from django.utils import timezone
 
 def _can_edit(user):
     return user.is_admin() or user.is_accounts()
@@ -79,9 +79,13 @@ def client_detail(request, pk):
     interactions = client.interactions.select_related("created_by").all()
 
     from billing.models import Payment
-    invoices = client.invoices.all()
+    from datetime import date as _date
+    import json as _json
+
+    invoices = list(client.invoices.all())
     total_billed = sum(inv.final_amount for inv in invoices)
-    total_paid_actual = Payment.objects.filter(invoice__client=client).aggregate(t=Sum("amount_paid"))["t"] or 0
+    all_payments = list(Payment.objects.filter(invoice__client=client))
+    total_paid_actual = sum(p.amount_paid for p in all_payments)
     total_overdue = sum(inv.final_amount for inv in invoices if inv.status == "overdue")
     total_pending = sum(inv.final_amount for inv in invoices if inv.status in ("pending", "overdue"))
     financial = {
@@ -90,6 +94,33 @@ def client_detail(request, pk):
         "total_pending": total_pending,
         "total_overdue": total_overdue,
         "outstanding": total_billed - total_paid_actual,
+    }
+
+    # Build last-12-months chart data
+    today = timezone.now().date()
+    chart_months = []
+    for i in range(11, -1, -1):
+        m = today.month - i
+        y = today.year
+        while m <= 0:
+            m += 12
+            y -= 1
+        chart_months.append(_date(y, m, 1))
+
+    billed_by_month = {}
+    for inv in invoices:
+        key = inv.generated_date.replace(day=1)
+        billed_by_month[key] = float(billed_by_month.get(key, 0)) + float(inv.final_amount)
+
+    paid_by_month = {}
+    for p in all_payments:
+        key = p.payment_date.replace(day=1)
+        paid_by_month[key] = float(paid_by_month.get(key, 0)) + float(p.amount_paid)
+
+    chart_data = {
+        "labels": [m.strftime("%b %Y") for m in chart_months],
+        "billed": [round(billed_by_month.get(m, 0), 2) for m in chart_months],
+        "paid": [round(paid_by_month.get(m, 0), 2) for m in chart_months],
     }
 
     lead_activities = None
@@ -108,6 +139,7 @@ def client_detail(request, pk):
         "contacts": contacts,
         "interactions": interactions,
         "financial": financial,
+        "chart_data": _json.dumps(chart_data),
         "lead_activities": lead_activities,
         "audit_logs": audit_logs,
         "quick_notes": quick_notes,

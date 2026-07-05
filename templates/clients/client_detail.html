@@ -96,6 +96,85 @@
   </div>
 </div>
 
+<!-- ── Activity Chart ── -->
+<div class="card p-5 mb-6">
+  <div class="flex items-center justify-between mb-4">
+    <div>
+      <p class="text-sm font-semibold text-gray-800">Billing Activity</p>
+      <p class="text-xs text-gray-400">Invoiced vs collected — last 12 months</p>
+    </div>
+    <div class="flex items-center gap-4 text-xs text-gray-500">
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-indigo-200"></span>Billed</span>
+      <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-green-400"></span>Collected</span>
+    </div>
+  </div>
+  <div style="height:180px;position:relative;">
+    <canvas id="clientBillingChart"></canvas>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script>
+(function() {
+  const raw = {{ chart_data|safe }};
+  const hasData = raw.billed.some(v => v > 0) || raw.paid.some(v => v > 0);
+  const ctx = document.getElementById('clientBillingChart');
+  if (!hasData) {
+    ctx.parentElement.innerHTML = '<p class="text-xs text-gray-300 text-center" style="line-height:180px;">No billing data yet.</p>';
+    return;
+  }
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: raw.labels,
+      datasets: [
+        {
+          label: 'Billed',
+          data: raw.billed,
+          backgroundColor: '#c7d2fe',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+        {
+          label: 'Collected',
+          data: raw.paid,
+          backgroundColor: '#4ade80',
+          borderRadius: 4,
+          borderSkipped: false,
+        },
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ' ₹' + ctx.parsed.y.toLocaleString('en-IN', { minimumFractionDigits: 0 })
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { display: false },
+          ticks: { font: { size: 10 }, color: '#9ca3af', maxRotation: 0 }
+        },
+        y: {
+          grid: { color: '#f3f4f6' },
+          border: { display: false },
+          ticks: {
+            font: { size: 10 }, color: '#9ca3af',
+            callback: v => '₹' + (v >= 1000 ? (v/1000).toFixed(0)+'k' : v)
+          }
+        }
+      }
+    }
+  });
+})();
+</script>
+
 <!-- ── Main grid: content + sidebar ── -->
 <div class="grid lg:grid-cols-3 gap-6 items-start">
 
@@ -348,6 +427,34 @@
       {% endif %}
 
     </div><!-- /card -->
+
+    <!-- Quick Notes -->
+    <div class="card p-5 mt-5">
+      <p class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Quick Notes</p>
+      <form method="post" action="{% url 'dashboard:quick_note_add' %}" class="flex gap-2 mb-4">
+        {% csrf_token %}
+        <input type="hidden" name="client_pk" value="{{ client.pk }}">
+        <input type="text" name="body" placeholder="Add a quick note…" required class="input flex-1 text-sm" autocomplete="off">
+        <button type="submit" class="btn-primary text-sm px-4">Save</button>
+      </form>
+      <div class="space-y-2">
+        {% for note in quick_notes %}
+        <div class="flex items-start gap-3 rounded-lg bg-gray-50 px-4 py-3 group">
+          <div class="flex-1 min-w-0">
+            <p class="text-sm text-gray-800 break-words">{{ note.body }}</p>
+            <p class="text-xs text-gray-400 mt-0.5">{{ note.created_at|site_date }}{% if note.user %} · {{ note.user.get_full_name|default:note.user.username }}{% endif %}</p>
+          </div>
+          <form method="post" action="{% url 'dashboard:quick_note_delete' note.pk %}" onsubmit="return confirm('Delete this note?');">
+            {% csrf_token %}
+            <button type="submit" class="text-gray-300 hover:text-red-400 transition-colors text-lg leading-none flex-shrink-0 opacity-0 group-hover:opacity-100" title="Delete">×</button>
+          </form>
+        </div>
+        {% empty %}
+        <p class="text-xs text-gray-400">No notes yet.</p>
+        {% endfor %}
+      </div>
+    </div>
+
   </div>
 
   <!-- ── Right: Sidebar (1/3) ── -->
@@ -418,11 +525,7 @@
 
 </div><!-- /main grid -->
 
-<!-- Quick notes + audit log below -->
-<div class="mt-6">
-  {% include "partials/quick_notes.html" with quick_notes=quick_notes client_pk=client.pk %}
-  {% include "partials/audit_log.html" with audit_logs=audit_logs %}
-</div>
+{% include "partials/audit_log.html" with audit_logs=audit_logs %}
 
 <!-- ── Lightbox ── -->
 <div id="client-lightbox" onclick="closeClientLightbox()"
