@@ -499,10 +499,38 @@ def contract_create(request, client_pk):
 
 @login_required
 def contract_detail(request, pk):
+    from django.utils import timezone
+
     contract = get_object_or_404(Contract, pk=pk)
+    invoices = contract.invoices.order_by("-generated_date")
+
+    # Billing summary
+    billed_total = sum(inv.final_amount for inv in invoices)
+    paid_total = sum(
+        inv.payments.aggregate(t=Sum("amount_paid"))["t"] or 0
+        for inv in invoices
+    )
+    outstanding = billed_total - paid_total
+    billed_pct = min(int(billed_total / contract.contract_value * 100), 100) if contract.contract_value else 0
+
+    # Duration progress
+    today = timezone.now().date()
+    total_days = (contract.end_date - contract.start_date).days or 1
+    elapsed_days = (today - contract.start_date).days
+    duration_pct = max(0, min(int(elapsed_days / total_days * 100), 100))
+    days_remaining = (contract.end_date - today).days
+
     return render(request, "clients/contract_detail.html", {
         "contract": contract,
         "documents": contract.documents.all(),
+        "invoices": invoices,
+        "billed_total": billed_total,
+        "paid_total": paid_total,
+        "outstanding": outstanding,
+        "billed_pct": billed_pct,
+        "duration_pct": duration_pct,
+        "days_remaining": days_remaining,
+        "today": today,
     })
 
 

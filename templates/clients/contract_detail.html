@@ -12,112 +12,241 @@
   .ck-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
   .ck-content table td, .ck-content table th { border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
   .ck-content blockquote { border-left: 3px solid #d1d5db; margin: 1em 0; padding-left: 1rem; color: #6b7280; }
-  @media print { .btn-secondary, #contract-lightbox { display: none !important; } }
+  @media print { nav, header, .no-print { display: none !important; } }
 </style>
 {% endblock %}
 {% block content %}
+
+<!-- Page header -->
 <div class="flex items-start justify-between mb-6">
   <div>
-    <div class="flex items-center gap-3 mb-1">
+    <div class="flex items-center gap-3 mb-1 flex-wrap">
       <h1 class="text-2xl font-bold text-gray-900">{{ contract.contract_title }}</h1>
-      <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
+      <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">{{ contract.get_status_display }}</span>
       {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">&#x26A0; Expiring in {{ contract.days_until_expiry }} days</span>{% endif %}
     </div>
     <a href="{% url "clients:client_detail" contract.client.pk %}" class="text-blue-600 hover:underline text-sm">{{ contract.client.organization_name }}</a>
   </div>
-  <a href="{% url "clients:contract_edit" contract.pk %}" class="btn-secondary">Edit</a>
+  <div class="flex items-center gap-2 no-print">
+    <button onclick="window.print()" class="btn-secondary text-sm flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      Print
+    </button>
+    <a href="{% url "clients:contract_edit" contract.pk %}" class="btn-primary text-sm">Edit Contract</a>
+  </div>
 </div>
 
-<div class="grid lg:grid-cols-2 gap-6 items-start">
-
-  <!-- Details + file list -->
-  <div class="card p-5 space-y-4">
-    <h3 class="font-semibold text-gray-900">Contract Details</h3>
-    <div class="grid grid-cols-2 gap-4 text-sm">
-      <div><p class="text-gray-400 text-xs">Start Date</p><p class="font-medium">{{ contract.start_date }}</p></div>
-      <div><p class="text-gray-400 text-xs">End Date</p><p class="font-medium">{{ contract.end_date }}</p></div>
-      <div><p class="text-gray-400 text-xs">Billing Cycle</p><p class="font-medium">{{ contract.get_billing_cycle_display }}</p></div>
-      <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">{{ contract.contract_value|inr }}</p></div>
+<!-- Stat strip -->
+<div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Contract Value</p>
+    <p class="text-xl font-bold text-gray-900">{{ contract.contract_value|inr }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ contract.get_billing_cycle_display }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Total Billed</p>
+    <p class="text-xl font-bold text-gray-900">{{ billed_total|inr }}</p>
+    {% if contract.contract_value %}
+    <div class="mt-2 w-full bg-gray-100 rounded-full h-1 overflow-hidden">
+      <div class="h-1 rounded-full bg-blue-400" style="width:{{ billed_pct }}%"></div>
     </div>
-    {% if contract.notes %}<div><p class="text-gray-400 text-xs">Internal Notes</p><p class="text-sm text-gray-600">{{ contract.notes }}</p></div>{% endif %}
+    {% endif %}
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Collected</p>
+    <p class="text-xl font-bold text-green-600">{{ paid_total|inr }}</p>
+    <p class="text-xs text-gray-400 mt-1">{{ invoices|length }} invoice{{ invoices|length|pluralize }}</p>
+  </div>
+  <div class="card p-4">
+    <p class="text-xs text-gray-400 mb-1">Outstanding</p>
+    <p class="text-xl font-bold {% if outstanding > 0 %}text-red-600{% else %}text-gray-400{% endif %}">{{ outstanding|inr }}</p>
+    <p class="text-xs mt-1 {% if outstanding > 0 %}text-red-400{% else %}text-green-500{% endif %}">
+      {% if outstanding > 0 %}Awaiting payment{% else %}Fully collected{% endif %}
+    </p>
+  </div>
+</div>
 
+<!-- Main two-column grid -->
+<div class="grid lg:grid-cols-5 gap-6 items-start mb-6">
+
+  <!-- Left: Contract info + files (wider) -->
+  <div class="lg:col-span-3 space-y-5">
+
+    <!-- Contract Details -->
+    <div class="card p-5">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Contract Details</h3>
+      <div class="grid grid-cols-2 gap-x-8 gap-y-4 text-sm">
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Start Date</p>
+          <p class="font-medium text-gray-900">{{ contract.start_date }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">End Date</p>
+          <p class="font-medium text-gray-900">{{ contract.end_date }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Billing Cycle</p>
+          <p class="font-medium text-gray-900">{{ contract.get_billing_cycle_display }}</p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Status</p>
+          <p class="font-medium text-gray-900">{{ contract.get_status_display }}</p>
+        </div>
+      </div>
+
+      <!-- Duration bar inside details card -->
+      <div class="mt-5 pt-4 border-t border-gray-100">
+        <div class="flex justify-between text-xs text-gray-400 mb-1.5">
+          <span>{{ contract.start_date }}</span>
+          <span class="font-medium {% if days_remaining <= 30 and days_remaining > 0 %}text-red-500{% elif days_remaining <= 90 and days_remaining > 0 %}text-yellow-600{% elif days_remaining > 0 %}text-green-600{% else %}text-red-500{% endif %}">
+            {% if days_remaining > 0 %}{{ days_remaining }} day{{ days_remaining|pluralize }} remaining{% else %}Expired{% endif %}
+          </span>
+          <span>{{ contract.end_date }}</span>
+        </div>
+        <div class="w-full bg-gray-100 rounded-full h-2 overflow-hidden">
+          <div class="h-2 rounded-full transition-all
+            {% if days_remaining <= 0 %}bg-red-500
+            {% elif duration_pct >= 90 %}bg-red-400
+            {% elif duration_pct >= 70 %}bg-yellow-400
+            {% else %}bg-green-500{% endif %}"
+            style="width:{{ duration_pct }}%"></div>
+        </div>
+        <p class="text-xs text-gray-400 mt-1">{{ duration_pct }}% of contract period elapsed</p>
+      </div>
+
+      {% if contract.notes %}
+      <div class="mt-4 pt-4 border-t border-gray-100">
+        <p class="text-xs text-gray-400 mb-1">Internal Notes</p>
+        <p class="text-sm text-gray-600 leading-relaxed">{{ contract.notes }}</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Files -->
     {% if documents %}
-    <div>
-      <p class="text-gray-400 text-xs mb-2">Files ({{ documents.count }})</p>
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Files ({{ documents.count }})</h3>
+        <a href="{% url "clients:contract_edit" contract.pk %}" class="text-xs text-blue-600 hover:text-blue-800 no-print">+ Upload more</a>
+      </div>
       <div class="space-y-2">
         {% for doc in documents %}
-        <div class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
-          <a href="{{ doc.file.url }}" target="_blank" class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 min-w-0">
+        <div class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2.5 group hover:border-gray-200 transition-colors">
+          <a href="{{ doc.file.url }}" target="_blank" class="flex items-center gap-2.5 text-sm text-blue-600 hover:text-blue-800 min-w-0">
             {% if doc.is_pdf %}
-            <svg class="w-4 h-4 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            <div class="w-7 h-7 rounded-lg bg-red-50 flex items-center justify-center flex-shrink-0">
+              <svg class="w-3.5 h-3.5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            </div>
             {% else %}
-            <svg class="w-4 h-4 flex-shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <div class="w-7 h-7 rounded-lg bg-indigo-50 flex items-center justify-center flex-shrink-0">
+              <svg class="w-3.5 h-3.5 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            </div>
             {% endif %}
             <span class="truncate">{{ doc.filename }}</span>
           </a>
-          <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+          <div class="flex items-center gap-3 flex-shrink-0 ml-3 no-print">
             <span class="text-xs text-gray-400">{{ doc.uploaded_at|date:"j M Y" }}</span>
             <form method="post" action="{% url 'clients:contract_document_delete' doc.pk %}" onsubmit="return confirm('Remove this file?')">
               {% csrf_token %}
-              <button type="submit" class="text-xs text-red-400 hover:text-red-600">Remove</button>
+              <button type="submit" class="text-xs text-red-400 hover:text-red-600 opacity-0 group-hover:opacity-100 transition-opacity">Remove</button>
             </form>
           </div>
         </div>
         {% endfor %}
       </div>
     </div>
-    {% elif contract.document %}
-    <a href="{{ contract.document.url }}" target="_blank" class="btn-secondary inline-flex items-center gap-2">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
-      View Document
-    </a>
     {% endif %}
+
   </div>
 
-  <!-- Image carousel (images only) -->
-  {% with image_docs=documents %}
-  {% if image_docs %}
-  <div class="card overflow-hidden" id="carousel-wrap" style="display:none">
+  <!-- Right: Invoices (narrower) -->
+  <div class="lg:col-span-2 space-y-5">
 
-    <!-- Slide viewport -->
-    <div class="relative bg-gray-950" style="min-height:320px;">
-      <div id="carousel-track" class="flex transition-transform duration-300 ease-in-out" style="will-change:transform;">
-        <!-- slides injected by JS -->
+    <!-- Invoices -->
+    <div class="card p-5">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Invoices</h3>
+        <a href="{% url 'billing:invoice_create' %}?contract={{ contract.pk }}" class="text-xs text-blue-600 hover:text-blue-800 font-medium no-print">+ New Invoice</a>
       </div>
-
-      <!-- Prev / Next arrows -->
-      <button id="carousel-prev" onclick="carouselStep(-1)"
-        class="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
-      </button>
-      <button id="carousel-next" onclick="carouselStep(1)"
-        class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-      </button>
-
-      <!-- Counter badge -->
-      <span id="carousel-counter" class="absolute top-3 right-3 z-10 text-xs font-medium text-white bg-black/50 rounded-full px-2.5 py-0.5"></span>
+      {% if invoices %}
+      <div class="space-y-2">
+        {% for inv in invoices %}
+        <a href="{% url 'billing:invoice_detail' inv.pk %}" class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 hover:bg-blue-50 hover:border-blue-100 px-3 py-2.5 transition-colors group">
+          <div class="min-w-0">
+            <p class="text-sm font-medium text-gray-800 group-hover:text-blue-700 truncate">{{ inv.invoice_number }}</p>
+            <p class="text-xs text-gray-400">Due {{ inv.due_date|default:"—" }}</p>
+          </div>
+          <div class="flex items-center gap-2 flex-shrink-0 ml-3">
+            <span class="text-sm font-semibold text-gray-700">{{ inv.final_amount|inr }}</span>
+            <span class="text-xs px-2 py-0.5 rounded-full font-medium
+              {% if inv.status == 'paid' %}bg-green-100 text-green-700
+              {% elif inv.status == 'overdue' %}bg-red-100 text-red-700
+              {% elif inv.status == 'cancelled' %}bg-gray-100 text-gray-500
+              {% else %}bg-yellow-100 text-yellow-700{% endif %}">
+              {{ inv.get_status_display }}
+            </span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="text-center py-8 text-gray-300">
+        <svg class="w-8 h-8 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 14l2 2 4-4M7 4h10a2 2 0 012 2v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6a2 2 0 012-2z"/></svg>
+        <p class="text-xs text-gray-400">No invoices yet</p>
+        <a href="{% url 'billing:invoice_create' %}?contract={{ contract.pk }}" class="inline-block mt-3 text-xs text-blue-600 hover:text-blue-800 font-medium no-print">Create first invoice →</a>
+      </div>
+      {% endif %}
     </div>
 
-    <!-- Dots + caption bar -->
-    <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
-      <span id="carousel-caption" class="text-xs text-gray-400 truncate"></span>
-      <div id="carousel-dots" class="flex items-center gap-1.5 flex-shrink-0"></div>
+    <!-- Quick client card -->
+    <div class="card p-5">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Client</h3>
+      <a href="{% url "clients:client_detail" contract.client.pk %}" class="flex items-center gap-3 group">
+        <div class="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 text-blue-700 font-bold text-sm">
+          {{ contract.client.organization_name|first|upper }}
+        </div>
+        <div class="min-w-0">
+          <p class="text-sm font-semibold text-gray-800 group-hover:text-blue-700 truncate">{{ contract.client.organization_name }}</p>
+          {% if contract.client.email %}<p class="text-xs text-gray-400 truncate">{{ contract.client.email }}</p>{% endif %}
+        </div>
+        <svg class="w-4 h-4 text-gray-300 group-hover:text-blue-400 flex-shrink-0 ml-auto transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </a>
     </div>
+
   </div>
-  {% endif %}
-  {% endwith %}
 
 </div>
 
-{% if contract.body %}
-<div class="card p-6 mt-6">
-  <div class="flex items-center justify-between mb-4">
-    <h3 class="font-semibold text-gray-900">Contract Agreement</h3>
-    <button onclick="window.print()" class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
-      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
-      Print
+<!-- Image carousel — full width, only shown if images exist -->
+{% if documents %}
+<div id="carousel-wrap" class="card overflow-hidden mb-6" style="display:none">
+  <div class="px-5 pt-4 pb-0 flex items-center justify-between">
+    <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider">Document Images</h3>
+    <span id="carousel-counter" class="text-xs text-gray-400"></span>
+  </div>
+  <div class="relative bg-gray-950 mt-4" style="min-height:360px;max-height:540px;">
+    <div id="carousel-track" class="flex transition-transform duration-300 ease-in-out h-full" style="will-change:transform;"></div>
+    <button id="carousel-prev" onclick="carouselStep(-1)"
+      class="absolute left-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
     </button>
+    <button id="carousel-next" onclick="carouselStep(1)"
+      class="absolute right-3 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+    </button>
+  </div>
+  <div class="px-5 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+    <span id="carousel-caption" class="text-xs text-gray-400 truncate"></span>
+    <div id="carousel-dots" class="flex items-center gap-1.5 flex-shrink-0"></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Contract body — full width -->
+{% if contract.body %}
+<div class="card p-6">
+  <div class="flex items-center justify-between mb-5">
+    <h3 class="font-semibold text-gray-900">Contract Agreement</h3>
   </div>
   <div class="prose prose-sm max-w-none bg-gray-50 rounded-xl border border-gray-100 px-8 py-6 text-gray-700 leading-relaxed ck-content">
     {{ contract.body|safe }}
@@ -129,8 +258,6 @@
 <div id="contract-lightbox" onclick="closeLightbox()" style="display:none"
   class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
   <div class="relative w-full max-w-5xl flex flex-col items-center" onclick="event.stopPropagation()">
-
-    <!-- Top bar -->
     <div class="flex items-center justify-between w-full mb-3">
       <span id="lb-counter" class="text-white/60 text-xs"></span>
       <span id="lb-caption" class="text-white/60 text-xs truncate mx-4"></span>
@@ -139,8 +266,6 @@
         <button onclick="closeLightbox()" class="text-white/60 hover:text-white text-sm leading-none">✕</button>
       </div>
     </div>
-
-    <!-- Image -->
     <div class="relative w-full flex items-center justify-center">
       <button onclick="lightboxStep(-1)"
         class="absolute left-0 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors">
@@ -152,77 +277,55 @@
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
       </button>
     </div>
-
-    <!-- Dots -->
     <div id="lb-dots" class="flex items-center gap-2 mt-4"></div>
   </div>
 </div>
 
 <script>
-// Build image list from Django context
 const IMAGES = [
   {% for doc in documents %}{% if doc.is_image %}
   { src: "{{ doc.file.url|escapejs }}", name: "{{ doc.filename|escapejs }}" },
   {% endif %}{% endfor %}
 ];
-
 const total = IMAGES.length;
 let current = 0;
 
-// ── Carousel ─────────────────────────────────────────────────────────────────
 function buildCarousel() {
   if (!total) return;
   document.getElementById('carousel-wrap').style.display = '';
-
   const track = document.getElementById('carousel-track');
   const dots  = document.getElementById('carousel-dots');
-
   IMAGES.forEach((img, i) => {
-    // Slide
     const slide = document.createElement('div');
     slide.className = 'flex-shrink-0 w-full flex items-center justify-center bg-gray-950 cursor-zoom-in';
-    slide.style.cssText = 'width:100%;min-height:320px;max-height:520px;';
+    slide.style.cssText = 'width:100%;min-height:360px;max-height:540px;';
     const im = document.createElement('img');
-    im.src = img.src;
-    im.alt = img.name;
-    im.style.cssText = 'max-height:520px;width:100%;object-fit:contain;';
+    im.src = img.src; im.alt = img.name;
+    im.style.cssText = 'max-height:540px;width:100%;object-fit:contain;';
     im.onclick = () => openLightbox(i);
-    slide.appendChild(im);
-    track.appendChild(slide);
-
-    // Dot
+    slide.appendChild(im); track.appendChild(slide);
     const dot = document.createElement('button');
-    dot.className = 'w-2 h-2 rounded-full transition-all duration-200 ' + (i === 0 ? 'bg-gray-700 w-4' : 'bg-gray-300');
+    dot.className = 'rounded-full transition-all duration-200 ' + (i === 0 ? 'bg-gray-700 w-4 h-2' : 'bg-gray-300 w-2 h-2');
     dot.onclick = () => goTo(i);
     dots.appendChild(dot);
   });
-
   updateCarousel();
 }
-
-function goTo(idx) {
-  current = (idx + total) % total;
-  updateCarousel();
-}
+function goTo(idx) { current = (idx + total) % total; updateCarousel(); }
 function carouselStep(dir) { goTo(current + dir); }
-
 function updateCarousel() {
   document.getElementById('carousel-track').style.transform = `translateX(-${current * 100}%)`;
   document.getElementById('carousel-counter').textContent = `${current + 1} / ${total}`;
   document.getElementById('carousel-caption').textContent = IMAGES[current].name;
-
   document.getElementById('carousel-prev').style.display = total <= 1 ? 'none' : '';
   document.getElementById('carousel-next').style.display = total <= 1 ? 'none' : '';
-
   document.querySelectorAll('#carousel-dots button').forEach((d, i) => {
     d.className = 'rounded-full transition-all duration-200 ' + (i === current ? 'bg-gray-700 w-4 h-2' : 'bg-gray-300 w-2 h-2');
   });
 }
 
-// ── Lightbox ──────────────────────────────────────────────────────────────────
 function buildLbDots() {
-  const c = document.getElementById('lb-dots');
-  c.innerHTML = '';
+  const c = document.getElementById('lb-dots'); c.innerHTML = '';
   IMAGES.forEach((_, i) => {
     const d = document.createElement('button');
     d.className = 'rounded-full transition-all duration-200 ' + (i === current ? 'bg-white w-4 h-2' : 'bg-white/30 w-2 h-2');
@@ -230,7 +333,6 @@ function buildLbDots() {
     c.appendChild(d);
   });
 }
-
 function openLightbox(idx) {
   current = (idx + total) % total;
   const img = IMAGES[current];
@@ -241,19 +343,13 @@ function openLightbox(idx) {
   buildLbDots();
   document.getElementById('contract-lightbox').style.display = 'flex';
   document.body.style.overflow = 'hidden';
-  // keep carousel in sync
   updateCarousel();
 }
-
-function lightboxStep(dir) {
-  openLightbox(current + dir);
-}
-
+function lightboxStep(dir) { openLightbox(current + dir); }
 function closeLightbox() {
   document.getElementById('contract-lightbox').style.display = 'none';
   document.body.style.overflow = '';
 }
-
 document.addEventListener('keydown', e => {
   if (document.getElementById('contract-lightbox').style.display !== 'none') {
     if (e.key === 'ArrowRight') lightboxStep(1);
@@ -261,7 +357,6 @@ document.addEventListener('keydown', e => {
     else if (e.key === 'Escape') closeLightbox();
   }
 });
-
 buildCarousel();
 </script>
 {% endblock %}

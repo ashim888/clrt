@@ -61,7 +61,16 @@ def invoice_create(request):
     if not (request.user.is_admin() or request.user.is_accounts()):
         messages.error(request, "Access denied.")
         return redirect("billing:invoice_list")
-    form = InvoiceForm(request.POST or None)
+    initial = {}
+    contract_pk = request.GET.get("contract")
+    if contract_pk:
+        from clients.models import Contract
+        try:
+            initial["contract"] = Contract.objects.get(pk=contract_pk)
+            initial["client"] = initial["contract"].client
+        except Contract.DoesNotExist:
+            pass
+    form = InvoiceForm(request.POST or None, initial=initial)
     if form.is_valid():
         invoice = form.save()
         messages.success(request, f"Invoice {invoice.invoice_number} created.")
