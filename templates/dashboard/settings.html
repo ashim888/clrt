@@ -271,14 +271,18 @@
               <input type="text" name="razorpay_key_id" value="{{ form.razorpay_key_id.value|default:'' }}" class="input font-mono text-sm" placeholder="rzp_live_...">
             </div>
             <div>
-              <label class="block text-sm font-medium text-gray-700 mb-1">Key Secret</label>
+              <label class="block text-sm font-medium text-gray-700 mb-1">
+                Key Secret
+                {% if form.razorpay_key_secret.value %}
+                <span class="ml-1.5 text-xs font-medium text-green-600 bg-green-50 border border-green-200 rounded-full px-2 py-0.5">Encrypted ✓</span>
+                {% endif %}
+              </label>
               <div class="relative">
-                <input type="password" name="razorpay_key_secret" id="id_rzp_secret" value="{{ form.razorpay_key_secret.value|default:'' }}" class="input font-mono text-sm pr-10" placeholder="••••••••••••">
-                <button type="button" onclick="toggleSecret()" class="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
-                  <svg id="eye-icon" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg>
-                </button>
+                <input type="password" name="razorpay_key_secret" id="id_rzp_secret"
+                  class="input font-mono text-sm pr-10"
+                  placeholder="{% if form.razorpay_key_secret.value %}Leave blank to keep current secret{% else %}Enter your Razorpay Key Secret{% endif %}">
               </div>
-              <p class="text-xs text-gray-400 mt-1">Never share this — treat it like a password.</p>
+              <p class="text-xs text-gray-400 mt-1">Stored encrypted. Leave blank to keep the current secret.</p>
             </div>
           </div>
         </div>

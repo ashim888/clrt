@@ -757,9 +757,13 @@ def site_settings_view(request):
     from .models import SiteSettings
     from .forms import SiteSettingsForm
     obj = SiteSettings.load()
+    # Capture decrypted secret now — form validation will clear it if user left the field blank
+    _original_secret = obj.razorpay_key_secret
     if request.method == "POST":
         form = SiteSettingsForm(request.POST, request.FILES, instance=obj)
         if form.is_valid():
+            if not form.cleaned_data.get('razorpay_key_secret', '').strip():
+                form.instance.razorpay_key_secret = _original_secret
             form.save()
             from .templatetags.clrt_filters import _settings_cache
             _settings_cache.clear()

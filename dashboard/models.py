@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.db import models
+from dashboard.fields import EncryptedCharField
 
 
 class SiteSettings(models.Model):
@@ -70,8 +71,8 @@ class SiteSettings(models.Model):
     )
 
     # — Payment Gateway —
-    razorpay_key_id = models.CharField(max_length=100, blank=True)
-    razorpay_key_secret = models.CharField(max_length=100, blank=True)
+    razorpay_key_id = EncryptedCharField(max_length=500, blank=True)
+    razorpay_key_secret = EncryptedCharField(max_length=500, blank=True)
     razorpay_enabled = models.BooleanField(default=False)
 
     # — Security —
