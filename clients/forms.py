@@ -21,10 +21,11 @@ class ContractForm(forms.ModelForm):
     class Meta:
         model = Contract
         fields = ["contract_title", "start_date", "end_date", "billing_cycle",
-                  "contract_value", "status", "notes"]
+                  "contract_value", "status", "body", "notes"]
         widgets = {
             "start_date": forms.DateInput(attrs={"type": "date"}),
             "end_date": forms.DateInput(attrs={"type": "date"}),
+            "body": forms.Textarea(attrs={"rows": 18}),
             "notes": forms.Textarea(attrs={"rows": 3}),
         }
 
@@ -38,8 +39,11 @@ class ClientContactForm(forms.ModelForm):
 class ContractTemplateForm(TailwindFormMixin, forms.ModelForm):
     class Meta:
         model = ContractTemplate
-        fields = ["name", "billing_cycle", "default_value", "notes"]
-        widgets = {"notes": forms.Textarea(attrs={"rows": 6})}
+        fields = ["name", "billing_cycle", "default_value", "body", "notes"]
+        widgets = {
+            "body": forms.Textarea(attrs={"rows": 20}),
+            "notes": forms.Textarea(attrs={"rows": 3}),
+        }
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

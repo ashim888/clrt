@@ -20,7 +20,7 @@
         <th class="px-4 py-3 text-left font-medium text-gray-500">Name</th>
         <th class="px-4 py-3 text-left font-medium text-gray-500">Billing Cycle</th>
         <th class="px-4 py-3 text-right font-medium text-gray-500">Default Value</th>
-        <th class="px-4 py-3 text-left font-medium text-gray-500">Notes preview</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Body preview</th>
         <th class="px-4 py-3"></th>
       </tr>
     </thead>
@@ -30,7 +30,7 @@
         <td class="px-4 py-3 font-medium text-gray-900">{{ tmpl.name }}</td>
         <td class="px-4 py-3 text-gray-600">{{ tmpl.get_billing_cycle_display }}</td>
         <td class="px-4 py-3 text-right text-gray-700">{% if tmpl.default_value %}{{ tmpl.default_value|inr }}{% else %}—{% endif %}</td>
-        <td class="px-4 py-3 text-gray-400 text-xs truncate max-w-xs">{{ tmpl.notes|truncatechars:80|default:"—" }}</td>
+        <td class="px-4 py-3 text-gray-400 text-xs truncate max-w-xs">{{ tmpl.body|truncatechars:80|default:"—" }}</td>
         <td class="px-4 py-3">
           {% if user.is_admin or user.is_accounts %}
           <div class="flex gap-3 justify-end">

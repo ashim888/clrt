@@ -11,34 +11,76 @@
   <h1 class="text-xl font-semibold text-gray-900">{{ title }}</h1>
 </div>
 
-<div class="max-w-2xl">
-  <div class="card p-6">
-    <form method="post" class="space-y-5">
-      {% csrf_token %}
+<form method="post" class="space-y-5">
+  {% csrf_token %}
+
+  <div class="card p-6 space-y-5">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Template Info</h3>
+    <div>
+      <label class="block text-sm font-medium text-gray-700 mb-1.5">Template Name <span class="text-red-500">*</span></label>
+      {{ form.name }}
+      <p class="text-xs text-gray-400 mt-1">e.g. "Annual Maintenance Contract", "Monthly Retainer"</p>
+    </div>
+    <div class="grid sm:grid-cols-2 gap-5">
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.name.label }} <span class="text-red-500">*</span></label>
-        {{ form.name }}
-      </div>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.billing_cycle.label }}</label>
-          {{ form.billing_cycle }}
-        </div>
-        <div>
-          <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.default_value.label }}</label>
-          {{ form.default_value }}
-        </div>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Default Billing Cycle</label>
+        {{ form.billing_cycle }}
       </div>
       <div>
-        <label class="block text-sm font-medium text-gray-700 mb-1.5">{{ form.notes.label }}</label>
-        {{ form.notes }}
-        <p class="text-xs text-gray-400 mt-1">This text will pre-fill the contract notes/terms field when the template is applied.</p>
+        <label class="block text-sm font-medium text-gray-700 mb-1.5">Default Value (Rs.)</label>
+        {{ form.default_value }}
       </div>
-      <div class="flex items-center gap-3 pt-2 border-t border-gray-100">
-        <button type="submit" class="btn-primary px-6 py-2.5">Save Template</button>
-        <a href="{% url "clients:contract_template_list" %}" class="btn-secondary px-6 py-2.5">Cancel</a>
-      </div>
-    </form>
+    </div>
   </div>
-</div>
+
+  <div class="card p-6 space-y-4">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Contract Body</h3>
+    <textarea id="contract-body" name="body">{{ form.body.value|default:"" }}</textarea>
+  </div>
+
+  <div class="card p-6 space-y-3">
+    <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider">Internal Notes</h3>
+    {{ form.notes }}
+    <p class="text-xs text-gray-400">Private notes — not included in the contract body.</p>
+  </div>
+
+  <div class="flex items-center gap-3">
+    <button type="submit" class="btn-primary px-6 py-2.5">Save Template</button>
+    <a href="{% url "clients:contract_template_list" %}" class="btn-secondary px-6 py-2.5">Cancel</a>
+  </div>
+</form>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/ckeditor.js"></script>
+<style>
+  .ck-editor__editable { min-height: 520px; font-size: 14px; line-height: 1.7; }
+</style>
+<script>
+ClassicEditor.create(document.querySelector('#contract-body'), {
+  toolbar: {
+    items: [
+      'heading', '|',
+      'bold', 'italic', '|',
+      'bulletedList', 'numberedList', 'indent', 'outdent', '|',
+      'blockQuote', 'insertTable', '|',
+      'undo', 'redo',
+    ]
+  },
+  table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] },
+  heading: {
+    options: [
+      { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+      { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+      { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+      { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+    ]
+  }
+}).then(editor => {
+  window._ckEditor = editor;
+}).catch(console.error);
+
+document.querySelector('form').addEventListener('submit', function() {
+  if (window._ckEditor) window._ckEditor.updateSourceElement();
+});
+</script>
 {% endblock %}

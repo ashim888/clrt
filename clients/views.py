@@ -15,6 +15,20 @@ def _can_edit(user):
     return user.is_admin() or user.is_accounts()
 
 
+_CONTRACT_PLACEHOLDERS = [
+    "[Client Name]",
+    "[Contact Person]",
+    "[Contract Title]",
+    "[Contract Value]",
+    "[Start Date]",
+    "[End Date]",
+    "[Billing Cycle]",
+    "[Payment Terms]",
+    "[Your Company Name]",
+    "[Your Company Address]",
+]
+
+
 _CLIENT_SORT = {"name": "organization_name", "status": "status", "billed": "total_billed", "created": "created_at"}
 
 @login_required
@@ -325,7 +339,10 @@ def contract_template_create(request):
         form.save()
         messages.success(request, "Template created.")
         return redirect("clients:contract_template_list")
-    return render(request, "clients/contract_template_form.html", {"form": form, "title": "New Contract Template"})
+    return render(request, "clients/contract_template_form.html", {
+        "form": form, "title": "New Contract Template",
+        "placeholders": _CONTRACT_PLACEHOLDERS,
+    })
 
 
 @login_required
@@ -339,7 +356,10 @@ def contract_template_edit(request, pk):
         form.save()
         messages.success(request, "Template updated.")
         return redirect("clients:contract_template_list")
-    return render(request, "clients/contract_template_form.html", {"form": form, "title": "Edit Template", "tmpl": tmpl})
+    return render(request, "clients/contract_template_form.html", {
+        "form": form, "title": "Edit Template", "tmpl": tmpl,
+        "placeholders": _CONTRACT_PLACEHOLDERS,
+    })
 
 
 @login_required
@@ -360,6 +380,7 @@ def contract_template_json(request, pk):
     return JsonResponse({
         "billing_cycle": tmpl.billing_cycle,
         "default_value": str(tmpl.default_value) if tmpl.default_value else "",
+        "body": tmpl.body,
         "notes": tmpl.notes,
     })
 

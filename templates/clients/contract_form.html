@@ -151,8 +151,12 @@
           </div>
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
-            <textarea name="notes" rows="3" class="input" placeholder="Special terms, remarks…">{{ form.notes.value|default:"" }}</textarea>
+            <label class="block text-sm font-medium text-gray-700 mb-3">Contract Body <span class="text-xs font-normal text-gray-400">— full agreement text</span></label>
+            <textarea id="contract-body" name="body">{{ form.body.value|default:"" }}</textarea>
+          </div>
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Internal Notes</label>
+            <textarea name="notes" rows="3" class="input" placeholder="Special remarks, internal context…">{{ form.notes.value|default:"" }}</textarea>
           </div>
         </div>
       </div>
@@ -200,11 +204,49 @@ document.getElementById('template-picker')?.addEventListener('change', async fun
     const inp = document.querySelector('input[name="contract_value"]');
     if (inp) inp.value = data.default_value;
   }
+  if (data.body) {
+    if (window._ckEditor) window._ckEditor.setData(data.body);
+    else { const ta = document.getElementById('contract-body'); if (ta) ta.value = data.body; }
+  }
   if (data.notes) {
     const ta = document.querySelector('textarea[name="notes"]');
     if (ta) ta.value = data.notes;
   }
   this.value = '';
+});
+</script>
+
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/styles.css">
+<script src="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/ckeditor.js"></script>
+<style>
+  .ck-editor__editable { min-height: 480px; font-size: 14px; line-height: 1.7; }
+</style>
+<script>
+ClassicEditor.create(document.querySelector('#contract-body'), {
+  toolbar: {
+    items: [
+      'heading', '|',
+      'bold', 'italic', '|',
+      'bulletedList', 'numberedList', 'indent', 'outdent', '|',
+      'blockQuote', 'insertTable', '|',
+      'undo', 'redo',
+    ]
+  },
+  table: { contentToolbar: ['tableColumn', 'tableRow', 'mergeTableCells'] },
+  heading: {
+    options: [
+      { model: 'paragraph', title: 'Paragraph', class: 'ck-heading_paragraph' },
+      { model: 'heading1', view: 'h1', title: 'Heading 1', class: 'ck-heading_heading1' },
+      { model: 'heading2', view: 'h2', title: 'Heading 2', class: 'ck-heading_heading2' },
+      { model: 'heading3', view: 'h3', title: 'Heading 3', class: 'ck-heading_heading3' },
+    ]
+  }
+}).then(editor => {
+  window._ckEditor = editor;
+}).catch(console.error);
+
+document.querySelector('form').addEventListener('submit', function() {
+  if (window._ckEditor) window._ckEditor.updateSourceElement();
 });
 </script>
 {% endblock %}

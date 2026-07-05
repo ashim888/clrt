@@ -1,6 +1,20 @@
 {% extends "base.html" %}
 {% block title %}{{ contract.contract_title }}{% endblock %}
 {% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/styles.css">
+<style>
+  .ck-content h1 { font-size: 1.4rem; font-weight: 700; margin: 1.2em 0 0.5em; }
+  .ck-content h2 { font-size: 1.15rem; font-weight: 600; margin: 1em 0 0.4em; }
+  .ck-content h3 { font-size: 1rem; font-weight: 600; margin: 0.8em 0 0.3em; }
+  .ck-content ul, .ck-content ol { padding-left: 1.5rem; margin: 0.5em 0; }
+  .ck-content li { margin: 0.25em 0; }
+  .ck-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  .ck-content table td, .ck-content table th { border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
+  .ck-content blockquote { border-left: 3px solid #d1d5db; margin: 1em 0; padding-left: 1rem; color: #6b7280; }
+  @media print { .btn-secondary, #contract-lightbox { display: none !important; } }
+</style>
+{% endblock %}
 {% block content %}
 <div class="flex items-start justify-between mb-6">
   <div>
@@ -25,7 +39,7 @@
       <div><p class="text-gray-400 text-xs">Billing Cycle</p><p class="font-medium">{{ contract.get_billing_cycle_display }}</p></div>
       <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">{{ contract.contract_value|inr }}</p></div>
     </div>
-    {% if contract.notes %}<div><p class="text-gray-400 text-xs">Notes</p><p class="text-sm">{{ contract.notes }}</p></div>{% endif %}
+    {% if contract.notes %}<div><p class="text-gray-400 text-xs">Internal Notes</p><p class="text-sm text-gray-600">{{ contract.notes }}</p></div>{% endif %}
 
     {% if documents %}
     <div>
@@ -95,6 +109,21 @@
   {% endwith %}
 
 </div>
+
+{% if contract.body %}
+<div class="card p-6 mt-6">
+  <div class="flex items-center justify-between mb-4">
+    <h3 class="font-semibold text-gray-900">Contract Agreement</h3>
+    <button onclick="window.print()" class="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>
+      Print
+    </button>
+  </div>
+  <div class="prose prose-sm max-w-none bg-gray-50 rounded-xl border border-gray-100 px-8 py-6 text-gray-700 leading-relaxed ck-content">
+    {{ contract.body|safe }}
+  </div>
+</div>
+{% endif %}
 
 <!-- Lightbox -->
 <div id="contract-lightbox" onclick="closeLightbox()" style="display:none"

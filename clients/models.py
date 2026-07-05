@@ -96,7 +96,8 @@ class ContractTemplate(models.Model):
     name = models.CharField(max_length=200)
     billing_cycle = models.CharField(max_length=20, choices=BILLING_CYCLE_CHOICES, default="yearly")
     default_value = models.DecimalField(max_digits=12, decimal_places=2, null=True, blank=True)
-    notes = models.TextField(blank=True, help_text="Terms and conditions pre-filled on new contracts")
+    body = models.TextField(blank=True, help_text="Full contract agreement text. Use [Client Name], [Contract Value], [Start Date], [End Date], [Billing Cycle] as placeholders.")
+    notes = models.TextField(blank=True, help_text="Internal notes — not shown in the contract body")
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -125,6 +126,7 @@ class Contract(models.Model):
     contract_value = models.DecimalField(max_digits=12, decimal_places=2)
     document = models.FileField(upload_to="contracts/%Y/%m/", null=True, blank=True)
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default="active")
+    body = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
