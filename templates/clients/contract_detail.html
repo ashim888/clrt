@@ -27,6 +27,7 @@
 <div class="flex items-start justify-between mb-6">
   <div>
     <div class="flex items-center gap-3 mb-1 flex-wrap">
+      <span class="text-xs font-mono font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded">{{ contract.contract_number }}</span>
       <h1 class="text-2xl font-bold text-gray-900">{{ contract.contract_title }}</h1>
       <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% else %}bg-gray-100 text-gray-500{% endif %}">{{ contract.get_status_display }}</span>
       {% if contract.is_expiring_soon %}<span class="badge bg-yellow-100 text-yellow-800">&#x26A0; Expiring in {{ contract.days_until_expiry }} days</span>{% endif %}

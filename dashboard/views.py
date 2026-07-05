@@ -99,18 +99,17 @@ def dashboard(request):
 
     pending_invoice_total = pending_invoices.aggregate(t=Sum("amount"))["t"] or 0
 
-    # ── Revenue ──────────────────────────────────────────────────
-    revenue_month = Invoice.objects.filter(
-        status="paid",
-        generated_date__year=today.year,
-        generated_date__month=today.month,
-    ).aggregate(t=Sum("amount"))["t"] or 0
+    # ── Revenue (actual payments received) ───────────────────────
+    from billing.models import Payment
+    revenue_month = Payment.objects.filter(
+        payment_date__year=today.year,
+        payment_date__month=today.month,
+    ).aggregate(t=Sum("amount_paid"))["t"] or 0
 
-    revenue_last_month = Invoice.objects.filter(
-        status="paid",
-        generated_date__year=last_month_start.year,
-        generated_date__month=last_month_start.month,
-    ).aggregate(t=Sum("amount"))["t"] or 0
+    revenue_last_month = Payment.objects.filter(
+        payment_date__year=last_month_start.year,
+        payment_date__month=last_month_start.month,
+    ).aggregate(t=Sum("amount_paid"))["t"] or 0
 
     def _trend(cur, prev):
         try:

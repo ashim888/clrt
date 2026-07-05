@@ -27,7 +27,9 @@
     <tbody class="divide-y divide-gray-100">
       {% for tmpl in templates %}
       <tr class="hover:bg-gray-50">
-        <td class="px-4 py-3 font-medium text-gray-900">{{ tmpl.name }}</td>
+        <td class="px-4 py-3 font-medium text-gray-900">
+          <a href="{% url 'clients:contract_template_detail' tmpl.pk %}" class="hover:text-blue-600">{{ tmpl.name }}</a>
+        </td>
         <td class="px-4 py-3 text-gray-600">{{ tmpl.get_billing_cycle_display }}</td>
         <td class="px-4 py-3 text-right text-gray-700">{% if tmpl.default_value %}{{ tmpl.default_value|inr }}{% else %}—{% endif %}</td>
         <td class="px-4 py-3 text-gray-400 text-xs truncate max-w-xs">{{ tmpl.body|truncatechars:80|default:"—" }}</td>

@@ -21,6 +21,7 @@ urlpatterns = [
     path("interactions/<int:pk>/edit/", views.client_interaction_edit, name="client_interaction_edit"),
     path("interactions/<int:pk>/delete/", views.client_interaction_delete, name="client_interaction_delete"),
     # Contracts
+    path("contracts/", views.contract_list, name="contract_list"),
     path("<int:client_pk>/contracts/add/", views.contract_create, name="contract_create"),
     path("contracts/<int:pk>/", views.contract_detail, name="contract_detail"),
     path("contracts/<int:pk>/edit/", views.contract_edit, name="contract_edit"),
@@ -33,6 +34,7 @@ urlpatterns = [
     # Contract Templates
     path("contract-templates/", views.contract_template_list, name="contract_template_list"),
     path("contract-templates/add/", views.contract_template_create, name="contract_template_create"),
+    path("contract-templates/<int:pk>/", views.contract_template_detail, name="contract_template_detail"),
     path("contract-templates/<int:pk>/edit/", views.contract_template_edit, name="contract_template_edit"),
     path("contract-templates/<int:pk>/delete/", views.contract_template_delete, name="contract_template_delete"),
     path("contract-templates/<int:pk>/json/", views.contract_template_json, name="contract_template_json"),

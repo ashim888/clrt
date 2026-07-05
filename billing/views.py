@@ -62,13 +62,19 @@ def invoice_create(request):
         messages.error(request, "Access denied.")
         return redirect("billing:invoice_list")
     initial = {}
+    from clients.models import Client, Contract
     contract_pk = request.GET.get("contract")
+    client_pk = request.GET.get("client")
     if contract_pk:
-        from clients.models import Contract
         try:
             initial["contract"] = Contract.objects.get(pk=contract_pk)
             initial["client"] = initial["contract"].client
         except Contract.DoesNotExist:
+            pass
+    elif client_pk:
+        try:
+            initial["client"] = Client.objects.get(pk=client_pk)
+        except Client.DoesNotExist:
             pass
     form = InvoiceForm(request.POST or None, initial=initial)
     if form.is_valid():

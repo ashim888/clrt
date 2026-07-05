@@ -78,16 +78,19 @@ def client_detail(request, pk):
     contacts = client.contacts.all()
     interactions = client.interactions.select_related("created_by").all()
 
+    from billing.models import Payment
     invoices = client.invoices.all()
-    financial = invoices.aggregate(
-        total_billed=Sum("amount"),
-        total_paid=Sum("amount", filter=Q(status="paid")),
-        total_pending=Sum("amount", filter=Q(status="pending")),
-        total_overdue=Sum("amount", filter=Q(status="overdue")),
-    )
-    for key in financial:
-        if financial[key] is None:
-            financial[key] = 0
+    total_billed = sum(inv.final_amount for inv in invoices)
+    total_paid_actual = Payment.objects.filter(invoice__client=client).aggregate(t=Sum("amount_paid"))["t"] or 0
+    total_overdue = sum(inv.final_amount for inv in invoices if inv.status == "overdue")
+    total_pending = sum(inv.final_amount for inv in invoices if inv.status in ("pending", "overdue"))
+    financial = {
+        "total_billed": total_billed,
+        "total_paid": total_paid_actual,
+        "total_pending": total_pending,
+        "total_overdue": total_overdue,
+        "outstanding": total_billed - total_paid_actual,
+    }
 
     lead_activities = None
     if client.linked_lead_id:
@@ -324,9 +327,37 @@ def portal_regenerate_token(request, pk):
 # ── Contract Templates ───────────────────────────────────────────────────────
 
 @login_required
+def contract_list(request):
+    q = request.GET.get("q", "").strip()
+    status = request.GET.get("status", "")
+    contracts = Contract.objects.select_related("client").prefetch_related("invoices")
+    if q:
+        contracts = contracts.filter(
+            Q(contract_title__icontains=q) | Q(contract_number__icontains=q) | Q(client__organization_name__icontains=q)
+        )
+    if status:
+        contracts = contracts.filter(status=status)
+    return render(request, "clients/contract_list.html", {
+        "contracts": contracts,
+        "q": q,
+        "status_filter": status,
+        "status_choices": Contract.STATUS_CHOICES,
+    })
+
+
+@login_required
 def contract_template_list(request):
     templates = ContractTemplate.objects.all()
     return render(request, "clients/contract_template_list.html", {"templates": templates})
+
+
+@login_required
+def contract_template_detail(request, pk):
+    tmpl = get_object_or_404(ContractTemplate, pk=pk)
+    return render(request, "clients/contract_template_detail.html", {
+        "tmpl": tmpl,
+        "placeholders": _CONTRACT_PLACEHOLDERS,
+    })
 
 
 @login_required

@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}{{ tmpl.name }}{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@ckeditor/ckeditor5-build-classic@41.4.2/build/styles.css">
+<style>
+  .ck-content h1 { font-size: 1.4rem; font-weight: 700; margin: 1.2em 0 0.5em; }
+  .ck-content h2 { font-size: 1.15rem; font-weight: 600; margin: 1em 0 0.4em; }
+  .ck-content h3 { font-size: 1rem; font-weight: 600; margin: 0.8em 0 0.3em; }
+  .ck-content ul, .ck-content ol { padding-left: 1.5rem; margin: 0.5em 0; }
+  .ck-content li { margin: 0.25em 0; }
+  .ck-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
+  .ck-content table td, .ck-content table th { border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
+  .ck-content blockquote { border-left: 3px solid #d1d5db; margin: 1em 0; padding-left: 1rem; color: #6b7280; }
+</style>
+{% endblock %}
+{% block content %}
+<div class="flex items-start justify-between mb-6">
+  <div>
+    <div class="flex items-center gap-3 mb-1">
+      <a href="{% url 'clients:contract_template_list' %}" class="text-gray-400 hover:text-gray-600 text-sm">Contract Templates</a>
+      <span class="text-gray-300">/</span>
+      <h1 class="text-2xl font-bold text-gray-900">{{ tmpl.name }}</h1>
+    </div>
+    <p class="text-sm text-gray-500">{{ tmpl.get_billing_cycle_display }}{% if tmpl.default_value %} · Default value {{ tmpl.default_value|inr }}{% endif %}</p>
+  </div>
+  <div class="flex gap-2">
+    <a href="{% url 'clients:contract_template_edit' tmpl.pk %}" class="btn-primary">Edit Template</a>
+  </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-6 items-start">
+
+  <!-- Meta sidebar -->
+  <div class="space-y-5">
+    <div class="card p-5">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Template Info</h3>
+      <div class="space-y-3 text-sm">
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Billing Cycle</p>
+          <p class="font-medium text-gray-900">{{ tmpl.get_billing_cycle_display }}</p>
+        </div>
+        {% if tmpl.default_value %}
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Default Value</p>
+          <p class="font-semibold text-gray-900">{{ tmpl.default_value|inr }}</p>
+        </div>
+        {% endif %}
+        <div>
+          <p class="text-xs text-gray-400 mb-0.5">Created</p>
+          <p class="text-gray-600">{{ tmpl.created_at|date:"j M Y" }}</p>
+        </div>
+      </div>
+    </div>
+
+    {% if tmpl.notes %}
+    <div class="card p-5">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Internal Notes</h3>
+      <p class="text-sm text-gray-600 leading-relaxed">{{ tmpl.notes }}</p>
+    </div>
+    {% endif %}
+
+    <div class="card p-5">
+      <h3 class="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Placeholders</h3>
+      <div class="flex flex-wrap gap-1.5">
+        {% for ph in placeholders %}
+        <span class="text-xs font-mono bg-gray-100 text-gray-600 px-2 py-0.5 rounded">{{ ph }}</span>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Body -->
+  <div class="lg:col-span-2">
+    {% if tmpl.body %}
+    <div class="card p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-semibold text-gray-900">Contract Body</h3>
+        <a href="{% url 'clients:contract_template_edit' tmpl.pk %}" class="text-xs text-blue-600 hover:text-blue-800">Edit</a>
+      </div>
+      <div class="prose prose-sm max-w-none bg-gray-50 rounded-xl border border-gray-100 px-8 py-6 text-gray-700 leading-relaxed ck-content">
+        {{ tmpl.body|safe }}
+      </div>
+    </div>
+    {% else %}
+    <div class="card p-12 text-center text-gray-300">
+      <svg class="w-10 h-10 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <p class="text-sm font-medium">No body content yet.</p>
+      <a href="{% url 'clients:contract_template_edit' tmpl.pk %}" class="inline-block mt-3 text-xs text-blue-600 hover:text-blue-800">Add contract body →</a>
+    </div>
+    {% endif %}
+  </div>
+
+</div>
+{% endblock %}

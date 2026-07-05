@@ -119,6 +119,7 @@ class Contract(models.Model):
         ("terminated", "Terminated"),
     ]
     client = models.ForeignKey(Client, on_delete=models.CASCADE, related_name="contracts")
+    contract_number = models.CharField(max_length=20, unique=True, blank=True)
     contract_title = models.CharField(max_length=200)
     start_date = models.DateField()
     end_date = models.DateField()
@@ -134,7 +135,15 @@ class Contract(models.Model):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.contract_title} - {self.client}"
+        return f"{self.contract_number} – {self.contract_title}" if self.contract_number else self.contract_title
+
+    def save(self, *args, **kwargs):
+        if not self.contract_number:
+            from django.utils import timezone
+            year = timezone.now().year
+            count = Contract.objects.filter(created_at__year=year).count() + 1
+            self.contract_number = f"CON-{year}-{count:03d}"
+        super().save(*args, **kwargs)
 
     @property
     def days_until_expiry(self):

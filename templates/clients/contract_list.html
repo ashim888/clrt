@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+{% load clrt_filters %}
+{% block title %}Contracts{% endblock %}
+{% block nav_clients %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Contracts</h1>
+    <p class="text-sm text-gray-500 mt-0.5">All contracts across clients</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="flex flex-wrap gap-3 mb-6">
+  <input type="text" name="q" value="{{ q }}" placeholder="Search by number, title, or client…"
+    class="input flex-1 min-w-0 max-w-sm">
+  <select name="status" class="input w-36" onchange="this.form.submit()">
+    <option value="">All Statuses</option>
+    {% for val, label in status_choices %}
+    <option value="{{ val }}" {% if status_filter == val %}selected{% endif %}>{{ label }}</option>
+    {% endfor %}
+  </select>
+  <button type="submit" class="btn-secondary">Filter</button>
+  {% if q or status_filter %}
+  <a href="{% url 'clients:contract_list' %}" class="btn-secondary text-gray-400">Clear</a>
+  {% endif %}
+</form>
+
+{% if contracts %}
+<div class="card overflow-hidden">
+  <table class="w-full text-sm">
+    <thead class="bg-gray-50 border-b border-gray-200">
+      <tr>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Number</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Title</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Client</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Period</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Value</th>
+        <th class="px-4 py-3 text-left font-medium text-gray-500">Status</th>
+        <th class="px-4 py-3 text-right font-medium text-gray-500">Invoices</th>
+      </tr>
+    </thead>
+    <tbody class="divide-y divide-gray-100">
+      {% for contract in contracts %}
+      <tr class="hover:bg-gray-50 cursor-pointer" onclick="location.href='{% url "clients:contract_detail" contract.pk %}'">
+        <td class="px-4 py-3">
+          <span class="font-mono text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded">{{ contract.contract_number }}</span>
+        </td>
+        <td class="px-4 py-3 font-medium text-gray-900">{{ contract.contract_title }}</td>
+        <td class="px-4 py-3">
+          <a href="{% url "clients:client_detail" contract.client.pk %}" class="text-blue-600 hover:underline" onclick="event.stopPropagation()">
+            {{ contract.client.organization_name }}
+          </a>
+        </td>
+        <td class="px-4 py-3 text-gray-500 text-xs">
+          {{ contract.start_date }} → {{ contract.end_date }}
+          {% if contract.is_expiring_soon %}
+          <span class="ml-1 text-yellow-600 font-medium">⚠ {{ contract.days_until_expiry }}d left</span>
+          {% endif %}
+        </td>
+        <td class="px-4 py-3 text-right font-semibold text-gray-900">{{ contract.contract_value|inr }}</td>
+        <td class="px-4 py-3">
+          <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% elif contract.status == "expired" %}bg-gray-100 text-gray-500{% else %}bg-red-100 text-red-700{% endif %}">
+            {{ contract.get_status_display }}
+          </span>
+        </td>
+        <td class="px-4 py-3 text-right text-gray-400">{{ contract.invoices.count }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+</div>
+<p class="text-xs text-gray-400 mt-3">{{ contracts|length }} contract{{ contracts|length|pluralize }}</p>
+{% else %}
+<div class="card p-12 text-center text-gray-400">
+  <p class="text-lg font-semibold text-gray-300 mb-1">No contracts found</p>
+  {% if q or status_filter %}
+  <p class="text-sm">Try a different search or <a href="{% url 'clients:contract_list' %}" class="text-blue-500 hover:underline">clear filters</a>.</p>
+  {% else %}
+  <p class="text-sm">Contracts are created from the client page.</p>
+  {% endif %}
+</div>
+{% endif %}
+{% endblock %}
