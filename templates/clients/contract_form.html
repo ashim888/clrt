@@ -26,13 +26,17 @@
         <p class="text-xs text-gray-400 mb-1">Client</p>
         <p class="text-sm font-semibold text-gray-800">{{ client.organization_name }}</p>
       </div>
-      {% if contract and contract.document %}
+      {% if contract and contract.documents.all %}
       <div>
-        <p class="text-xs text-gray-400 mb-2">Current Document</p>
-        <a href="{{ contract.document.url }}" target="_blank" class="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13l-3 3m0 0l-3-3m3 3V8m0 13a9 9 0 110-18 9 9 0 010 18z"/></svg>
-          View existing file
-        </a>
+        <p class="text-xs text-gray-400 mb-2">Uploaded ({{ contract.documents.count }})</p>
+        <div class="space-y-1">
+          {% for doc in contract.documents.all %}
+          <a href="{{ doc.file.url }}" target="_blank" class="flex items-center gap-1.5 text-xs text-blue-600 hover:text-blue-800 truncate">
+            <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg>
+            {{ doc.filename }}
+          </a>
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
     </div>
@@ -108,12 +112,44 @@
       </div>
 
       <div class="card p-6">
-        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Document & Notes</h3>
+        <h3 class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-5">Documents & Notes</h3>
         <div class="space-y-5">
+
+          {% if existing_docs %}
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1.5">Upload Contract (PDF / Image)</label>
-            <input type="file" name="document" accept=".pdf,.png,.jpg,.jpeg" />
+            <p class="text-sm font-medium text-gray-700 mb-2">Existing files</p>
+            <div class="space-y-2">
+              {% for doc in existing_docs %}
+              <div class="flex items-center justify-between rounded-lg border border-gray-200 px-3 py-2 text-sm">
+                <a href="{{ doc.file.url }}" target="_blank" class="flex items-center gap-2 text-blue-600 hover:text-blue-800 min-w-0">
+                  {% if doc.is_pdf %}
+                  <svg class="w-4 h-4 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+                  {% else %}
+                  <svg class="w-4 h-4 flex-shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+                  {% endif %}
+                  <span class="truncate">{{ doc.filename }}</span>
+                </a>
+                <label class="flex items-center gap-1.5 text-xs text-red-500 cursor-pointer flex-shrink-0 ml-3">
+                  <input type="checkbox" name="delete_document" value="{{ doc.pk }}" class="accent-red-500">
+                  Remove
+                </label>
+              </div>
+              {% endfor %}
+            </div>
           </div>
+          {% endif %}
+
+          <div>
+            <label class="block text-sm font-medium text-gray-700 mb-1.5">Upload Files <span class="text-xs font-normal text-gray-400">(PDF, JPG, PNG — multiple allowed)</span></label>
+            <label class="flex flex-col items-center justify-center w-full rounded-xl border-2 border-dashed border-gray-300 hover:border-indigo-400 bg-gray-50 hover:bg-indigo-50 transition-colors cursor-pointer py-6 px-4 text-center" id="drop-zone">
+              <svg class="w-8 h-8 text-gray-400 mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/></svg>
+              <span class="text-sm font-medium text-gray-600">Click to select or drag & drop files here</span>
+              <span class="text-xs text-gray-400 mt-1">Scanned pages, signed copies, supporting docs — any number of files</span>
+              <input id="documents-input" type="file" name="documents" multiple accept=".pdf,.png,.jpg,.jpeg,.tiff,.tif" class="hidden" onchange="showFileList(this)">
+            </label>
+            <div id="file-list" class="mt-2 space-y-1 text-sm text-gray-600"></div>
+          </div>
+
           <div>
             <label class="block text-sm font-medium text-gray-700 mb-1.5">Notes</label>
             <textarea name="notes" rows="3" class="input" placeholder="Special terms, remarks…">{{ form.notes.value|default:"" }}</textarea>
@@ -129,6 +165,28 @@
   </div>
 </div>
 <script>
+function showFileList(input) {
+  const list = document.getElementById('file-list');
+  list.innerHTML = '';
+  Array.from(input.files).forEach(f => {
+    const div = document.createElement('div');
+    div.className = 'flex items-center gap-2 text-gray-600';
+    div.innerHTML = `<svg class="w-4 h-4 text-gray-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13"/></svg><span>${f.name}</span><span class="text-gray-400 text-xs">(${(f.size/1024).toFixed(0)} KB)</span>`;
+    list.appendChild(div);
+  });
+}
+
+const dropZone = document.getElementById('drop-zone');
+if (dropZone) {
+  ['dragover', 'dragenter'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.add('border-indigo-500', 'bg-indigo-50'); }));
+  ['dragleave', 'dragend', 'drop'].forEach(ev => dropZone.addEventListener(ev, e => { e.preventDefault(); dropZone.classList.remove('border-indigo-500', 'bg-indigo-50'); }));
+  dropZone.addEventListener('drop', e => {
+    const input = document.getElementById('documents-input');
+    input.files = e.dataTransfer.files;
+    showFileList(input);
+  });
+}
+
 document.getElementById('template-picker')?.addEventListener('change', async function() {
   const url = this.options[this.selectedIndex]?.dataset.url;
   if (!url) return;

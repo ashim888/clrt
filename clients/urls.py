@@ -24,6 +24,7 @@ urlpatterns = [
     path("<int:client_pk>/contracts/add/", views.contract_create, name="contract_create"),
     path("contracts/<int:pk>/", views.contract_detail, name="contract_detail"),
     path("contracts/<int:pk>/edit/", views.contract_edit, name="contract_edit"),
+    path("contracts/documents/<int:pk>/delete/", views.contract_document_delete, name="contract_document_delete"),
     # Portal
     path("portal/<uuid:token>/", views.portal_home, name="portal_home"),
     path("portal/<uuid:token>/pay/<int:invoice_pk>/create-order/", views.portal_razorpay_create_order, name="portal_razorpay_create_order"),

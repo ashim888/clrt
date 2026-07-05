@@ -14,7 +14,9 @@
   <a href="{% url "clients:contract_edit" contract.pk %}" class="btn-secondary">Edit</a>
 </div>
 
-<div class="grid lg:grid-cols-2 gap-6">
+<div class="grid lg:grid-cols-2 gap-6 items-start">
+
+  <!-- Details + file list -->
   <div class="card p-5 space-y-4">
     <h3 class="font-semibold text-gray-900">Contract Details</h3>
     <div class="grid grid-cols-2 gap-4 text-sm">
@@ -24,12 +26,213 @@
       <div><p class="text-gray-400 text-xs">Contract Value</p><p class="font-bold text-gray-900">{{ contract.contract_value|inr }}</p></div>
     </div>
     {% if contract.notes %}<div><p class="text-gray-400 text-xs">Notes</p><p class="text-sm">{{ contract.notes }}</p></div>{% endif %}
-    {% if contract.document %}
+
+    {% if documents %}
+    <div>
+      <p class="text-gray-400 text-xs mb-2">Files ({{ documents.count }})</p>
+      <div class="space-y-2">
+        {% for doc in documents %}
+        <div class="flex items-center justify-between rounded-lg border border-gray-100 bg-gray-50 px-3 py-2">
+          <a href="{{ doc.file.url }}" target="_blank" class="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-800 min-w-0">
+            {% if doc.is_pdf %}
+            <svg class="w-4 h-4 flex-shrink-0 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+            {% else %}
+            <svg class="w-4 h-4 flex-shrink-0 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            {% endif %}
+            <span class="truncate">{{ doc.filename }}</span>
+          </a>
+          <div class="flex items-center gap-3 flex-shrink-0 ml-3">
+            <span class="text-xs text-gray-400">{{ doc.uploaded_at|date:"j M Y" }}</span>
+            <form method="post" action="{% url 'clients:contract_document_delete' doc.pk %}" onsubmit="return confirm('Remove this file?')">
+              {% csrf_token %}
+              <button type="submit" class="text-xs text-red-400 hover:text-red-600">Remove</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif contract.document %}
     <a href="{{ contract.document.url }}" target="_blank" class="btn-secondary inline-flex items-center gap-2">
       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
       View Document
     </a>
     {% endif %}
   </div>
+
+  <!-- Image carousel (images only) -->
+  {% with image_docs=documents %}
+  {% if image_docs %}
+  <div class="card overflow-hidden" id="carousel-wrap" style="display:none">
+
+    <!-- Slide viewport -->
+    <div class="relative bg-gray-950" style="min-height:320px;">
+      <div id="carousel-track" class="flex transition-transform duration-300 ease-in-out" style="will-change:transform;">
+        <!-- slides injected by JS -->
+      </div>
+
+      <!-- Prev / Next arrows -->
+      <button id="carousel-prev" onclick="carouselStep(-1)"
+        class="absolute left-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <button id="carousel-next" onclick="carouselStep(1)"
+        class="absolute right-2 top-1/2 -translate-y-1/2 z-10 w-9 h-9 rounded-full bg-black/50 hover:bg-black/75 text-white flex items-center justify-center transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+
+      <!-- Counter badge -->
+      <span id="carousel-counter" class="absolute top-3 right-3 z-10 text-xs font-medium text-white bg-black/50 rounded-full px-2.5 py-0.5"></span>
+    </div>
+
+    <!-- Dots + caption bar -->
+    <div class="px-4 py-3 border-t border-gray-100 flex items-center justify-between gap-3">
+      <span id="carousel-caption" class="text-xs text-gray-400 truncate"></span>
+      <div id="carousel-dots" class="flex items-center gap-1.5 flex-shrink-0"></div>
+    </div>
+  </div>
+  {% endif %}
+  {% endwith %}
+
 </div>
+
+<!-- Lightbox -->
+<div id="contract-lightbox" onclick="closeLightbox()" style="display:none"
+  class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
+  <div class="relative w-full max-w-5xl flex flex-col items-center" onclick="event.stopPropagation()">
+
+    <!-- Top bar -->
+    <div class="flex items-center justify-between w-full mb-3">
+      <span id="lb-counter" class="text-white/60 text-xs"></span>
+      <span id="lb-caption" class="text-white/60 text-xs truncate mx-4"></span>
+      <div class="flex items-center gap-3">
+        <a id="lb-open-link" href="#" target="_blank" class="text-white/60 hover:text-white text-xs">Open full size</a>
+        <button onclick="closeLightbox()" class="text-white/60 hover:text-white text-sm leading-none">✕</button>
+      </div>
+    </div>
+
+    <!-- Image -->
+    <div class="relative w-full flex items-center justify-center">
+      <button onclick="lightboxStep(-1)"
+        class="absolute left-0 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/></svg>
+      </button>
+      <img id="lb-img" src="" alt="" class="rounded-xl object-contain shadow-2xl" style="max-height:82vh;max-width:100%;">
+      <button onclick="lightboxStep(1)"
+        class="absolute right-0 z-10 w-10 h-10 rounded-full bg-white/10 hover:bg-white/25 text-white flex items-center justify-center transition-colors">
+        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
+      </button>
+    </div>
+
+    <!-- Dots -->
+    <div id="lb-dots" class="flex items-center gap-2 mt-4"></div>
+  </div>
+</div>
+
+<script>
+// Build image list from Django context
+const IMAGES = [
+  {% for doc in documents %}{% if doc.is_image %}
+  { src: "{{ doc.file.url|escapejs }}", name: "{{ doc.filename|escapejs }}" },
+  {% endif %}{% endfor %}
+];
+
+const total = IMAGES.length;
+let current = 0;
+
+// ── Carousel ─────────────────────────────────────────────────────────────────
+function buildCarousel() {
+  if (!total) return;
+  document.getElementById('carousel-wrap').style.display = '';
+
+  const track = document.getElementById('carousel-track');
+  const dots  = document.getElementById('carousel-dots');
+
+  IMAGES.forEach((img, i) => {
+    // Slide
+    const slide = document.createElement('div');
+    slide.className = 'flex-shrink-0 w-full flex items-center justify-center bg-gray-950 cursor-zoom-in';
+    slide.style.cssText = 'width:100%;min-height:320px;max-height:520px;';
+    const im = document.createElement('img');
+    im.src = img.src;
+    im.alt = img.name;
+    im.style.cssText = 'max-height:520px;width:100%;object-fit:contain;';
+    im.onclick = () => openLightbox(i);
+    slide.appendChild(im);
+    track.appendChild(slide);
+
+    // Dot
+    const dot = document.createElement('button');
+    dot.className = 'w-2 h-2 rounded-full transition-all duration-200 ' + (i === 0 ? 'bg-gray-700 w-4' : 'bg-gray-300');
+    dot.onclick = () => goTo(i);
+    dots.appendChild(dot);
+  });
+
+  updateCarousel();
+}
+
+function goTo(idx) {
+  current = (idx + total) % total;
+  updateCarousel();
+}
+function carouselStep(dir) { goTo(current + dir); }
+
+function updateCarousel() {
+  document.getElementById('carousel-track').style.transform = `translateX(-${current * 100}%)`;
+  document.getElementById('carousel-counter').textContent = `${current + 1} / ${total}`;
+  document.getElementById('carousel-caption').textContent = IMAGES[current].name;
+
+  document.getElementById('carousel-prev').style.display = total <= 1 ? 'none' : '';
+  document.getElementById('carousel-next').style.display = total <= 1 ? 'none' : '';
+
+  document.querySelectorAll('#carousel-dots button').forEach((d, i) => {
+    d.className = 'rounded-full transition-all duration-200 ' + (i === current ? 'bg-gray-700 w-4 h-2' : 'bg-gray-300 w-2 h-2');
+  });
+}
+
+// ── Lightbox ──────────────────────────────────────────────────────────────────
+function buildLbDots() {
+  const c = document.getElementById('lb-dots');
+  c.innerHTML = '';
+  IMAGES.forEach((_, i) => {
+    const d = document.createElement('button');
+    d.className = 'rounded-full transition-all duration-200 ' + (i === current ? 'bg-white w-4 h-2' : 'bg-white/30 w-2 h-2');
+    d.onclick = e => { e.stopPropagation(); openLightbox(i); };
+    c.appendChild(d);
+  });
+}
+
+function openLightbox(idx) {
+  current = (idx + total) % total;
+  const img = IMAGES[current];
+  document.getElementById('lb-img').src = img.src;
+  document.getElementById('lb-caption').textContent = img.name;
+  document.getElementById('lb-counter').textContent = `${current + 1} of ${total}`;
+  document.getElementById('lb-open-link').href = img.src;
+  buildLbDots();
+  document.getElementById('contract-lightbox').style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  // keep carousel in sync
+  updateCarousel();
+}
+
+function lightboxStep(dir) {
+  openLightbox(current + dir);
+}
+
+function closeLightbox() {
+  document.getElementById('contract-lightbox').style.display = 'none';
+  document.body.style.overflow = '';
+}
+
+document.addEventListener('keydown', e => {
+  if (document.getElementById('contract-lightbox').style.display !== 'none') {
+    if (e.key === 'ArrowRight') lightboxStep(1);
+    else if (e.key === 'ArrowLeft') lightboxStep(-1);
+    else if (e.key === 'Escape') closeLightbox();
+  }
+});
+
+buildCarousel();
+</script>
 {% endblock %}

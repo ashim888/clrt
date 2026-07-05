@@ -213,6 +213,24 @@
         <span class="badge {% if contract.status == "active" %}bg-green-100 text-green-700{% elif contract.status == "expired" %}bg-gray-100 text-gray-500{% else %}bg-red-100 text-red-700{% endif %}">{{ contract.get_status_display }}</span>
       </div>
     </div>
+    {% with docs=contract.documents.all %}
+    {% if docs %}
+    <div class="flex flex-wrap gap-2 mt-3 pt-3 border-t border-gray-100">
+      {% for doc in docs %}
+        {% if doc.is_image %}
+        <a href="{{ doc.file.url }}" target="_blank" class="block w-14 h-14 rounded-lg overflow-hidden border border-gray-200 hover:border-indigo-400 transition-colors flex-shrink-0">
+          <img src="{{ doc.file.url }}" alt="{{ doc.filename }}" class="w-full h-full object-cover">
+        </a>
+        {% else %}
+        <a href="{{ doc.file.url }}" target="_blank" title="{{ doc.filename }}" class="flex flex-col items-center justify-center w-14 h-14 rounded-lg border border-gray-200 hover:border-red-300 bg-red-50 transition-colors flex-shrink-0">
+          <svg class="w-5 h-5 text-red-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
+          <span class="text-xs text-red-400 font-medium mt-0.5">PDF</span>
+        </a>
+        {% endif %}
+      {% endfor %}
+    </div>
+    {% endif %}
+    {% endwith %}
   </div>
   {% empty %}
   <div class="card p-6 text-center text-gray-400 text-sm">No contracts. <a href="{% url "clients:contract_create" client.pk %}" class="text-blue-600 hover:underline">Add first contract.</a></div>

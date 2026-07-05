@@ -143,3 +143,22 @@ class Contract(models.Model):
     @property
     def is_expiring_soon(self):
         return 0 <= self.days_until_expiry <= 30
+
+
+class ContractDocument(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="documents")
+    file = models.FileField(upload_to="contracts/%Y/%m/")
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+
+    @property
+    def filename(self):
+        import os
+        return os.path.basename(self.file.name)
+
+    @property
+    def is_image(self):
+        return self.file.name.rsplit(".", 1)[-1].lower() in ("jpg", "jpeg", "png", "gif", "webp")
+
+    @property
+    def is_pdf(self):
+        return self.file.name.lower().endswith(".pdf")

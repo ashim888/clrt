@@ -6,7 +6,7 @@ from django.core.paginator import Paginator
 from django.db.models import Q, Sum
 from django.http import HttpResponse, JsonResponse
 from django.views.decorators.http import require_POST
-from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate
+from .models import Client, Contract, ClientContact, ClientInteraction, ContractTemplate, ContractDocument
 from .forms import ClientForm, ContractForm, ClientContactForm, ClientInteractionForm, ContractTemplateForm
 from dashboard.decorators import requires_feature
 
@@ -60,7 +60,7 @@ def client_list(request):
 @login_required
 def client_detail(request, pk):
     client = get_object_or_404(Client, pk=pk)
-    contracts = client.contracts.all()
+    contracts = client.contracts.prefetch_related("documents").all()
     contacts = client.contacts.all()
     interactions = client.interactions.select_related("created_by").all()
 
@@ -466,6 +466,8 @@ def contract_create(request, client_pk):
         contract = form.save(commit=False)
         contract.client = client
         contract.save()
+        for f in request.FILES.getlist("documents"):
+            ContractDocument.objects.create(contract=contract, file=f)
         messages.success(request, "Contract created.")
         return redirect("clients:contract_detail", pk=contract.pk)
     return render(request, "clients/contract_form.html", {
@@ -477,7 +479,10 @@ def contract_create(request, client_pk):
 @login_required
 def contract_detail(request, pk):
     contract = get_object_or_404(Contract, pk=pk)
-    return render(request, "clients/contract_detail.html", {"contract": contract})
+    return render(request, "clients/contract_detail.html", {
+        "contract": contract,
+        "documents": contract.documents.all(),
+    })
 
 
 @login_required
@@ -489,9 +494,32 @@ def contract_edit(request, pk):
     form = ContractForm(request.POST or None, request.FILES or None, instance=contract)
     if form.is_valid():
         form.save()
+        for doc_pk in request.POST.getlist("delete_document"):
+            ContractDocument.objects.filter(pk=doc_pk, contract=contract).delete()
+        for f in request.FILES.getlist("documents"):
+            ContractDocument.objects.create(contract=contract, file=f)
         messages.success(request, "Contract updated.")
         return redirect("clients:contract_detail", pk=pk)
-    return render(request, "clients/contract_form.html", {"form": form, "title": "Edit Contract", "contract": contract})
+    return render(request, "clients/contract_form.html", {
+        "form": form, "title": "Edit Contract", "contract": contract,
+        "client": contract.client,
+        "existing_docs": contract.documents.all(),
+        "contract_templates": ContractTemplate.objects.all(),
+    })
+
+
+@login_required
+@require_POST
+def contract_document_delete(request, pk):
+    doc = get_object_or_404(ContractDocument, pk=pk)
+    contract_pk = doc.contract_id
+    if not _can_edit(request.user):
+        messages.error(request, "Access denied.")
+        return redirect("clients:contract_detail", pk=contract_pk)
+    doc.file.delete(save=False)
+    doc.delete()
+    messages.success(request, "Document removed.")
+    return redirect("clients:contract_detail", pk=contract_pk)
 
 
 @login_required
