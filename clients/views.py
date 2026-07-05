@@ -288,14 +288,23 @@ def portal_razorpay_create_order(request, token, invoice_pk):
     if not cfg.razorpay_enabled or not cfg.razorpay_key_id or not cfg.razorpay_key_secret:
         return JsonResponse({"error": "Payment gateway not configured."}, status=400)
     import razorpay
+    import logging
+    logger = logging.getLogger(__name__)
     rp = razorpay.Client(auth=(cfg.razorpay_key_id, cfg.razorpay_key_secret))
     amount_paise = int(float(invoice.final_amount) * 100)
-    order = rp.order.create({
-        "amount": amount_paise,
-        "currency": "INR",
-        "receipt": invoice.invoice_number,
-        "notes": {"invoice_id": str(invoice.pk)},
-    })
+    try:
+        order = rp.order.create({
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": invoice.invoice_number[:40],
+            "notes": {"invoice_id": str(invoice.pk)},
+        })
+    except razorpay.errors.BadRequestError as e:
+        logger.error("Razorpay order creation failed (BadRequest): %s", e)
+        return JsonResponse({"error": f"Payment gateway error: {e}"}, status=400)
+    except Exception as e:
+        logger.exception("Razorpay order creation failed")
+        return JsonResponse({"error": "Could not create payment order. Please try again."}, status=500)
     return JsonResponse({
         "order_id": order["id"],
         "amount": amount_paise,

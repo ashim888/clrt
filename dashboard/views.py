@@ -773,6 +773,25 @@ def site_settings_view(request):
     return render(request, "dashboard/settings.html", {"form": form, "obj": obj})
 
 
+@login_required
+@require_POST
+def test_razorpay_credentials(request):
+    from .models import SiteSettings
+    cfg = SiteSettings.load()
+    key_id = request.POST.get("key_id", "").strip() or cfg.razorpay_key_id
+    key_secret = request.POST.get("key_secret", "").strip() or cfg.razorpay_key_secret
+    if not key_id or not key_secret:
+        return JsonResponse({"ok": False, "error": "No credentials saved. Enter Key ID and Key Secret first."})
+    try:
+        import razorpay
+        rp = razorpay.Client(auth=(key_id, key_secret))
+        # create a minimal ₹1 order as a live test
+        rp.order.create({"amount": 100, "currency": "INR", "receipt": "test-conn"})
+        return JsonResponse({"ok": True, "message": "Connected successfully! Credentials are valid."})
+    except Exception as e:
+        return JsonResponse({"ok": False, "error": str(e)})
+
+
 # ── Notifications ────────────────────────────────────────────────
 
 @login_required

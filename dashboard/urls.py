@@ -13,6 +13,7 @@ urlpatterns = [
     path("search/", views.search, name="search"),
     path("reports/team/", views.team_performance, name="team_performance"),
     path("settings/", views.site_settings_view, name="settings"),
+    path("settings/test-razorpay/", views.test_razorpay_credentials, name="test_razorpay"),
     path("notifications/", views.notification_list, name="notifications"),
     path("notifications/<int:pk>/read/", views.notification_read, name="notification_read"),
     path("notifications/read-all/", views.notifications_read_all, name="notifications_read_all"),

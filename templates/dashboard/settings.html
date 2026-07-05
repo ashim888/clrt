@@ -285,6 +285,15 @@
               <p class="text-xs text-gray-400 mt-1">Stored encrypted. Leave blank to keep the current secret.</p>
             </div>
           </div>
+          <!-- Test connection -->
+          <div class="flex items-center gap-3">
+            <button type="button" onclick="testRazorpay()" id="rzp-test-btn"
+              class="btn-secondary text-sm inline-flex items-center gap-2">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              Test Connection
+            </button>
+            <span id="rzp-test-result" class="text-sm hidden"></span>
+          </div>
         </div>
       </div>
     </div>
@@ -462,6 +471,43 @@ if (twoFaToggle && twoFaInfo) {
 function toggleSecret() {
   const el = document.getElementById('id_rzp_secret');
   el.type = el.type === 'password' ? 'text' : 'password';
+}
+
+// Test Razorpay connection
+async function testRazorpay() {
+  const btn = document.getElementById('rzp-test-btn');
+  const result = document.getElementById('rzp-test-result');
+  const keyId = document.querySelector('input[name="razorpay_key_id"]').value.trim();
+  const keySecret = document.getElementById('id_rzp_secret').value.trim();
+
+  btn.disabled = true;
+  btn.textContent = 'Testing…';
+  result.className = 'text-sm text-gray-500';
+  result.textContent = 'Connecting to Razorpay…';
+  result.classList.remove('hidden');
+
+  try {
+    const resp = await fetch("{% url 'dashboard:test_razorpay' %}", {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded', 'X-CSRFToken': '{{ csrf_token }}'},
+      body: new URLSearchParams({key_id: keyId, key_secret: keySecret}),
+    });
+    const data = await resp.json();
+    if (data.ok) {
+      result.className = 'text-sm text-green-600 font-medium';
+      const savedNote = keySecret ? ' Click "Save Settings" below to activate.' : '';
+      result.textContent = '✓ ' + data.message + savedNote;
+    } else {
+      result.className = 'text-sm text-red-600 font-medium';
+      result.textContent = '✗ ' + data.error;
+    }
+  } catch (e) {
+    result.className = 'text-sm text-red-600 font-medium';
+    result.textContent = '✗ Network error. Check server logs.';
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg> Test Connection';
+  }
 }
 </script>
 {% endblock %}
