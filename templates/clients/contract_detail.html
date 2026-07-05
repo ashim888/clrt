@@ -12,7 +12,13 @@
   .ck-content table { border-collapse: collapse; width: 100%; margin: 1em 0; }
   .ck-content table td, .ck-content table th { border: 1px solid #d1d5db; padding: 0.5rem 0.75rem; }
   .ck-content blockquote { border-left: 3px solid #d1d5db; margin: 1em 0; padding-left: 1rem; color: #6b7280; }
-  @media print { nav, header, .no-print { display: none !important; } }
+  .print-header { display: none; }
+  @media print {
+    body * { visibility: hidden; }
+    #contract-print-area, #contract-print-area * { visibility: visible; }
+    #contract-print-area { position: absolute; inset: 0; padding: 2rem; background: white; }
+    .print-header { display: block; }
+  }
 </style>
 {% endblock %}
 {% block content %}
@@ -244,9 +250,14 @@
 
 <!-- Contract body — full width -->
 {% if contract.body %}
-<div class="card p-6">
+<div id="contract-print-area" class="card p-6">
   <div class="flex items-center justify-between mb-5">
     <h3 class="font-semibold text-gray-900">Contract Agreement</h3>
+  </div>
+  <!-- Print-only header -->
+  <div class="print-header mb-6 pb-6 border-b border-gray-300">
+    <h1 class="text-2xl font-bold text-gray-900 mb-1">{{ contract.contract_title }}</h1>
+    <p class="text-sm text-gray-600">{{ contract.client.organization_name }} &nbsp;·&nbsp; {{ contract.start_date }} – {{ contract.end_date }}</p>
   </div>
   <div class="prose prose-sm max-w-none bg-gray-50 rounded-xl border border-gray-100 px-8 py-6 text-gray-700 leading-relaxed ck-content">
     {{ contract.body|safe }}
