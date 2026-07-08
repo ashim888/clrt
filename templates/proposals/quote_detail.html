@@ -55,7 +55,18 @@
     </p>
     {% endif %}
   </div>
-  <div class="flex flex-wrap gap-2 flex-shrink-0">
+  <div class="flex flex-wrap gap-2 flex-shrink-0 items-center">
+    {% if quote.signature_at %}
+    <span class="inline-flex items-center gap-1.5 text-xs font-medium text-green-700 bg-green-50 border border-green-200 rounded-full px-3 py-1">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      Signed by {{ quote.signature_name }} · {{ quote.signature_at|date:"d M Y" }}
+    </span>
+    {% else %}
+    <button type="button" onclick="copySignLink()" class="btn-secondary text-sm flex items-center gap-1.5">
+      <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"/></svg>
+      <span id="copy-link-text">Copy Signing Link</span>
+    </button>
+    {% endif %}
     <button type="button" onclick="openEmailModal()" class="btn-secondary">✉ Send by Email</button>
     <a href="{% url "proposals:quote_print" quote.pk %}" target="_blank" class="btn-secondary">🖨 Print / PDF</a>
     <a href="{% url "proposals:quote_edit" quote.pk %}" class="btn-secondary">Edit</a>
@@ -162,6 +173,21 @@
     </div>
   </div>
 </div>
+
+{% if quote.signature_at %}
+<div class="card p-5 mt-2">
+  <div class="flex items-end justify-between gap-6">
+    <div>
+      <p class="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">E-Signature</p>
+      <p class="font-semibold text-gray-800">{{ quote.signature_name }}</p>
+      <p class="text-xs text-gray-400 mt-0.5">{{ quote.signature_at|date:"N j, Y, g:i a" }}{% if quote.signature_ip %} · IP {{ quote.signature_ip }}{% endif %}</p>
+    </div>
+    {% if quote.signature_data %}
+    <img src="{{ quote.signature_data }}" alt="Signature" class="h-16 border border-gray-200 rounded bg-white p-1">
+    {% endif %}
+  </div>
+</div>
+{% endif %}
 
 <form id="status-form" style="display:none;">{% csrf_token %}</form>
 
@@ -338,6 +364,15 @@ async function sendQuoteEmail() {
     btn.disabled = false;
     btn.innerHTML = '<svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"/></svg> Send Email';
   }
+}
+
+function copySignLink() {
+  const url = '{{ request.scheme }}://{{ request.get_host }}{% url "proposals:quote_sign" quote.sign_token %}';
+  navigator.clipboard.writeText(url).then(() => {
+    const el = document.getElementById('copy-link-text');
+    el.textContent = 'Link Copied!';
+    setTimeout(() => el.textContent = 'Copy Signing Link', 2500);
+  });
 }
 </script>
 {% endblock %}

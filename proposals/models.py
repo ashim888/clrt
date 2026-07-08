@@ -1,3 +1,4 @@
+import uuid
 from django.db import models
 from django.conf import settings
 from django.utils import timezone
@@ -34,6 +35,12 @@ class Quote(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
     status_changed_at = models.DateTimeField(null=True, blank=True)
+    # e-signature
+    sign_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    signature_name = models.CharField(max_length=200, blank=True)
+    signature_ip = models.GenericIPAddressField(null=True, blank=True)
+    signature_at = models.DateTimeField(null=True, blank=True)
+    signature_data = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]

@@ -39,4 +39,7 @@ urlpatterns = [
     path("contract-templates/<int:pk>/delete/", views.contract_template_delete, name="contract_template_delete"),
     path("contract-templates/<int:pk>/json/", views.contract_template_json, name="contract_template_json"),
     path("<int:pk>/send-email/", views.client_send_email, name="client_send_email"),
+    # E-signature
+    path("contracts/sign/<uuid:token>/", views.contract_sign, name="contract_sign"),
+    path("contracts/sign/<uuid:token>/done/", views.contract_sign_done, name="contract_sign_done"),
 ]

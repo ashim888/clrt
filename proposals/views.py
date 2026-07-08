@@ -306,3 +306,41 @@ def quote_send_email(request, pk):
         quote.save(update_fields=["status", "status_changed_at"])
 
     return JsonResponse({"ok": True, "new_status": quote.status, "status_label": quote.get_status_display()})
+
+
+# ── E-SIGNATURE ──────────────────────────────────────────────────────────────
+
+def quote_sign(request, token):
+    from proposals.models import Quote
+    quote = get_object_or_404(Quote, sign_token=token)
+    already_signed = bool(quote.signature_at)
+
+    if request.method == "POST" and not already_signed:
+        name = request.POST.get("signer_name", "").strip()
+        data = request.POST.get("signature_data", "").strip()
+        if name and data:
+            ip = (
+                request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+                or request.META.get("REMOTE_ADDR", "")
+            )
+            from django.utils import timezone as tz
+            quote.signature_name = name
+            quote.signature_ip = ip or None
+            quote.signature_at = tz.now()
+            quote.signature_data = data
+            if quote.status in ("draft", "sent"):
+                quote.status = "accepted"
+                quote.status_changed_at = tz.now()
+            quote.save(update_fields=["signature_name", "signature_ip", "signature_at", "signature_data", "status", "status_changed_at"])
+            return redirect("proposals:quote_sign_done", token=token)
+
+    return render(request, "proposals/quote_sign.html", {
+        "quote": quote,
+        "already_signed": already_signed,
+    })
+
+
+def quote_sign_done(request, token):
+    from proposals.models import Quote
+    quote = get_object_or_404(Quote, sign_token=token)
+    return render(request, "proposals/quote_sign_done.html", {"quote": quote})

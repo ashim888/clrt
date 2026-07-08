@@ -713,4 +713,37 @@ def client_send_email(request, pk):
         email_subject=subject,
         created_by=request.user,
     )
+
+
+# ── E-SIGNATURE ──────────────────────────────────────────────────────────────
+
+def contract_sign(request, token):
+    contract = get_object_or_404(Contract, sign_token=token)
+    already_signed = bool(contract.signature_at)
+
+    if request.method == "POST" and not already_signed:
+        name = request.POST.get("signer_name", "").strip()
+        data = request.POST.get("signature_data", "").strip()
+        if name and data:
+            ip = (
+                request.META.get("HTTP_X_FORWARDED_FOR", "").split(",")[0].strip()
+                or request.META.get("REMOTE_ADDR", "")
+            )
+            from django.utils import timezone as tz
+            contract.signature_name = name
+            contract.signature_ip = ip or None
+            contract.signature_at = tz.now()
+            contract.signature_data = data
+            contract.save(update_fields=["signature_name", "signature_ip", "signature_at", "signature_data"])
+            return redirect("clients:contract_sign_done", token=token)
+
+    return render(request, "clients/contract_sign.html", {
+        "contract": contract,
+        "already_signed": already_signed,
+    })
+
+
+def contract_sign_done(request, token):
+    contract = get_object_or_404(Contract, sign_token=token)
+    return render(request, "clients/contract_sign_done.html", {"contract": contract})
     return JsonResponse({"ok": True})

@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign Contract – {{ contract.contract_title }}</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    #sig-canvas { touch-action: none; cursor: crosshair; }
+    .ck-content h2 { font-size: 1.25rem; font-weight: 700; margin: 1rem 0 0.5rem; }
+    .ck-content h3 { font-size: 1.1rem; font-weight: 600; margin: 0.75rem 0 0.4rem; }
+    .ck-content p  { margin: 0.5rem 0; line-height: 1.7; }
+    .ck-content ul, .ck-content ol { padding-left: 1.5rem; margin: 0.5rem 0; }
+    .ck-content li { margin: 0.25rem 0; }
+  </style>
+</head>
+<body class="bg-gray-50 min-h-screen">
+
+  <!-- Header -->
+  <div class="bg-white border-b shadow-sm sticky top-0 z-10">
+    <div class="max-w-3xl mx-auto px-4 py-3 flex items-center justify-between">
+      <div>
+        <p class="text-xs text-gray-400 uppercase tracking-wide">Contract</p>
+        <h1 class="font-semibold text-gray-800 text-sm">{{ contract.contract_title }}</h1>
+      </div>
+      <span class="text-xs font-mono bg-gray-100 text-gray-500 px-2 py-1 rounded">{{ contract.contract_number }}</span>
+    </div>
+  </div>
+
+  <div class="max-w-3xl mx-auto px-4 py-8 space-y-6">
+
+    {% if already_signed %}
+    <!-- Already signed -->
+    <div class="bg-green-50 border border-green-200 rounded-xl p-6 text-center">
+      <div class="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
+        <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+      </div>
+      <p class="font-semibold text-green-800 text-lg">Already Signed</p>
+      <p class="text-green-600 text-sm mt-1">Signed by <strong>{{ contract.signature_name }}</strong> on {{ contract.signature_at|date:"N j, Y, g:i a" }}</p>
+    </div>
+
+    {% else %}
+    <!-- Contract body -->
+    <div class="bg-white rounded-xl border shadow-sm p-6 md:p-8">
+      <h2 class="text-base font-semibold text-gray-700 mb-4 pb-3 border-b">Contract Agreement</h2>
+      {% if contract.body %}
+      <div class="ck-content prose max-w-none text-sm text-gray-700">{{ contract.body|safe }}</div>
+      {% else %}
+      <p class="text-gray-400 italic text-sm">No contract body to display.</p>
+      {% endif %}
+    </div>
+
+    <!-- Signature form -->
+    <div class="bg-white rounded-xl border shadow-sm p-6">
+      <h2 class="text-base font-semibold text-gray-800 mb-1">Sign This Contract</h2>
+      <p class="text-sm text-gray-500 mb-5">By signing below, you agree to the terms in this contract.</p>
+
+      <form method="post" id="sign-form" class="space-y-5">
+        {% csrf_token %}
+        <input type="hidden" name="signature_data" id="sig-data">
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-1">Full Name <span class="text-red-500">*</span></label>
+          <input type="text" name="signer_name" id="signer-name" required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Type your full name">
+        </div>
+
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">Signature <span class="text-red-500">*</span></label>
+          <div class="relative border-2 border-dashed border-gray-200 rounded-xl bg-gray-50 overflow-hidden" style="height:160px">
+            <canvas id="sig-canvas" class="w-full h-full block absolute inset-0"></canvas>
+            <p id="sig-hint" class="absolute inset-0 flex items-center justify-center text-gray-300 text-sm pointer-events-none select-none">
+              Draw your signature here
+            </p>
+          </div>
+          <div class="flex items-center gap-3 mt-2">
+            <button type="button" onclick="clearPad()" class="text-xs text-gray-400 hover:text-gray-600 underline">Clear</button>
+            <span id="sig-error" class="text-xs text-red-500 hidden">Please draw your signature.</span>
+          </div>
+        </div>
+
+        <div class="pt-2">
+          <button type="submit" id="submit-btn"
+            class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2.5 rounded-lg text-sm transition-colors">
+            Sign Contract
+          </button>
+        </div>
+
+        <p class="text-xs text-gray-400 text-center">
+          Your IP address will be recorded as proof of signing.
+        </p>
+      </form>
+    </div>
+    {% endif %}
+
+  </div>
+
+<script>
+const canvas = document.getElementById('sig-canvas');
+const ctx = canvas.getContext('2d');
+let drawing = false;
+let hasDrawn = false;
+
+function resizeCanvas() {
+  const rect = canvas.parentElement.getBoundingClientRect();
+  canvas.width = rect.width;
+  canvas.height = rect.height;
+}
+resizeCanvas();
+window.addEventListener('resize', resizeCanvas);
+
+function getPos(e) {
+  const rect = canvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+canvas.addEventListener('mousedown', e => { drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); });
+canvas.addEventListener('mousemove', e => {
+  if (!drawing) return;
+  const p = getPos(e);
+  ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e293b';
+  ctx.lineTo(p.x, p.y); ctx.stroke();
+  hasDrawn = true;
+  document.getElementById('sig-hint').style.display = 'none';
+});
+canvas.addEventListener('mouseup', () => drawing = false);
+canvas.addEventListener('mouseleave', () => drawing = false);
+
+canvas.addEventListener('touchstart', e => { e.preventDefault(); drawing = true; const p = getPos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); }, { passive: false });
+canvas.addEventListener('touchmove', e => {
+  e.preventDefault();
+  if (!drawing) return;
+  const p = getPos(e);
+  ctx.lineWidth = 2; ctx.lineCap = 'round'; ctx.strokeStyle = '#1e293b';
+  ctx.lineTo(p.x, p.y); ctx.stroke();
+  hasDrawn = true;
+  document.getElementById('sig-hint').style.display = 'none';
+}, { passive: false });
+canvas.addEventListener('touchend', () => drawing = false);
+
+function clearPad() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  hasDrawn = false;
+  document.getElementById('sig-hint').style.display = '';
+}
+
+document.getElementById('sign-form').addEventListener('submit', function(e) {
+  if (!hasDrawn) {
+    e.preventDefault();
+    document.getElementById('sig-error').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('sig-data').value = canvas.toDataURL('image/png');
+});
+</script>
+</body>
+</html>

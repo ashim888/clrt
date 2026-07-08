@@ -11,4 +11,7 @@ urlpatterns = [
     path("<int:pk>/status/", views.quote_update_status, name="quote_update_status"),
     path("<int:pk>/print/", views.quote_print, name="quote_print"),
     path("<int:pk>/send-email/", views.quote_send_email, name="quote_send_email"),
+    # E-signature
+    path("sign/<uuid:token>/", views.quote_sign, name="quote_sign"),
+    path("sign/<uuid:token>/done/", views.quote_sign_done, name="quote_sign_done"),
 ]

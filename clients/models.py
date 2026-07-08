@@ -130,6 +130,12 @@ class Contract(models.Model):
     body = models.TextField(blank=True)
     notes = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
+    # e-signature
+    sign_token = models.UUIDField(default=uuid.uuid4, unique=True, editable=False)
+    signature_name = models.CharField(max_length=200, blank=True)
+    signature_ip = models.GenericIPAddressField(null=True, blank=True)
+    signature_at = models.DateTimeField(null=True, blank=True)
+    signature_data = models.TextField(blank=True)
 
     class Meta:
         ordering = ["-created_at"]
