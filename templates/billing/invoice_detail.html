@@ -199,4 +199,6 @@ async function sendInvoiceEmail() {
 }
 </script>
 
+{% include "partials/activity_timeline.html" with events=timeline_events %}
+
 {% endblock %}

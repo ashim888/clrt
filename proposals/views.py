@@ -97,10 +97,12 @@ def quote_detail(request, pk):
     elif quote.client and quote.client.email:
         recipient_email = quote.client.email
     cfg = SiteSettings.load()
+    from dashboard.activity import get_events_for
     return render(request, "proposals/quote_detail.html", {
         "quote": quote,
         "recipient_email": recipient_email,
         "cfg": cfg,
+        "timeline_events": get_events_for(quote),
     })
 
 
@@ -148,6 +150,9 @@ def quote_create(request):
                 quote.client_id = int(client_id)
             quote.save()
             _save_line_items(quote, request.POST)
+            from dashboard.activity import log_event
+            log_event(quote, 'created', actor=request.user,
+                      description=f"Quotation {quote.quote_number} created by {request.user.get_full_name() or request.user.username}")
             messages.success(request, f"Quotation {quote.quote_number} created.")
             return redirect("proposals:quote_detail", pk=quote.pk)
     return render(request, "proposals/quote_form.html", {
@@ -200,6 +205,9 @@ def quote_edit(request, pk):
             quote.client_id = int(client_id)
         quote.save()
         _save_line_items(quote, request.POST)
+        from dashboard.activity import log_event
+        log_event(quote, 'edited', actor=request.user,
+                  description=f"Quotation updated by {request.user.get_full_name() or request.user.username}")
         messages.success(request, "Quotation updated.")
         return redirect("proposals:quote_detail", pk=quote.pk)
     return render(request, "proposals/quote_form.html", {
@@ -221,9 +229,14 @@ def quote_update_status(request, pk):
     valid = [s for s, _ in Quote.STATUS_CHOICES]
     if new_status not in valid:
         return JsonResponse({"error": "Invalid status"}, status=400)
+    old_status = quote.status
     quote.status = new_status
     quote.status_changed_at = timezone.now()
     quote.save(update_fields=["status", "status_changed_at"])
+    from dashboard.activity import log_event
+    log_event(quote, 'status_change', actor=request.user,
+              description=f"Status changed from {old_status} to {new_status}",
+              metadata={"old": old_status, "new": new_status})
     return JsonResponse({
         "status": new_status,
         "label": quote.get_status_display(),
@@ -299,11 +312,18 @@ def quote_send_email(request, pk):
     except Exception as e:
         return JsonResponse({"error": f"Failed to send: {str(e)}"}, status=500)
 
+    from dashboard.activity import log_event
+    log_event(quote, 'email_sent', actor=request.user,
+              description=f"Quotation emailed to {to}",
+              metadata={"to": to})
     if quote.status == "draft":
         from django.utils import timezone
         quote.status = "sent"
         quote.status_changed_at = timezone.now()
         quote.save(update_fields=["status", "status_changed_at"])
+        log_event(quote, 'status_change', actor=request.user,
+                  description="Status changed from draft to sent (email sent)",
+                  metadata={"old": "draft", "new": "sent"})
 
     return JsonResponse({"ok": True, "new_status": quote.status, "status_label": quote.get_status_display()})
 
@@ -332,6 +352,8 @@ def quote_sign(request, token):
                 quote.status = "accepted"
                 quote.status_changed_at = tz.now()
             quote.save(update_fields=["signature_name", "signature_ip", "signature_at", "signature_data", "status", "status_changed_at"])
+            from dashboard.activity import log_event
+            log_event(quote, 'signed', description=f"Quotation accepted & signed by {name} (IP: {ip or 'unknown'})")
             return redirect("proposals:quote_sign_done", token=token)
 
     return render(request, "proposals/quote_sign.html", {

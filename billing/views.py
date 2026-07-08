@@ -46,6 +46,7 @@ def invoice_detail(request, pk):
     paid_total = payments.aggregate(t=Sum("amount_paid"))["t"] or 0
     from dashboard.models import SiteSettings
     cfg = SiteSettings.load()
+    from dashboard.activity import get_events_for
     return render(request, "billing/invoice_detail.html", {
         "invoice": invoice,
         "payments": payments,
@@ -53,6 +54,7 @@ def invoice_detail(request, pk):
         "balance": invoice.final_amount - paid_total,
         "recipient_email": invoice.client.email if invoice.client else "",
         "cfg": cfg,
+        "timeline_events": get_events_for(invoice),
     })
 
 
@@ -79,6 +81,12 @@ def invoice_create(request):
     form = InvoiceForm(request.POST or None, initial=initial)
     if form.is_valid():
         invoice = form.save()
+        from dashboard.activity import log_event
+        log_event(invoice, 'created', actor=request.user,
+                  description=f"Invoice {invoice.invoice_number} created")
+        if invoice.client:
+            log_event(invoice.client, 'created', actor=request.user,
+                      description=f"Invoice {invoice.invoice_number} created")
         messages.success(request, f"Invoice {invoice.invoice_number} created.")
         return redirect("billing:invoice_detail", pk=invoice.pk)
     return render(request, "billing/invoice_form.html", {"form": form, "title": "Create Invoice"})
@@ -291,6 +299,13 @@ def payment_add(request, invoice_pk):
         if paid_total >= invoice.final_amount:
             invoice.status = "paid"
             invoice.save()
+        from dashboard.activity import log_event
+        log_event(invoice, 'payment', actor=request.user,
+                  description=f"Payment of {payment.amount_paid} recorded",
+                  metadata={"amount": str(payment.amount_paid), "method": payment.payment_mode})
+        if invoice.client:
+            log_event(invoice.client, 'payment', actor=request.user,
+                      description=f"Payment of {payment.amount_paid} recorded on invoice {invoice.invoice_number}")
         messages.success(request, "Payment recorded.")
         return redirect("billing:invoice_detail", pk=invoice_pk)
     return render(request, "billing/payment_form.html", {"form": form, "invoice": invoice})

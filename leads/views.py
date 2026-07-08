@@ -88,6 +88,7 @@ def lead_detail(request, pk):
     lead = get_object_or_404(Lead, pk=pk)
     activities = lead.activities.select_related("created_by")
     from dashboard.models import AuditLog, QuickNote
+    from dashboard.activity import get_events_for
     audit_logs = AuditLog.objects.filter(model_name="Lead", object_id=pk).select_related("user")[:20]
     quick_notes = QuickNote.objects.filter(lead_id=pk).select_related("user")
     return render(request, "leads/lead_detail.html", {
@@ -96,6 +97,7 @@ def lead_detail(request, pk):
         "status_choices": Lead.STATUS_CHOICES,
         "audit_logs": audit_logs,
         "quick_notes": quick_notes,
+        "timeline_events": get_events_for(lead),
     })
 
 
@@ -110,6 +112,8 @@ def lead_create(request):
         messages.success(request, f"Lead \"{lead.organization_name}\" created.")
         from dashboard.audit import log_audit
         log_audit(request.user, 'created', lead)
+        from dashboard.activity import log_event
+        log_event(lead, 'created', actor=request.user, description=f"Lead created by {request.user.get_full_name() or request.user.username}")
         if lead.assigned_to and lead.assigned_to != request.user:
             from django.urls import reverse as _rev
             from dashboard.models import Notification
@@ -142,6 +146,8 @@ def lead_edit(request, pk):
         diff = model_changes(old, lead, ["organization_name", "contact_person", "phone", "email", "source", "deal_value", "status", "assigned_to", "notes"])
         if diff:
             log_audit(request.user, 'updated', lead, diff)
+        from dashboard.activity import log_event
+        log_event(lead, 'edited', actor=request.user, description=f"Lead updated by {request.user.get_full_name() or request.user.username}", metadata=diff or {})
         messages.success(request, "Lead updated.")
         return redirect("leads:lead_detail", pk=pk)
     from dashboard.models import Tag
@@ -262,6 +268,10 @@ def lead_update_status(request, pk):
     if new_status == "lost" and lead.lost_reason:
         changes["lost_reason"] = ["", lead.lost_reason]
     log_audit(request.user, 'status_changed', lead, changes)
+    from dashboard.activity import log_event as _log_ev
+    _log_ev(lead, 'status_change', actor=request.user,
+            description=f"Status changed from {old_status} to {new_status}",
+            metadata={"old": old_status, "new": new_status})
 
     # Push in-app notification to the assigned user
     if new_status in ("won", "lost") and lead.assigned_to and lead.assigned_to != request.user:
@@ -547,6 +557,9 @@ def convert_to_client(request, pk):
             email=lead.email,
         )
         messages.success(request, f"Lead converted to client: {client.organization_name}")
+        from dashboard.activity import log_event as _log_ev
+        _log_ev(lead, 'converted', actor=request.user,
+                description=f"Lead converted to client: {client.organization_name}")
         return redirect("clients:client_detail", pk=client.pk)
     return render(request, "leads/convert_confirm.html", {"lead": lead})
 

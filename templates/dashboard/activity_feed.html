@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% load clrt_filters %}
+{% block title %}Activity Feed{% endblock %}
+{% block nav_dashboard %}bg-gray-800 text-white{% endblock %}
+{% block content %}
+
+<div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+  <div>
+    <h1 class="text-2xl font-bold text-gray-900">Activity Feed</h1>
+    <p class="text-sm text-gray-500 mt-0.5">All events across leads, clients, quotes, invoices and contracts</p>
+  </div>
+</div>
+
+<!-- Filters -->
+<form method="get" class="card px-4 py-3 mb-6 flex flex-wrap items-end gap-3">
+  <div>
+    <label class="block text-xs font-medium text-gray-500 mb-1">Entity</label>
+    <select name="entity" class="input text-sm py-1.5" onchange="this.form.submit()">
+      <option value="">All entities</option>
+      {% for ec in entity_counts %}
+      <option value="{{ ec.content_type__app_label }}.{{ ec.content_type__model }}"
+        {% if entity == ec.content_type__app_label|add:'.'|add:ec.content_type__model %}selected{% endif %}>
+        {{ ec.content_type__model|capfirst }} ({{ ec.c }})
+      </option>
+      {% endfor %}
+    </select>
+  </div>
+  <div>
+    <label class="block text-xs font-medium text-gray-500 mb-1">Event type</label>
+    <select name="type" class="input text-sm py-1.5" onchange="this.form.submit()">
+      <option value="">All types</option>
+      {% for val, label in event_types %}
+      <option value="{{ val }}" {% if event_type == val %}selected{% endif %}>{{ label }}</option>
+      {% endfor %}
+    </select>
+  </div>
+  {% if entity or event_type %}
+  <a href="{% url 'dashboard:activity_feed' %}" class="text-xs text-gray-400 hover:text-gray-600 underline self-end pb-1.5">Clear filters</a>
+  {% endif %}
+</form>
+
+<!-- Timeline -->
+<div class="card p-6">
+  {% if page.object_list %}
+  <ol class="relative border-l border-gray-200 ml-2 space-y-6">
+    {% for ev in page.object_list %}
+    <li class="ml-5">
+      <span class="absolute -left-2.5 flex items-center justify-center w-5 h-5 rounded-full ring-4 ring-white
+        {% if ev.event_type == 'created' %}bg-indigo-500
+        {% elif ev.event_type == 'status_change' %}bg-blue-500
+        {% elif ev.event_type == 'payment' %}bg-green-500
+        {% elif ev.event_type == 'signed' %}bg-emerald-500
+        {% elif ev.event_type == 'email_sent' %}bg-sky-500
+        {% elif ev.event_type == 'note' %}bg-amber-400
+        {% elif ev.event_type == 'edited' %}bg-gray-400
+        {% elif ev.event_type == 'converted' %}bg-purple-500
+        {% elif ev.event_type == 'interaction' %}bg-orange-400
+        {% else %}bg-gray-300{% endif %}">
+        {% if ev.event_type == 'payment' or ev.event_type == 'signed' %}
+        <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+        {% elif ev.event_type == 'email_sent' %}
+        <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path d="M2.003 5.884L10 9.882l7.997-3.998A2 2 0 0016 4H4a2 2 0 00-1.997 1.884z"/><path d="M18 8.118l-8 4-8-4V14a2 2 0 002 2h12a2 2 0 002-2V8.118z"/></svg>
+        {% elif ev.event_type == 'status_change' %}
+        <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clip-rule="evenodd"/></svg>
+        {% else %}
+        <svg class="w-2.5 h-2.5 text-white" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z" clip-rule="evenodd"/></svg>
+        {% endif %}
+      </span>
+
+      <div class="flex items-start justify-between gap-4">
+        <div>
+          <p class="text-sm text-gray-800">{{ ev.description }}</p>
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 mt-1">
+            <span class="text-xs font-medium px-2 py-0.5 rounded-full
+              {% if ev.event_type == 'created' %}bg-indigo-50 text-indigo-600
+              {% elif ev.event_type == 'status_change' %}bg-blue-50 text-blue-600
+              {% elif ev.event_type == 'payment' %}bg-green-50 text-green-600
+              {% elif ev.event_type == 'signed' %}bg-emerald-50 text-emerald-600
+              {% elif ev.event_type == 'email_sent' %}bg-sky-50 text-sky-600
+              {% elif ev.event_type == 'edited' %}bg-gray-100 text-gray-500
+              {% elif ev.event_type == 'converted' %}bg-purple-50 text-purple-600
+              {% else %}bg-gray-100 text-gray-500{% endif %}">
+              {{ ev.get_event_type_display }}
+            </span>
+            <span class="text-xs text-gray-400 bg-gray-50 px-2 py-0.5 rounded-full">{{ ev.content_type.model|capfirst }}</span>
+            {% if ev.actor %}
+            <span class="text-xs text-gray-400">{{ ev.actor.get_full_name|default:ev.actor.username }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <time class="text-xs text-gray-400 whitespace-nowrap flex-shrink-0 pt-0.5">{{ ev.created_at|site_date }}</time>
+      </div>
+    </li>
+    {% endfor %}
+  </ol>
+
+  {% include "partials/pagination.html" with page=page %}
+
+  {% else %}
+  <div class="text-center py-12">
+    <svg class="w-10 h-10 text-gray-200 mx-auto mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+    <p class="text-gray-400 text-sm">No activity events found{% if entity or event_type %} for these filters{% endif %}.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

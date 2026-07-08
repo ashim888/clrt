@@ -749,6 +749,49 @@ def report_billing(request):
 
 
 @login_required
+def activity_feed(request):
+    from dashboard.models import ActivityEvent
+    from django.contrib.contenttypes.models import ContentType
+
+    qs = ActivityEvent.objects.select_related("actor", "content_type").order_by("-created_at")
+
+    entity = request.GET.get("entity", "")
+    event_type = request.GET.get("type", "")
+
+    if entity:
+        try:
+            app_label, model = entity.split(".")
+            ct = ContentType.objects.get(app_label=app_label, model=model)
+            qs = qs.filter(content_type=ct)
+        except (ValueError, ContentType.DoesNotExist):
+            pass
+
+    if event_type:
+        qs = qs.filter(event_type=event_type)
+
+    # Paginate
+    from django.core.paginator import Paginator
+    paginator = Paginator(qs, 50)
+    page = paginator.get_page(request.GET.get("page", 1))
+
+    # Build entity filter choices
+    entity_counts = (
+        ActivityEvent.objects
+        .values("content_type__app_label", "content_type__model")
+        .annotate(c=Count("id"))
+        .order_by("-c")
+    )
+
+    return render(request, "dashboard/activity_feed.html", {
+        "page": page,
+        "entity": entity,
+        "event_type": event_type,
+        "entity_counts": entity_counts,
+        "event_types": ActivityEvent.EVENT_TYPE_CHOICES,
+    })
+
+
+@login_required
 def site_settings_view(request):
     if not (request.user.is_superuser or getattr(request.user, 'role', '') == 'admin'):
         messages.error(request, "Only admins can change system settings.")

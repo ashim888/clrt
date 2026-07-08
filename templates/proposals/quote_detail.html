@@ -189,6 +189,8 @@
 </div>
 {% endif %}
 
+{% include "partials/activity_timeline.html" with events=timeline_events %}
+
 <form id="status-form" style="display:none;">{% csrf_token %}</form>
 
 <!-- ─── Email preview dialog ─── -->

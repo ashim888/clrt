@@ -131,6 +131,7 @@ def client_detail(request, pk):
             .order_by("-created_at")
         )
     from dashboard.models import AuditLog, QuickNote
+    from dashboard.activity import get_events_for
     audit_logs = AuditLog.objects.filter(model_name="Client", object_id=pk).select_related("user")[:20]
     quick_notes = QuickNote.objects.filter(client_id=pk).select_related("user")
     return render(request, "clients/client_detail.html", {
@@ -143,6 +144,7 @@ def client_detail(request, pk):
         "lead_activities": lead_activities,
         "audit_logs": audit_logs,
         "quick_notes": quick_notes,
+        "timeline_events": get_events_for(client),
     })
 
 
@@ -157,6 +159,8 @@ def client_create(request):
         messages.success(request, f"Client \"{client.organization_name}\" created.")
         from dashboard.audit import log_audit
         log_audit(request.user, 'created', client)
+        from dashboard.activity import log_event
+        log_event(client, 'created', actor=request.user, description=f"Client created by {request.user.get_full_name() or request.user.username}")
         return redirect("clients:client_detail", pk=client.pk)
     from dashboard.models import Tag
     return render(request, "clients/client_form.html", {
@@ -180,6 +184,8 @@ def client_edit(request, pk):
         diff = model_changes(old, client, ["organization_name", "phone", "email", "industry", "status", "website", "address", "notes"])
         if diff:
             log_audit(request.user, 'updated', client, diff)
+        from dashboard.activity import log_event
+        log_event(client, 'edited', actor=request.user, description=f"Client updated by {request.user.get_full_name() or request.user.username}", metadata=diff or {})
         messages.success(request, "Client updated.")
         return redirect("clients:client_detail", pk=pk)
     from dashboard.models import Tag
@@ -515,6 +521,9 @@ def client_interaction_add(request, client_pk):
         interaction.client = client
         interaction.created_by = request.user
         interaction.save()
+        from dashboard.activity import log_event
+        log_event(client, 'interaction', actor=request.user,
+                  description=f"{interaction.get_type_display()} logged: {interaction.notes[:80] if interaction.notes else '—'}")
         messages.success(request, "Interaction logged.")
         return redirect("clients:client_detail", pk=client_pk)
     return render(request, "clients/client_interaction_form.html", {
@@ -561,6 +570,11 @@ def contract_create(request, client_pk):
         contract.save()
         for f in request.FILES.getlist("documents"):
             ContractDocument.objects.create(contract=contract, file=f)
+        from dashboard.activity import log_event
+        log_event(contract, 'created', actor=request.user,
+                  description=f"Contract {contract.contract_number} created")
+        log_event(client, 'created', actor=request.user,
+                  description=f"Contract {contract.contract_number} ({contract.contract_title}) created")
         messages.success(request, "Contract created.")
         return redirect("clients:contract_detail", pk=contract.pk)
     return render(request, "clients/contract_form.html", {
@@ -572,6 +586,7 @@ def contract_create(request, client_pk):
 @login_required
 def contract_detail(request, pk):
     from django.utils import timezone
+    from dashboard.activity import get_events_for as _get_contract_events
 
     contract = get_object_or_404(Contract, pk=pk)
     invoices = contract.invoices.order_by("-generated_date")
@@ -603,6 +618,7 @@ def contract_detail(request, pk):
         "duration_pct": duration_pct,
         "days_remaining": days_remaining,
         "today": today,
+        "timeline_events": _get_contract_events(contract),
     })
 
 
@@ -735,6 +751,9 @@ def contract_sign(request, token):
             contract.signature_at = tz.now()
             contract.signature_data = data
             contract.save(update_fields=["signature_name", "signature_ip", "signature_at", "signature_data"])
+            from dashboard.activity import log_event
+            log_event(contract, 'signed', description=f"Contract signed by {name} (IP: {ip or 'unknown'})")
+            log_event(contract.client, 'signed', description=f"Contract {contract.contract_number} signed by {name}")
             return redirect("clients:contract_sign_done", token=token)
 
     return render(request, "clients/contract_sign.html", {

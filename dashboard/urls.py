@@ -12,6 +12,7 @@ urlpatterns = [
     path("reports/billing/", views.report_billing, name="report_billing"),
     path("search/", views.search, name="search"),
     path("reports/team/", views.team_performance, name="team_performance"),
+    path("activity/", views.activity_feed, name="activity_feed"),
     path("settings/", views.site_settings_view, name="settings"),
     path("settings/test-razorpay/", views.test_razorpay_credentials, name="test_razorpay"),
     path("notifications/", views.notification_list, name="notifications"),

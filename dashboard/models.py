@@ -362,3 +362,39 @@ class Subscription(models.Model):
         if self.status == 'trialing' and self.trial_ends:
             return self.trial_ends >= timezone.now().date()
         return False
+
+
+class ActivityEvent(models.Model):
+    EVENT_TYPE_CHOICES = [
+        ('created',        'Created'),
+        ('edited',         'Edited'),
+        ('status_change',  'Status Changed'),
+        ('note',           'Note Added'),
+        ('email_sent',     'Email Sent'),
+        ('payment',        'Payment Received'),
+        ('signed',         'Signed'),
+        ('file_uploaded',  'File Uploaded'),
+        ('converted',      'Converted'),
+        ('assigned',       'Assigned'),
+        ('interaction',    'Interaction Logged'),
+    ]
+    content_type = models.ForeignKey(
+        'contenttypes.ContentType', on_delete=models.CASCADE,
+        related_name='activity_events',
+    )
+    object_id    = models.PositiveIntegerField(db_index=True)
+    event_type   = models.CharField(max_length=30, choices=EVENT_TYPE_CHOICES)
+    actor        = models.ForeignKey(
+        settings.AUTH_USER_MODEL, null=True, blank=True,
+        on_delete=models.SET_NULL, related_name='activity_events',
+    )
+    description  = models.TextField()
+    metadata     = models.JSONField(default=dict, blank=True)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+        indexes  = [models.Index(fields=['content_type', 'object_id'])]
+
+    def __str__(self):
+        return f"{self.event_type} @ {self.created_at:%Y-%m-%d %H:%M}"

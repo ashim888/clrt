@@ -289,6 +289,8 @@
 </div>
 {% endif %}
 
+{% include "partials/activity_timeline.html" with events=timeline_events %}
+
 <!-- Lightbox -->
 <div id="contract-lightbox" onclick="closeLightbox()" style="display:none"
   class="fixed inset-0 z-50 bg-black/90 flex items-center justify-center p-4">
@@ -394,6 +396,7 @@ document.addEventListener('keydown', e => {
 });
 buildCarousel();
 
+// timeline include is above this script block
 function copySignLink() {
   const url = '{{ request.scheme }}://{{ request.get_host }}{% url "clients:contract_sign" contract.sign_token %}';
   navigator.clipboard.writeText(url).then(() => {
